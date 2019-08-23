@@ -1,0 +1,76 @@
+modbus:
+  networks:
+    - name: rtutest
+      # default values for waiting for modbus response
+      # how log to wait for the first byte of a response
+      response_timeout: 500ms
+      # how log to wait for next byte of a response
+      response_data_timeout: 500ms
+      device: /dev/ttyUSB0
+      baud: 9600
+      parity: E
+      data_bit: 8
+      stop_bit: 1
+
+    - name: tcptest
+      address: 192.168.31.10
+      port: 502
+
+mqtt:
+  client_id: modbus
+  refresh: 10s
+  broker:
+    host: localhost
+    # optional: default is 1883
+    port: 1883
+
+    # optional: default is 60sec
+    keepalive: 60
+
+    # username: bob
+    # password: secret
+  objects:
+    - topic: isma_switch_1
+      refresh: 1s
+      # override default network response timeouts
+      response_timeout: 10ms
+      response_data_timeout: 20ms
+      commands:
+        - name: set 
+          register: tcptest.1.273
+          register_type: coil
+          # string is default
+          payload_type: string
+      # multiple registers in payload will generate json data
+      state:
+        register: tcptest.1.273
+        register_type: coil
+      availability:
+        refresh: 1s
+        name: avail
+        register: tcptest.1.225
+        register_type: bit
+        available_value: 0
+    - topic: isma_switch_2
+      # multiple registers in payload will generate json data
+      state:
+        register: tcptest.1.274
+        register_type: coil
+          
+
+    - topic: gtb_sensor/presence
+      refresh: 1s
+      state:
+        # override default network response timeouts
+        response_timeout: 10ms
+        response_data_timeout: 20ms
+        register: rtutest.1.1
+        register_type: input
+    - topic: gtb_sensor/lightlevel
+      state:
+        register: rtutest.1.2
+        register_type: input
+        refresh: 1s
+
+
+

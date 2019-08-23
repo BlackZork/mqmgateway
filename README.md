@@ -24,6 +24,11 @@ This software is dual-licensed:
 
 For a commercial-friendly license and support please see https://modmqttgw.zork.pl. You can find the commercial license terms in COMLICENSE.
 
+# Third-party licenses
+
+This software includes "A single-producer, single-consumer lock-free queue for C++" written by 
+Cameron Desrochers. See license terms in LICENSE.md
+
 # Installation
 
 1. `git clone https://github.com/BlackZork/modbusmqttgw.git`

@@ -1,0 +1,70 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "modmqttd",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/modmqttd/modmqttd",
+            "args": ["--loglevel","5"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/modmqttd",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            // Resolved by CMake Tools:
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            // unit test launch
+            //"args": ["If broker is restarted all mqtt objects should be republished"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },        
+        {
+            "name": "modmqttd remote",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/modmqttd/modmqttd",
+            "miDebuggerServerAddress": "remote_host:9091",
+            "args": ["--loglevel","5"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/modmqttd",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }        
+    ]
+}
