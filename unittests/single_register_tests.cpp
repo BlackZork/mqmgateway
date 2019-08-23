@@ -122,5 +122,3 @@ mqtt:
 
         server.stop();
     }
-
-    //TODO TEST_CASE for order: value first, availablity then

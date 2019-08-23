@@ -1,6 +1,7 @@
 find_package(Catch2 REQUIRED)
 
 add_executable(tests
+    defaults.hpp
     converter_name_parser_tests.cpp
     jsonutils.cpp
     jsonutils.hpp
