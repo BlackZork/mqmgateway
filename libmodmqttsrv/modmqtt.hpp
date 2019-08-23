@@ -58,12 +58,12 @@ class ModMqtt {
         std::vector<MsgRegisterPollSpecification> initObjects(const YAML::Node& config);
         void waitForSignal();
 
-        MqttObjectRegisterIdent updateSpecification(std::stack<int>& currentRefresh, std::vector<MsgRegisterPollSpecification>& specs, const YAML::Node& data);
+        MqttObjectRegisterIdent updateSpecification(std::stack<int>& currentRefresh, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs, const YAML::Node& data);
         bool parseAndAddRefresh(std::stack<int>& values, const YAML::Node& data);
-        void readObjectState(MqttObject& object, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const YAML::Node& state);
-        void readObjectStateNode(MqttObject& object, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const std::string& stateName, const YAML::Node& node);
-        void readObjectAvailability(MqttObject& object, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const YAML::Node& availability);
-        void readObjectCommands(MqttObject& object, const YAML::Node& commands);
+        void readObjectState(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const YAML::Node& state);
+        void readObjectStateNode(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const std::string& stateName, const YAML::Node& node);
+        void readObjectAvailability(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const YAML::Node& availability);
+        void readObjectCommands(MqttObject& object, const std::string& default_network, int default_slave, const YAML::Node& commands);
         void processModbusMessages();
 
         bool hasConverterPlugin(const std::string& name) const;

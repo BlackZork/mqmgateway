@@ -23,9 +23,9 @@ mqtt:
     TEST_CASE ("Availability flag for noavail register should be set after first read") {
         MockedModMqttServerThread server(config);
         server.start();
-        server.waitForPublish("test_switch/state", std::chrono::seconds(1000));
+        server.waitForPublish("test_switch/state", std::chrono::seconds(10));
         REQUIRE(server.mqttValue("test_switch/state") == "0");
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(1000));
+        server.waitForPublish("test_switch/availability", std::chrono::seconds(10));
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
         server.stop();
     }

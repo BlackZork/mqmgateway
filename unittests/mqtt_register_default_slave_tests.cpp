@@ -9,17 +9,19 @@ modbus:
       port: 501
 mqtt:
   client_id: mqtt_test
-  refresh: 1s
   broker:
     host: localhost
   objects:
     - topic: test_sensor
+      network: tcptest
+      slave: 1
       state:
-        register: tcptest.1.2
+        register: 2
         register_type: input
 )";
 
-TEST_CASE ("Unnamed scalar should output raw value") {
+
+TEST_CASE ("Parse register id with default slave and network name") {
     MockedModMqttServerThread server(config);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 32456);
     server.start();
@@ -28,3 +30,4 @@ TEST_CASE ("Unnamed scalar should output raw value") {
     REQUIRE(server.mqttValue("test_sensor/state") == "32456");
     server.stop();
 }
+
