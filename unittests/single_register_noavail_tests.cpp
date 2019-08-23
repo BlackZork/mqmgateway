@@ -1,6 +1,7 @@
 #include "catch2/catch.hpp"
 
 #include "mockedserver.hpp"
+#include "defaults.hpp"
 
 static const std::string config = R"(
 modbus:
@@ -51,3 +52,18 @@ mqtt:
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
         server.stop();
     }
+
+    TEST_CASE ("Value should be set before availability") {
+        MockedModMqttServerThread server(config);
+        server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::BIT, true);
+        server.start();
+        std::string topic = server.waitForFirstPublish(REGWAIT_MSEC);
+        REQUIRE("test_switch/state" == topic);
+
+        topic = server.waitForFirstPublish(REGWAIT_MSEC);
+        REQUIRE("test_switch/availability" == topic);
+
+        server.stop();
+    }
+
+//TODO TEST_CASE for order: value first, availablity then

@@ -1,6 +1,6 @@
 #include "catch2/catch.hpp"
-
 #include "mockedserver.hpp"
+#include "defaults.hpp"
 
 static const std::string config = R"(
 modbus:
@@ -29,12 +29,9 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 7);
         server.setModbusRegisterValue("tcptest", 2, 1, modmqttd::RegisterType::INPUT, 13);
         server.start();
-        server.waitForPublish("one/state", std::chrono::milliseconds(300));
+        server.waitForPublish("one/state", REGWAIT_MSEC);
         REQUIRE(server.mqttValue("one/state") == "7");
-        server.waitForPublish("two/state", std::chrono::milliseconds(300));
+        server.waitForPublish("two/state", REGWAIT_MSEC);
         REQUIRE(server.mqttValue("two/state") == "13");
         server.stop();
     }
-
-
-    //TODO TEST_CASE for order: value first, availablity then

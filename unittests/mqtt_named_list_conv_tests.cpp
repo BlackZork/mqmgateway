@@ -1,6 +1,7 @@
 #include "catch2/catch.hpp"
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
+#include "defaults.hpp"
 
 static const std::string config = R"(
 modmqttd:
@@ -37,10 +38,10 @@ TEST_CASE ("Named state list should output converted value") {
     server.start();
 
     //to make sure that all registers have initial value
-    server.waitForPublish("test_state/availability", std::chrono::milliseconds(30));
+    server.waitForPublish("test_state/availability", REGWAIT_MSEC);
     REQUIRE(server.mqttValue("test_state/availability") == "1");
 
-    server.waitForPublish("test_state/state", std::chrono::milliseconds(30));
+    server.waitForPublish("test_state/state", REGWAIT_MSEC);
 
     //2^17 + 1
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{\"some_name\": 131073}");

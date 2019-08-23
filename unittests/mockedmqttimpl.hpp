@@ -59,6 +59,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         //unit test tools
         bool waitForPublish(const char* topic, std::chrono::milliseconds timeout = std::chrono::seconds(1));
+        std::string waitForFirstPublish(std::chrono::milliseconds timeout);
         bool hasTopic(const char* topic);
         std::string mqttValue(const char* topic);
         //returns current value on timeout

@@ -58,8 +58,8 @@ MockedMqttImpl::on_log(int level, const char* message) {}
 
 bool
 MockedMqttImpl::waitForPublish(const char* topic, std::chrono::milliseconds timeout) {
-    std::unique_lock<std::mutex> lck(mMutex);
     BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting for publish on: [" << topic << "]";
+    std::unique_lock<std::mutex> lck(mMutex);
     bool published = mPublishedTopics.find(topic) != mPublishedTopics.end();
     if (!published) {
         auto start = std::chrono::steady_clock::now();
@@ -77,6 +77,31 @@ MockedMqttImpl::waitForPublish(const char* topic, std::chrono::milliseconds time
     mPublishedTopics.erase(topic);
     return published;
 }
+
+std::string
+MockedMqttImpl::waitForFirstPublish(std::chrono::milliseconds timeout) {
+    std::unique_lock<std::mutex> lck(mMutex);
+
+    bool published = mPublishedTopics.size() != 0;
+    if (!published) {
+        auto start = std::chrono::steady_clock::now();
+        int dur;
+        do {
+            if (mCondition.wait_for(lck, timeout) == std::cv_status::timeout)
+                break;
+            published = mPublishedTopics.size() != 0;
+            if (published)
+                break;
+            auto end = std::chrono::steady_clock::now();
+            dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        } while (dur < timeout.count());
+    }
+
+    std::string ret = *(mPublishedTopics.begin());
+    mPublishedTopics.clear();
+    return ret;
+}
+
 
 std::string
 MockedMqttImpl::waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout) {

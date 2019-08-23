@@ -40,4 +40,3 @@ TEST_CASE ("Start and stop real server that cannot connect to anything") {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     server.stop();
 }
-

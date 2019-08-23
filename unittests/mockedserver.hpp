@@ -73,9 +73,16 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         };
 
     void waitForPublish(const char* topic, std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
-        bool is_published = mMqtt->waitForPublish(topic, timeout);
         INFO("Checking for publish on " << topic);
+        bool is_published = mMqtt->waitForPublish(topic, timeout);
         REQUIRE(is_published == true);
+    }
+
+    std::string waitForFirstPublish(std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
+        std::string topic = mMqtt->waitForFirstPublish(timeout);
+        INFO("Getting first published topic");
+        REQUIRE(!topic.empty());
+        return topic;
     }
 
     void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
