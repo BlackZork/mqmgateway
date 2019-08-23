@@ -6,6 +6,60 @@
 
 namespace modmqttd {
 
+static void on_connect_wrapper(struct mosquitto *mosq, void *userdata, int rc)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_connect(rc);
+}
+
+/*
+static void on_connect_with_flags_wrapper(struct mosquitto *mosq, void *userdata, int rc, int flags)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_connect_with_flags(rc, flags);
+}
+*/
+
+static void on_disconnect_wrapper(struct mosquitto *mosq, void *userdata, int rc)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_disconnect(rc);
+}
+
+/*
+static void on_publish_wrapper(struct mosquitto *mosq, void *userdata, int mid)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_publish(mid);
+}
+*/
+
+static void on_message_wrapper(struct mosquitto *mosq, void *userdata, const struct mosquitto_message *message)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_message(message);
+}
+
+/*
+static void on_subscribe_wrapper(struct mosquitto *mosq, void *userdata, int mid, int qos_count, const int *granted_qos)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_subscribe(mid, qos_count, granted_qos);
+}
+
+static void on_unsubscribe_wrapper(struct mosquitto *mosq, void *userdata, int mid)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_unsubscribe(mid);
+}
+*/
+
+static void on_log_wrapper(struct mosquitto *mosq, void *userdata, int level, const char *str)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_log(level, str);
+}
+
 void
 Mosquitto::throwOnCriticalError(int code) {
     // copied from mosquittopp loop_forever()
@@ -26,10 +80,23 @@ Mosquitto::throwOnCriticalError(int code) {
     }
 }
 
+Mosquitto::Mosquitto() {
+	mMosq = mosquitto_new(NULL, true, this);
+
+    mosquitto_connect_callback_set(mMosq, on_connect_wrapper);
+    //mosquitto_connect_with_flags_callback_set(mMosq, on_connect_with_flags_wrapper);
+    mosquitto_disconnect_callback_set(mMosq, on_disconnect_wrapper);
+    //mosquitto_publish_callback_set(mMosq, on_publish_wrapper);
+    mosquitto_message_callback_set(mMosq, on_message_wrapper);
+    //mosquitto_subscribe_callback_set(mMosq, on_subscribe_wrapper);
+    //mosquitto_unsubscribe_callback_set(mMosq, on_unsubscribe_wrapper);
+    mosquitto_log_callback_set(mMosq, on_log_wrapper);
+}
+
 void
 Mosquitto::connect(const MqttBrokerConfig& config) {
     BOOST_LOG_SEV(log, Log::info) << "Connecting to " << config.mHost << ":" << config.mPort;
-    int rc = connect_async(config.mHost.c_str(),
+    int rc = mosquitto_connect_async(mMosq, config.mHost.c_str(),
             config.mPort,
             config.mKeepalive);
     throwOnCriticalError(rc);
@@ -41,26 +108,43 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
         BOOST_LOG_SEV(log, Log::error) << "Error connecting to mqtt broker: " << returnCodeToStr(rc);
     } else {
         BOOST_LOG_SEV(log, Log::info) << "Connection estabilished";
-        reconnect_delay_set(3,60, true);
-        loop_start();
+        mosquitto_reconnect_delay_set(mMosq, 3,60, true);
+        mosquitto_loop_start(mMosq);
     }
+}
+
+void
+Mosquitto::reconnect() {
+    mosquitto_reconnect(mMosq);
+}
+
+void
+Mosquitto::disconnect() {
+    mosquitto_disconnect(mMosq);
+}
+
+void
+Mosquitto::stop() {
+    mosquitto_loop_stop(mMosq, false);
 }
 
 void Mosquitto::init(MqttClient* owner, const char* clientId) {
     mOwner = owner;
-    reinitialise(clientId, true);
+	int rc = mosquitto_reinitialise(mMosq, clientId, true, this);
+    //TODO check return code?
+	//return rc;
 }
 
 void
 Mosquitto::subscribe(const char* topic) {
     int msgId;
-    mosquittopp::subscribe(&msgId, topic);
+    mosquitto_subscribe(mMosq, &msgId, topic, 0);
 }
 
 void
 Mosquitto::publish(const char* topic, int len, const void* data) {
     int msgId;
-    mosquittopp::publish(&msgId, topic, len, data, 0, true);
+    mosquitto_publish(mMosq, &msgId, topic, len, data, 0, true);
 }
 
 
@@ -145,5 +229,9 @@ Mosquitto::returnCodeToStr(int mosq_errno) {
 			return "Unknown error.";
 	}
 };
+
+Mosquitto::~Mosquitto() {
+	mosquitto_destroy(mMosq);
+}
 
 }

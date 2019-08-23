@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mosquittopp.h>
+#include <mosquitto.h>
 #include "config.hpp"
 #include "common.hpp"
 #include "mqttobject.hpp"
@@ -11,14 +11,15 @@ namespace modmqttd {
 
 class MqttClient;
 
-class Mosquitto : public mosqpp::mosquittopp, public IMqttImpl {
+class Mosquitto : public IMqttImpl {
     public:
+        Mosquitto();
         virtual void init(MqttClient* owner, const char* clientId);
         virtual void connect(const MqttBrokerConfig& config);
-        virtual void stop() { loop_stop(); }
+        virtual void stop();
 
-        virtual void reconnect() { mosquittopp::reconnect(); }
-        virtual void disconnect() { mosquittopp::disconnect(); }
+        virtual void reconnect(); /*{ mosquittopp::reconnect(); }*/
+        virtual void disconnect(); /*{ mosquittopp::disconnect(); }*/
 
         virtual void subscribe(const char* topic);
         virtual void publish(const char* topic, int len, const void* data);
@@ -27,7 +28,9 @@ class Mosquitto : public mosqpp::mosquittopp, public IMqttImpl {
         virtual void on_connect(int rc);
         virtual void on_log(int level, const char* message);
         virtual void on_message(const struct mosquitto_message *message);
+        virtual ~Mosquitto();
     private:
+        mosquitto *mMosq = NULL;
         MqttClient* mOwner;
         boost::log::sources::severity_logger<Log::severity> log;
 
