@@ -72,7 +72,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         std::map<std::string, MqttValue> mTopics;
         std::set<std::string> mSubscriptions;
-        std::set<std::string> mPublishedTopics;
+        std::map<std::string, int> mPublishedTopics;
 
         std::mutex mMutex;
         std::condition_variable mCondition;

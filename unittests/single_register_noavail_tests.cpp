@@ -60,9 +60,6 @@ mqtt:
         std::string topic = server.waitForFirstPublish(REGWAIT_MSEC);
         REQUIRE("test_switch/state" == topic);
 
-        topic = server.waitForFirstPublish(REGWAIT_MSEC);
-        REQUIRE("test_switch/availability" == topic);
-
         server.stop();
     }
 

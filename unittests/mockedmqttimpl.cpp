@@ -42,7 +42,7 @@ MockedMqttImpl::publish(const char* topic, int len, const void* data) {
         mOwner->onMessage(topic, data, len);
     }
     BOOST_LOG_SEV(log, modmqttd::Log::info) << "PUBLISH " << topic << ": <" << v.val << ">";
-    mPublishedTopics.insert(topic);
+    mPublishedTopics.insert(std::make_pair(topic, mPublishedTopics.size() + 1));
     mCondition.notify_all();
 }
 
@@ -97,9 +97,22 @@ MockedMqttImpl::waitForFirstPublish(std::chrono::milliseconds timeout) {
         } while (dur < timeout.count());
     }
 
-    std::string ret = *(mPublishedTopics.begin());
+    if (!published)
+        return std::string();
+
+    int qval = 1;
+    std::map<std::string, int>::const_iterator it = std::find_if(
+        mPublishedTopics.begin(), mPublishedTopics.end(),
+        [&qval](const std::pair<std::string, int>& item) -> bool { return qval == item.second; }
+    );
+
+    if (it == mPublishedTopics.end())
+        throw MockedMqttException("Cannot find first published topic");
+
+    std::string topic = it->first;
     mPublishedTopics.clear();
-    return ret;
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Got first published topic: [" << topic << "]";
+    return topic;
 }
 
 
