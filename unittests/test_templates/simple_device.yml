@@ -1,0 +1,12 @@
+simple_device:
+  state:
+    register: 1
+    register_type: coil
+  availability:
+    register: 2
+    register_type: bit
+    available_value: 1
+  commands:
+    - name: set
+      register: 273
+      register_type: coil

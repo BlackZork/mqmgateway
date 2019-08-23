@@ -2,6 +2,7 @@ find_package(Catch2 REQUIRED)
 
 add_executable(tests
     defaults.hpp
+    device_template_tests.cpp
     converter_name_parser_tests.cpp
     jsonutils.cpp
     jsonutils.hpp
@@ -27,6 +28,8 @@ add_executable(tests
     single_register_tests.cpp
     two_slaves_tests.cpp
 )
+
+file(COPY test_templates DESTINATION .)
 
 target_link_libraries(tests 
     modmqttsrv
