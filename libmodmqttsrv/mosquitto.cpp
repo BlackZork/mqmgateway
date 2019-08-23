@@ -12,13 +12,13 @@ static void on_connect_wrapper(struct mosquitto *mosq, void *userdata, int rc)
 	m->on_connect(rc);
 }
 
-/*
+
 static void on_connect_with_flags_wrapper(struct mosquitto *mosq, void *userdata, int rc, int flags)
 {
 	class Mosquitto *m = (class Mosquitto *)userdata;
-	m->on_connect_with_flags(rc, flags);
+//	m->on_connect_with_flags(rc, flags);
 }
-*/
+
 
 static void on_disconnect_wrapper(struct mosquitto *mosq, void *userdata, int rc)
 {
@@ -80,17 +80,18 @@ Mosquitto::throwOnCriticalError(int code) {
     }
 }
 
+void
+Mosquitto::libInit() {
+    mosquitto_lib_init();
+}
+
+void
+Mosquitto::libCleanup() {
+    mosquitto_lib_cleanup();
+}
+
 Mosquitto::Mosquitto() {
 	mMosq = mosquitto_new(NULL, true, this);
-
-    mosquitto_connect_callback_set(mMosq, on_connect_wrapper);
-    //mosquitto_connect_with_flags_callback_set(mMosq, on_connect_with_flags_wrapper);
-    mosquitto_disconnect_callback_set(mMosq, on_disconnect_wrapper);
-    //mosquitto_publish_callback_set(mMosq, on_publish_wrapper);
-    mosquitto_message_callback_set(mMosq, on_message_wrapper);
-    //mosquitto_subscribe_callback_set(mMosq, on_subscribe_wrapper);
-    //mosquitto_unsubscribe_callback_set(mMosq, on_unsubscribe_wrapper);
-    mosquitto_log_callback_set(mMosq, on_log_wrapper);
 }
 
 void
@@ -107,9 +108,22 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
     if (rc != MOSQ_ERR_SUCCESS) {
         BOOST_LOG_SEV(log, Log::error) << "Error connecting to mqtt broker: " << returnCodeToStr(rc);
     } else {
-        BOOST_LOG_SEV(log, Log::info) << "Connection estabilished";
         mosquitto_reconnect_delay_set(mMosq, 3,60, true);
-        mosquitto_loop_start(mMosq);
+        mosquitto_connect_callback_set(mMosq, on_connect_wrapper);
+        mosquitto_connect_with_flags_callback_set(mMosq, on_connect_with_flags_wrapper);
+        mosquitto_disconnect_callback_set(mMosq, on_disconnect_wrapper);
+        //mosquitto_publish_callback_set(mMosq, on_publish_wrapper);
+        mosquitto_message_callback_set(mMosq, on_message_wrapper);
+        //mosquitto_subscribe_callback_set(mMosq, on_subscribe_wrapper);
+        //mosquitto_unsubscribe_callback_set(mMosq, on_unsubscribe_wrapper);
+        mosquitto_log_callback_set(mMosq, on_log_wrapper);
+
+
+        BOOST_LOG_SEV(log, Log::debug) << "Waiting for connection event";
+        int rc = mosquitto_loop_start(mMosq);
+        if (rc != MOSQ_ERR_SUCCESS) {
+            BOOST_LOG_SEV(log, Log::error) << "Error processing network traffic: " << returnCodeToStr(rc);
+        }
     }
 }
 
@@ -155,6 +169,7 @@ Mosquitto::on_disconnect(int rc) {
 
 void
 Mosquitto::on_connect(int rc) {
+    BOOST_LOG_SEV(log, Log::info) << "Connection estabilished";
     mOwner->onConnect();
 }
 

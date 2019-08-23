@@ -13,6 +13,9 @@ class MqttClient;
 
 class Mosquitto : public IMqttImpl {
     public:
+        static void libInit();
+        static void libCleanup();
+
         Mosquitto();
         virtual void init(MqttClient* owner, const char* clientId);
         virtual void connect(const MqttBrokerConfig& config);

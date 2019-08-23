@@ -130,6 +130,7 @@ ModMqtt::ModMqtt()
     // unit tests create main class multiple times
     // reset global flag at each creation
     gSignalStatus = -1;
+    Mosquitto::libInit();
     mMqtt.reset(new MqttClient(*this));
     mModbusFactory.reset(new ModbusFactory());
 }
@@ -584,7 +585,7 @@ void ModMqtt::start() {
     // mosquitto does not use reconnect_delay_set
     // when doing inital connection. We also do not want to
     // process queues before connection to mqtt broker is
-    // estabilished - it will cause availability messages to be dropped.
+    // estabilished - this will cause availability messages to be dropped.
 
     // TODO if broker is down and modbus is up then mQueues will grow forever and
     // memory allocated by queues will never be released. Add MsgStartPolling?
@@ -722,6 +723,7 @@ ModMqtt::setModbusContextFactory(const std::shared_ptr<IModbusFactory>& factory)
 }
 
 ModMqtt::~ModMqtt() {
+    Mosquitto::libCleanup();
     // we need to delete all conveter instances
     // from plugins before unloading plugin libraries
     mMqtt = nullptr;
