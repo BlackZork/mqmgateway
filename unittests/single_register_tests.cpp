@@ -2,7 +2,6 @@
 
 #include "mockedserver.hpp"
 
-//make sure that nothing listen on given ports
 static const std::string config = R"(
 modbus:
   networks:
