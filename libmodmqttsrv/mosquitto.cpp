@@ -130,9 +130,8 @@ Mosquitto::stop() {
 
 void Mosquitto::init(MqttClient* owner, const char* clientId) {
     mOwner = owner;
-	int rc = mosquitto_reinitialise(mMosq, clientId, true, this);
     //TODO check return code?
-	//return rc;
+	mosquitto_reinitialise(mMosq, clientId, true, this);
 }
 
 void
