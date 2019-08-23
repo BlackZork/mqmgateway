@@ -47,3 +47,5 @@ For a commercial-friendly license and support please see https://modmqttgw.zork.
 
 TODO
 
+There is an example modmqttd.service file for systemd. 
+
