@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 #include "libmodmqttsrv/common.hpp"
 #include "libmodmqttsrv/modmqtt.hpp"
 #include "config.hpp"
@@ -59,6 +60,8 @@ int main(int ac, char* av[]) {
         BOOST_LOG_SEV(*log, modmqttd::Log::info) << "modmqttd stopped";
         return EXIT_SUCCESS;
     } catch (const YAML::BadFile& ex) {
+        if (configPath == "")
+            configPath = boost::filesystem::current_path().native();
         std::string msg = "Failed to load configuration from "s + configPath;
         logCriticalError(log, msg.c_str());
     } catch (const std::exception& ex) {
