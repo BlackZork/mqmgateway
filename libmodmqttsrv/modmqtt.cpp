@@ -149,9 +149,10 @@ void
 ModMqtt::init(const YAML::Node& config) {
     initServer(config);
     initBroker(config);
+    std::vector<MsgRegisterPollSpecification> specs = initObjects(config);
+
     initModbusClients(config);
 
-    std::vector<MsgRegisterPollSpecification> specs = initObjects(config);
     for(std::vector<MsgRegisterPollSpecification>::iterator sit = specs.begin(); sit != specs.end(); sit++) {
         const std::string& netname = sit->mNetworkName;
         std::vector<std::shared_ptr<ModbusClient>>::iterator client = std::find_if(
@@ -372,7 +373,7 @@ ModMqtt::createConverter(const YAML::Node& node) const {
 
         std::shared_ptr<IStateConverter> conv = createConverterInstance(spec.plugin, spec.converter);
         if (conv == nullptr)
-            throw ConfigurationException(node.Mark(), "Converter plugin " + spec.plugin + "." + spec.converter + " not found");
+            throw ConfigurationException(node.Mark(), "Converter " + spec.plugin + "." + spec.converter + " not found");
         try {
             conv->setArgs(spec.args);
         } catch (const std::exception& ex) {
