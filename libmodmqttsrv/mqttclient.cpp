@@ -198,11 +198,17 @@ convertMqttPayload(const MqttObjectCommand& command, const void* data, int datal
     switch(command.mPayloadType) {
         case MqttObjectCommand::PayloadType::STRING: {
             std::string value((const char*)data, datalen);
-            int temp(std::stoi(value.c_str()));
-            if (temp <= static_cast<int>(UINT16_MAX) && temp >=0) {
-                ret = static_cast<uint16_t>(temp);
-            } else {
-                throw MqttPayloadConversionException(std::string("Conversion failed, value " + std::to_string(temp) + " out of range"));
+            try {
+                int temp(std::stoi(value.c_str()));
+                if (temp <= static_cast<int>(UINT16_MAX) && temp >=0) {
+                    ret = static_cast<uint16_t>(temp);
+                } else {
+                    throw MqttPayloadConversionException(std::string("Conversion failed, value " + std::to_string(temp) + " out of range"));
+                }
+            } catch (const std::invalid_argument& ex) {
+                throw MqttPayloadConversionException("Failed to convert mqtt value to int16");
+            } catch (const std::out_of_range& ex) {
+                throw MqttPayloadConversionException("mqtt value if out of range");
             }
         } break;
         default:

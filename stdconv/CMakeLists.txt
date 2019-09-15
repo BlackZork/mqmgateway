@@ -1,6 +1,8 @@
 add_library(stdconv
     MODULE
+    bitmask.hpp
     divide.hpp
+    int32.hpp
     plugin.hpp
     plugin.cpp
 )

@@ -2,7 +2,6 @@ find_package(Catch2 REQUIRED)
 
 add_executable(tests
     defaults.hpp
-    converter_name_parser_tests.cpp
     jsonutils.cpp
     jsonutils.hpp
     main.cpp
@@ -12,6 +11,9 @@ add_executable(tests
     mockedmqttimpl.hpp
     mockedserver.hpp
     # tests
+    converter_name_parser_tests.cpp
+    device_template_tests.cpp
+    mqtt_command_tests.cpp
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp
     mqtt_named_scalar_conv_tests.cpp
