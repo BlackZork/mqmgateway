@@ -18,6 +18,7 @@ add_executable(tests
     mqtt_named_scalar_conv_tests.cpp
     mqtt_register_default_slave_tests.cpp
     mqtt_state_map_conv_tests.cpp
+    mqtt_state_map_tests.cpp
     mqtt_unnamed_list_conv_tests.cpp
     mqtt_unnamed_list_tests.cpp
     mqtt_unnamed_scalar_conv_tests.cpp
