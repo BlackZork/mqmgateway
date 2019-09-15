@@ -3,7 +3,7 @@ Description=Modbus to MQTT gateway
 After=network.target
 
 [Service]
-Environment="LD_LIBRARY_PATH=/home/zork/modbusmqttgw/build/libmodmqttsrv"
+Environment="LD_LIBRARY_PATH=/home/zork/modbusmqttgw/build/libmodmqttsrv:/home/zork/modbusmqttgw/build/stdconv"
 ExecStart=/home/zork/modbusmqttgw/build/modmqttd/modmqttd --config=/home/zork/modbusmqttgw/build/modmqttd/config.yaml
 
 [Install]
