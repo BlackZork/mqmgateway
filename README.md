@@ -42,16 +42,51 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 1. Configure project:
 
     ```
-    cmake -S (project dir) -B (build dir)
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -S (project dir) -B (build dir)
     make 
     make install
     ```
 
-1. Run modmqttd. It should exit with missing configuration file error.
+1. Copy config.template.yml to /etc/modmqttd.yml.
 
 # Configuration
 
-[Work in progress]
+modmqttd configuration file is in YAML format. It is divied in three main sections:
+
+* modmqttd section contains information about custom plugins
+* modbus section contains modbus network definitions
+* mqtt section contains mqtt broker connection parameters and modbus register mappings
+
+For quick example see [config.template.yaml](modmqttd/config.template.yaml) in source directory.
+
+## Configuration values
+
+* timespan format: "([0-9]+)(ms|s|min)"
+
+  Used for various timeout configuration entries
+
+## modmqttd section
+
+* converter_search_path (optional)
+
+  List of paths where to search for converter plugins. If path does not start with '/' then it is treated as relative to current working directory
+
+* converter_plugins (optional)
+
+  List of converter plugins to load. Modmqttd search for plugins in all directories specified in converter_search_path list
+
+## modbus section
+
+Modbus section contains a list of modbus networks modmqttd should connect to.
+Modbus network configuration parameters are listed below:
+
+* name (required)
+
+  Unique name for network - referenced in mqtt mappings
+
+* response_timeout (optional, default )
+
+  A timespan 
 
 There is an example modmqttd.service file for systemd. 
 
