@@ -23,7 +23,7 @@ This software is dual-licensed:
   * under the terms of [AGPL-3.0 license](https://www.gnu.org/licenses/agpl-3.0.html) as Open Source project.
   * under commercial license.
 
-For a commercial-friendly license and support please see https://mqmgateway.zork.pl. 
+For a commercial-friendly license and support please see http://mqmgateway.zork.pl. 
 
 # Third-party licenses
 
