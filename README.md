@@ -49,6 +49,15 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
 1. Copy config.template.yml to /etc/modmqttd.yml.
 
+1. There is an example modmqttd.service file for systemd. Copy it to /etc/systemd/system.
+
+1. Edit configuration and start service:
+
+```
+  systemctl start modmqttd
+```
+
+
 # Configuration
 
 modmqttd configuration file is in YAML format. It is divied in three main sections:
@@ -247,7 +256,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   * **converter** (optional)
 
-    The name of function that should be called to convert register u_int16 value to MQTT UTF-8 value. Format of function name is `library name.function name`. See converters for details. 
+    The name of function that should be called to convert register u_int16 value to MQTT UTF-8 value. Format of function name is `plugin name.function name`. See converters for details. 
 
   The following examples show how to combine *name*, *register*, *register_type*, and *converter* to output different state values:
 
@@ -327,13 +336,138 @@ Configuration values:
 
   * **available_value** (optional, default 1)
 
-    Expected u_int16 value when state is available. If other value is readed then availability flag is set to "0".
+    Expected u_int16 value readed from availablity register when availablity flag should be set to "1". If other value is readed then availability flag is set to "0".
 
 *register*, *register_type* and *available_value* can form a list when multiple registers should be readed.
 
 ## Data conversion
 
+Data readed from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit or perform some simple divide operations a converter can be used.
+
+### Standard converters
+
+Converter functions are defined in libraries dynamically loaded at startup.
+M2MGateway contains *std* library with basic converters ready to use:
+
+  * **divide**
+
+    Arguments:
+      - divider (required)
+      - precision (optional)
+
+    Divides modbus value by divder and rounds to (precision) digits after the decimal.
+
+  * **int32**
+
+    Arguments: none
+
+    For unnamed list. Combines two modbus registers into one 32bit value. The first register holds bits 17-32, the second holds 1-16.
+
+  * **bitmask**
+
+    Arguments:
+      - bitmask in hex (default "0xffff")
+
+    Applies a mask to value readed from modbus register.
+
+Converter can be added to modbus register in state section.
+
+When state is a single modbus register:
+
+```
+  state:
+    register: device1.slave2.12
+    register_type: input
+    converter: std.divide(10,2)
+```
+
+When state is a single MQTT value combined from multiple modbus registers:
+
+```
+  state:
+    converter: std.int32()
+    registers:
+    - register: device1.slave2.12
+      register_type: input
+    - register: device1.slave2.13
+      register_type: input
+```
+
+### Adding custom converters
+
+Custom converters can be added by creating a C++ dynamically loaded library with conversion classes. There is a header only libmodmqttconv that provide base classes for plugin and converter implementations.
+
+Here is a minimal example of custom conversion plugin with help of boost dll library loader:
+
+``` C++
+
+#include <boost/config.hpp> // for BOOST_SYMBOL_EXPORT
+#include "libmodmqttconv/converterplugin.hpp"
+
+class MyConverter : public IStateConverter {
+    public:
+        //called by modmqttd to set coverter arguments
+        virtual void setArgs(const std::vector<std::string>& args) {
+            mShift = getIntArg(0);
+        }
+
+        // ModbusRegisters contains one register or as many as
+        // configured in unnamed register list.
+        virtual MqttValue toMqtt(const ModbusRegisters& data) const {
+            int val = data.getValue(0);
+            return MqttValue::fromInt(val << mShift);
+        }
+
+        virtual ~MyConverter() {}
+    private:
+      int mShift = 0;
+};
 
 
-There is an example modmqttd.service file for systemd. 
+class MyPlugin : ConverterPlugin {
+    public:
+        // name used in configuration as plugin prefix.
+        virtual std::string getName() const { return "myplugin"; }
+        virtual IStateConverter* getStateConverter(const std::string& name) {
+            if (name == "myconverter") 
+                return new MyConverter();
+            return nullptr;
+        }
+        virtual ~MyPlugin() {}
+};
+
+// modmqttd search for "converter_plugin" C symbol in loaded dll
+extern "C" BOOST_SYMBOL_EXPORT MyPlugin converter_plugin;
+MyPlugin converter_plugin;
+
+```
+
+Compilation on linux:
+
+```
+g++ -I<path to mqmgateway source dir> -fPIC -shared myplugin.cpp -o myplugin.so
+```
+
+
+*myconverter* from this example can be used like this:
+
+```
+modmqttd:
+  loglevel: 5
+  converter_search_path:
+    - <mylugin.so dir>
+  converter_plugins:
+    - myplugin.so
+mqtt:
+  objects:
+    - topic: test_topic
+    state:
+      name: test_val
+      register: device1.slave2.12
+      register_type: input
+      converter: myplugin.myconverter(1)
+
+```
+
+For more examples see libstdconv source code.
 
