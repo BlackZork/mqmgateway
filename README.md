@@ -408,7 +408,7 @@ class MyConverter : public IStateConverter {
     public:
         //called by modmqttd to set coverter arguments
         virtual void setArgs(const std::vector<std::string>& args) {
-            mShift = getIntArg(0);
+            mShift = getIntArg(0, args);
         }
 
         // ModbusRegisters contains one register or as many as
