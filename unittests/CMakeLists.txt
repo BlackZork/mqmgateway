@@ -27,6 +27,7 @@ add_executable(tests
     scheduler_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp
+    stdconv_tests.cpp
     two_slaves_tests.cpp
 )
 
@@ -39,4 +40,5 @@ target_link_libraries(tests
     ${Boost_LIBRARIES} 
     ${LIBMODBUS_LIBRARIES} 
     ${CMAKE_THREAD_LIBS_INIT}
+    ${CMAKE_DL_LIBS}    
 )
