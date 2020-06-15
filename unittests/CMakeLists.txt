@@ -13,11 +13,14 @@ add_executable(tests
     mockedmqttimpl.hpp
     mockedserver.hpp
     # tests
+    converter_name_parser_tests.cpp
+    mqtt_command_tests.cpp
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp
     mqtt_named_scalar_conv_tests.cpp
     mqtt_register_default_slave_tests.cpp
     mqtt_state_map_conv_tests.cpp
+    mqtt_state_map_tests.cpp
     mqtt_unnamed_list_conv_tests.cpp
     mqtt_unnamed_list_tests.cpp
     mqtt_unnamed_scalar_conv_tests.cpp
@@ -26,6 +29,7 @@ add_executable(tests
     scheduler_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp
+    stdconv_tests.cpp
     two_slaves_tests.cpp
 )
 
@@ -40,4 +44,5 @@ target_link_libraries(tests
     ${Boost_LIBRARIES} 
     ${LIBMODBUS_LIBRARIES} 
     ${CMAKE_THREAD_LIBS_INIT}
+    ${CMAKE_DL_LIBS}    
 )

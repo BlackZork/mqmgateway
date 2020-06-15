@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(modmqttd)
+project(modmqttd VERSION 1.0.0)
 
 find_package(Boost 1.54.0 REQUIRED COMPONENTS log program_options)
 set(Boost_USE_STATIC_LIBS        OFF)
@@ -31,5 +31,6 @@ add_dependencies(modmqttd stdconv)
 add_dependencies(tests stdconv)
 
 install (TARGETS modmqttd DESTINATION bin)
+
 install (TARGETS modmqttsrv DESTINATION lib)
 install (DIRECTORY "${PROJECT_SOURCE_DIR}/libmodmqttconv" DESTINATION include FILES_MATCHING PATTERN "*.hpp")
