@@ -6,7 +6,7 @@
 
 class StdConvPlugin : ConverterPlugin {
     public:
-        virtual std::string getName() const { return "std"; }
+        virtual std::string getName() const { return "expr"; }
         virtual IStateConverter* getStateConverter(const std::string& name);
         virtual ~StdConvPlugin() {}
 };
