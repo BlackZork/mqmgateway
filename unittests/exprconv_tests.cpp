@@ -5,7 +5,7 @@
 
 #ifdef HAVE_EXPRTK
 
-TEST_CASE ("Simple expression converter test") {
+TEST_CASE ("Exprtk converter test") {
     std::string stdconv_path = "../exprconv/exprconv.so";
 
     boost::shared_ptr<ConverterPlugin> plugin = boost::dll::import<ConverterPlugin>(
@@ -14,7 +14,7 @@ TEST_CASE ("Simple expression converter test") {
         boost::dll::load_mode::append_decorations
     );
 
-    std::shared_ptr<IStateConverter> conv(plugin->getStateConverter("expr"));
+    std::shared_ptr<IStateConverter> conv(plugin->getStateConverter("evaluate"));
     std::vector<std::string> args = {
         "R0 * 2"
     };

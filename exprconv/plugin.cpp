@@ -3,7 +3,7 @@
 
 IStateConverter*
 StdConvPlugin::getStateConverter(const std::string& name) {
-    if(name == "expr") {
+    if(name == "evaluate") {
         return new ExprtkConverter();
     }
     return nullptr;
