@@ -32,6 +32,10 @@ add_subdirectory(unittests)
 if (DEFINED CACHE{EXPRTK_INCLUDE_DIR})
     include_directories(${EXPRTK_INCLUDE_DIR})
     add_subdirectory(exprconv)    
+    target_compile_definitions(tests PRIVATE HAVE_EXPRTK)
+
+    add_dependencies(modmqttd exprconv)
+    add_dependencies(tests exprconv)
 endif()
 
 add_dependencies(modmqttd stdconv)
