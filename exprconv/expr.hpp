@@ -6,40 +6,40 @@
 
 class ExprtkConverter : public IStateConverter {
     public:
+        static const int MAX_REGISTERS = 10;
+
+        ExprtkConverter() : mValues(MAX_REGISTERS, 0) {}
+
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
 
-            exprtk::symbol_table<double> symbol_table;
-            symbol_table.add_constants();
-
-            char buf[8];
-            if (data.getCount() > 999)
-                throw new ConvException("Too many registers to convert");
-
-            std::vector<double> values;
+            if (data.getCount() > MAX_REGISTERS)
+                throw new ConvException("Maximum " +std::to_string(MAX_REGISTERS) + " registers allowed");
 
             for(int i = 0; i < data.getCount(); i++) {
-                sprintf(buf, "R%d", i);
-                values.push_back(data.getValue(i));
-                symbol_table.add_variable(buf, values[i], true);
+                mValues[i] =  data.getValue(i);
             }
 
-            exprtk::parser<double> parser;
-            exprtk::expression<double> expression;
-
-            expression.register_symbol_table(symbol_table);
-
-            parser.compile(mExpressionString, expression);
-
-            double ret = expression.value();
-
+            double ret = mExpression.value();
             return MqttValue::fromDouble(ret);
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            mExpressionString = getArg(0, args);
+            mSymbolTable.add_constants();
+
+            char buf[8];
+            for(int i = 0; i < mValues.size(); i++) {
+                sprintf(buf, "R%d", i);
+                mSymbolTable.add_variable(buf, mValues[i], false);
+            }
+
+            mExpression.register_symbol_table(mSymbolTable);
+            mParser.compile(getArg(0, args), mExpression);
         }
 
         virtual ~ExprtkConverter() {}
     private:
-        std::string mExpressionString;
+        exprtk::symbol_table<double> mSymbolTable;
+        exprtk::parser<double> mParser;
+        exprtk::expression<double> mExpression;
+        mutable std::vector<double> mValues;
 };

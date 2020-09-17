@@ -5,7 +5,8 @@
 class ConvException : public std::exception {
     public:
         ConvException(const char* what) : mWhat(what) {}
-        virtual const char* what() const throw() { return mWhat ; }
+        ConvException(const std::string& what) : mWhat(what) {}
+        virtual const char* what() const throw() { return mWhat.c_str() ; }
     protected:
-        const char* mWhat;
+        const std::string mWhat;
 };
