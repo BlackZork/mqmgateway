@@ -20,6 +20,12 @@ class ExprtkConverter : public IStateConverter {
             }
 
             double ret = mExpression.value();
+
+            if (precision == 0)
+                return MqttValue::fromInt(ret);
+
+            if (precision != -1)
+                ret = round(ret, precision);
             return MqttValue::fromDouble(ret);
         }
 
@@ -34,6 +40,9 @@ class ExprtkConverter : public IStateConverter {
 
             mExpression.register_symbol_table(mSymbolTable);
             mParser.compile(getArg(0, args), mExpression);
+
+            if (args.size() == 2)
+                precision = getIntArg(1, args);
         }
 
         virtual ~ExprtkConverter() {}
@@ -42,4 +51,11 @@ class ExprtkConverter : public IStateConverter {
         exprtk::parser<double> mParser;
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
+        int precision = -1;
+
+        static double round(double val, int decimal_digits) {
+            double divider = pow(10, decimal_digits);
+            int dummy = (int)(val * divider);
+            return dummy / divider;
+        }
 };
