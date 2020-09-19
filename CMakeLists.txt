@@ -36,6 +36,8 @@ if (DEFINED CACHE{EXPRTK_INCLUDE_DIR})
 
     add_dependencies(modmqttd exprconv)
     add_dependencies(tests exprconv)
+
+    install(TARGETS exprconv DESTINATION lib/modmqttd)
 endif()
 
 add_dependencies(modmqttd stdconv)
@@ -45,3 +47,5 @@ install (TARGETS modmqttd DESTINATION bin)
 
 install (TARGETS modmqttsrv DESTINATION lib)
 install (DIRECTORY "${PROJECT_SOURCE_DIR}/libmodmqttconv" DESTINATION include FILES_MATCHING PATTERN "*.hpp")
+
+install(TARGETS stdconv DESTINATION lib/modmqttd)
