@@ -1,18 +1,22 @@
 modbus:
   networks:
+    # list of modbus networks to poll from.
     - name: rtutest
       # default values for waiting for modbus response
       # how log to wait for the first byte of a response
       response_timeout: 500ms
       # how log to wait for next byte of a response
       response_data_timeout: 500ms
+      # if device is defined then this is a ModbusRTU network
       device: /dev/ttyUSB0
+      # serial port parameters
       baud: 9600
       parity: E
       data_bit: 8
       stop_bit: 1
 
     - name: tcptest
+      # if address is defined then this is a ModbusTCP network
       address: 192.168.31.10
       port: 502
 

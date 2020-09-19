@@ -21,8 +21,8 @@ class Mosquitto : public IMqttImpl {
         virtual void connect(const MqttBrokerConfig& config);
         virtual void stop();
 
-        virtual void reconnect(); /*{ mosquittopp::reconnect(); }*/
-        virtual void disconnect(); /*{ mosquittopp::disconnect(); }*/
+        virtual void reconnect();
+        virtual void disconnect();
 
         virtual void subscribe(const char* topic);
         virtual void publish(const char* topic, int len, const void* data);

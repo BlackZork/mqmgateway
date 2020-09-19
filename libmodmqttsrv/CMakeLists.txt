@@ -28,3 +28,5 @@ add_library(modmqttsrv
 )
 
 target_include_directories (modmqttsrv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(modmqttsrv PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(modmqttsrv PROPERTIES SOVERSION 1)

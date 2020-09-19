@@ -68,7 +68,13 @@
         "future": "cpp",
         "shared_mutex": "cpp",
         "cfenv": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "hash_map": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "ranges": "cpp",
+        "stop_token": "cpp",
+        "valarray": "cpp"
     },
     "cmake.configureOnOpen": true
 }

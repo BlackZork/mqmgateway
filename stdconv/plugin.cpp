@@ -4,6 +4,7 @@
 #include "divide.hpp"
 #include "int32.hpp"
 #include "bitmask.hpp"
+#include "scale.hpp"
 
 IStateConverter*
 StdConvPlugin::getStateConverter(const std::string& name) {
@@ -13,5 +14,7 @@ StdConvPlugin::getStateConverter(const std::string& name) {
         return new Int32Converter();
     else if (name == "bitmask")
         return new BitmaskConverter();
+    else if (name == "scale")
+        return new ScaleConverter();
     return nullptr;
 }

@@ -70,6 +70,7 @@ class MockedModMqttServerThread : public ModMqttServerThread {
             mServer.setModbusContextFactory(mModbusFactory);
             //allow to find converter dlls when cwd is in binary directory
             mServer.addConverterPath("../stdconv");
+            mServer.addConverterPath("../exprconv");
         };
 
     void waitForPublish(const char* topic, std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
