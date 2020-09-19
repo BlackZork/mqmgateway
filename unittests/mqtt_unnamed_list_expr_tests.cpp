@@ -21,7 +21,7 @@ mqtt:
   objects:
     - topic: test_state
       state:
-        converter: expr.evaluate("R0 + R1")
+        converter: expr.evaluate("R0 / R1", 3)
         registers:
           - register: tcptest.1.2
             register_type: input
@@ -32,7 +32,7 @@ mqtt:
 TEST_CASE ("Expression on list should evaluate") {
     MockedModMqttServerThread server(config);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 10);
-    server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 20);
+    server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 3);
     server.start();
 
     //to make sure that all registers have initial value
@@ -41,6 +41,6 @@ TEST_CASE ("Expression on list should evaluate") {
 
     server.waitForPublish("test_state/state", REGWAIT_MSEC);
 
-    REQUIRE(server.mqttValue("test_state/state") == "30.0");
+    REQUIRE(server.mqttValue("test_state/state") == "3.333");
     server.stop();
 }
