@@ -4,6 +4,7 @@ A multithreaded C++ service that exposes data from multiple [Modbus](http://www.
 Main features:
 * Connects to multiple TCP and RTU modbus networks
 * Handles state and availablity for each configured MQTT object
+* Allows to read and write to MODBUS registers from MQTT side with custom data conversion
 * Flexible MQTT state topic configuration:
   * single modbus register published as string value
   * multiple modbus registers as JSON object
