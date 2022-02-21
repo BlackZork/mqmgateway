@@ -197,7 +197,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Overrides mqtt.refresh for all state and availability sections in this topic
 
-  A *commands* section.
+### A *commands* section.
 
   A single command is defined using following settings.
 
