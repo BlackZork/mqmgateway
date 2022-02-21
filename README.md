@@ -12,6 +12,7 @@ Main features:
 * Data conversion:
   * single register value to MQTT converters
   * multiple registers values to single MQTT value converters
+  * support for [exprtk](https://github.com/ArashPartow/exprtk) expressions language when converting data
   * support for custom conversion plugins
 * Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
 * Optimized modbus pulling - registers used in multiple MQTT topics are polled only once
