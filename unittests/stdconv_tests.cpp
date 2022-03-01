@@ -1,3 +1,4 @@
+#include <libmodmqttsrv/config.hpp>
 #include "catch2/catch.hpp"
 #include <boost/dll/import.hpp>
 
@@ -6,7 +7,7 @@
 TEST_CASE ("Scale value with integer result") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost::dll::import<ConverterPlugin>(
+    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
