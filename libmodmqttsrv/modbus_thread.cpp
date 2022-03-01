@@ -34,7 +34,7 @@ ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<Regis
             reg.mLastRead = std::chrono::steady_clock::now();
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister
+            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
                             << " polled in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
             if ((reg.mLastValue != newValue) || !sendIfChanged || (reg.mReadErrors != 0)) {
