@@ -4,6 +4,7 @@ A multithreaded C++ service that exposes data from multiple [Modbus](http://www.
 Main features:
 * Connects to multiple TCP and RTU modbus networks
 * Handles state and availablity for each configured MQTT object
+* Allows to read and write to MODBUS registers from MQTT side with custom data conversion
 * Flexible MQTT state topic configuration:
   * single modbus register published as string value
   * multiple modbus registers as JSON object
@@ -12,6 +13,7 @@ Main features:
 * Data conversion:
   * single register value to MQTT converters
   * multiple registers values to single MQTT value converters
+  * support for [exprtk](https://github.com/ArashPartow/exprtk) expressions language when converting data
   * support for custom conversion plugins
 * Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
 * Optimized modbus pulling - registers used in multiple MQTT topics are polled only once
@@ -197,17 +199,19 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Overrides mqtt.refresh for all state and availability sections in this topic
 
-  A *commands* section.
+### A *commands* section.
 
   A single command is defined using following settings.
 
   * **name** (required)
 
-    A command topic name to subscribe. Full name is created as `topic.name/command.name`
+    A command topic name to subscribe. Full name is created as `topic_name/command_name`
 
   * **register** (required)
 
-    Modbus register address in the form of <network_name>.<slave_id>.<address>
+    Modbus register address in the form of `<network_name>.<slave_id>.<register_address>`
+
+    Where `register_address` is a decimal, octal or hexadecimal string (formally everything `std::stoi(3)` with base=0 accepts).
 
   *  **register_type** (required)
 
