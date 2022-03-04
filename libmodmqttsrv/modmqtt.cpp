@@ -239,7 +239,7 @@ ModMqtt::initConverterPlugin(const std::string& name) {
 
     BOOST_LOG_SEV(log, Log::debug) << "Trying to load converter plugin from " << final_path;
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost::dll::import<ConverterPlugin>(
+    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         final_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
