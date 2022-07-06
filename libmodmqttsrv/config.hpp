@@ -115,8 +115,8 @@ class MqttBrokerConfig {
         bool isSameAs(const MqttBrokerConfig& other) {
             return mHost == other.mHost &&
                     mPort == other.mPort &&
-                    mKeepalive == other.mKeepalive;
-                    mUsername == other.mUsername;
+                    mKeepalive == other.mKeepalive &&
+                    mUsername == other.mUsername &&
                     mPassword == other.mPassword;
         }
 
