@@ -16,5 +16,5 @@ class BitmaskConverter : public IStateConverter {
 
         virtual ~BitmaskConverter() {}
     private:
-        u_int16_t mask = 0xffff;
+        uint16_t mask = 0xffff;
 };

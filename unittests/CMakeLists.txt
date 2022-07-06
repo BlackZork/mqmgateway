@@ -33,12 +33,15 @@ add_executable(tests
     two_slaves_tests.cpp
 )
 
+find_package(yaml-cpp REQUIRED)
+
+
 target_link_libraries(tests 
     modmqttsrv
     mosquittopp 
     mosquitto 
     Catch2::Catch2
-    ${YAML_CPP_LIBRARIES} 
+    yaml-cpp
     ${Boost_LIBRARIES} 
     ${LIBMODBUS_LIBRARIES} 
     ${CMAKE_THREAD_LIBS_INIT}

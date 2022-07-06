@@ -28,7 +28,7 @@ ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<Regis
     {
         try {
             std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-            u_int16_t newValue;
+            uint16_t newValue;
             RegisterPoll& reg(**reg_it);
             newValue = mModbus->readModbusRegister(slaveId, reg);
             reg.mLastRead = std::chrono::steady_clock::now();
