@@ -31,11 +31,9 @@
             "program": "${command:cmake.launchTargetPath}",
             "args": [],
             // unit test launch
-            //"args": ["If broker is restarted all mqtt objects should be republished"],
+            //"args": ["Register id specified as hex should be parsed"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [
-            ],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [

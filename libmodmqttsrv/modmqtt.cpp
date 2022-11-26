@@ -42,7 +42,7 @@ class RegisterConfigName {
             std::string str = ConfigTools::readRequiredString(data, "register");
             boost::trim(str);
 
-            std::regex re("^([a-zA-Z0-9]+\\.)?([0-9]+\\.)?((0[xX])?[0-9]+)$");
+            std::regex re("^([a-zA-Z0-9]+\\.)?([0-9]+\\.)?((0[xX])?[0-9a-fA-F]+)$");
             std::cmatch matches;
 
             if (!std::regex_match(str.c_str(), matches, re))
