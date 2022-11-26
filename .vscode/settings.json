@@ -76,5 +76,16 @@
         "stop_token": "cpp",
         "valarray": "cpp"
     },
-    "cmake.configureOnOpen": true
+    "cmake.configureOnOpen": true,
+    "testMate.cpp.debug.configTemplate": {
+        "type": "cppvsdbg",
+        "linux": { "type": "cppdbg", "MIMode": "gdb" },
+        "darwin": { "type": "cppdbg", "MIMode": "lldb" },
+        "win32": { "type": "cppvsdbg" },
+        "program": "${exec}",
+        "args": "${argsArray}",
+        "cwd": "${cwd}",
+        "environment": "${envObjArray}",
+        "sourceFileMap": "${sourceFileMapObj}",
+      }    
 }
