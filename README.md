@@ -302,15 +302,14 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     ```
     state:
-      registers:
-        - name: humidity
-          register: net.1.12
-          register_type: input
-          # optional
-          converter: std.divide(100,2)
-        - name:  temp1
-          register: net.1.13
-          register_type: input
+      - name: humidity
+        register: net.1.12
+        register_type: input
+        # optional
+        converter: std.divide(100,2)
+      - name:  temp1
+        register: net.1.13
+        register_type: input
     ```
 
   In all of above examples *refresh*, *response_timeout* and *response_data_timeout* can be added at any level to set different values to 
