@@ -33,7 +33,7 @@ TEST_CASE ("Expression on unnamed scalar should be evaluated") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, negative);
     server.start();
     // default mocked modbus read time is 5ms per register
-    server.waitForPublish("test_sensor/state", REGDEBUG_MSEC);
+    server.waitForPublish("test_sensor/state", REGWAIT_MSEC);
     REQUIRE(server.mqttValue("test_sensor/state") == "-20");
     server.stop();
 }
