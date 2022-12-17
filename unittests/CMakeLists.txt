@@ -25,6 +25,7 @@ add_executable(tests
     mqtt_unnamed_list_expr_tests.cpp
     mqtt_unnamed_list_tests.cpp
     mqtt_unnamed_scalar_conv_tests.cpp
+    mqtt_unnamed_scalar_expr_tests.cpp
     mqtt_unnamed_scalar_tests.cpp
     real_server_tests.cpp
     scheduler_tests.cpp
