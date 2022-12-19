@@ -79,7 +79,17 @@
     "cmake.configureOnOpen": true,
     "testMate.cpp.debug.configTemplate": {
         "type": "cppvsdbg",
-        "linux": { "type": "cppdbg", "MIMode": "gdb" },
+        "linux": { 
+            "type": "cppdbg", 
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
         "darwin": { "type": "cppdbg", "MIMode": "lldb" },
         "win32": { "type": "cppvsdbg" },
         "program": "${exec}",

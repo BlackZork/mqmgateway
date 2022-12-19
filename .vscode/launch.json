@@ -12,7 +12,6 @@
             "args": ["--loglevel","5"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/modmqttd",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
@@ -53,7 +52,6 @@
             "args": ["--loglevel","5"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/modmqttd",
-            "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
             "setupCommands": [
