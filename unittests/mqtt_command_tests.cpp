@@ -74,3 +74,41 @@ TEST_CASE ("Mqtt invalid value should not crash server") {
 
     server.stop();
 }
+
+
+static const std::string config_subpath = R"(
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  broker:
+    host: localhost
+  objects:
+    - topic: some/subpath/test_switch
+      commands:
+        - name: set
+          register: tcptest.1.2
+          register_type: holding
+      state:
+        register: tcptest.1.2
+        register_type: holding
+)";
+TEST_CASE ("Holding register valid write to subpath topic") {
+    MockedModMqttServerThread server(config_subpath);
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+    server.start();
+
+    server.waitForPublish("some/subpath/test_switch/availability", REGWAIT_MSEC);
+    REQUIRE(server.mqttValue("some/subpath/test_switch/availability") == "1");
+    server.waitForPublish("some/subpath/test_switch/state", REGWAIT_MSEC);
+
+    server.publish("some/subpath/test_switch/set", "32");
+
+    server.waitForPublish("some/subpath/test_switch/state", REGWAIT_MSEC);
+    REQUIRE(server.mqttValue("some/subpath/test_switch/state") == "32");
+
+    server.stop();
+}

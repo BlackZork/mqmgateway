@@ -254,7 +254,7 @@ const MqttObjectCommand&
 MqttClient::findCommand(const char* topic) const {
     std::string objectName;
     std::string commandName;
-    const char *ptr = strchr(topic, '/');
+    const char *ptr = strrchr(topic, '/');
     if(ptr) {
        objectName = std::string(topic, ptr);
        commandName = std::string(ptr+1);
