@@ -1,3 +1,10 @@
+modmqttd:
+  converter_search_path:
+    - /usr/lib/modmqttd
+  converter_plugins:
+    - stdconv.so
+    # needs exprtk expression library
+    # - exprconv.so
 modbus:
   networks:
     # list of modbus networks to poll from.
