@@ -112,3 +112,47 @@ TEST_CASE ("Holding register valid write to subpath topic") {
 
     server.stop();
 }
+
+static const std::string config_converter = R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+  converter_plugins:
+    - stdconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  broker:
+    host: localhost
+  objects:
+    - topic: test_switch
+      commands:
+        - name: set
+          register: tcptest.1.2
+          register_type: holding
+          converter: std.divide(2,0)
+      state:
+        register: tcptest.1.2
+        register_type: holding
+)";
+
+TEST_CASE ("Holding register write converted value") {
+    MockedModMqttServerThread server(config_converter);
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+    server.start();
+
+    server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
+    REQUIRE(server.mqttValue("test_switch/availability") == "1");
+    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+
+    server.publish("test_switch/set", "32");
+
+    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    REQUIRE(server.mqttValue("test_switch/state") == "16");
+
+    server.stop();
+}
