@@ -41,13 +41,17 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
    1. mosquitto
    1. yaml-cpp
    1. rapidJSON
-1. Configure project:
+   1. Catch2 (optional, for unit tests)
+
+1. Configure and build project:
 
     ```
     cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -S (project dir) -B (build dir)
     make 
     make install
     ```
+
+    You can add -DWITHOUT_TESTS to skip build of unit test executable.
 
 1. Copy config.template.yml to /etc/modmqttd.yml.
 
