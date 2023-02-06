@@ -12,7 +12,7 @@ modbus:
       # default values for waiting for modbus response
       # how log to wait for the first byte of a response
       response_timeout: 500ms
-      # how log to wait for next byte of a response
+      # how log to wait for next bytes of a response
       response_data_timeout: 500ms
       # if device is defined then this is a ModbusRTU network
       device: /dev/ttyUSB0

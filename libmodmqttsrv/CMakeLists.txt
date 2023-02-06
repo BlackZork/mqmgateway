@@ -1,3 +1,6 @@
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 add_library(modmqttsrv
     SHARED
     config.cpp 

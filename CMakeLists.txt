@@ -32,9 +32,17 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 
 add_subdirectory(libmodmqttconv)
 add_subdirectory(libmodmqttsrv)
-add_subdirectory(stdconv)
 add_subdirectory(modmqttd)
 add_subdirectory(unittests ${build_unittests})
+
+
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib/modmqttd")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+add_subdirectory(stdconv)
+add_dependencies(modmqttd stdconv)
+add_dependencies(tests stdconv)
+
 if (EXPRTK_INCLUDE_DIR)
     include_directories(${EXPRTK_INCLUDE_DIR})
     add_subdirectory(exprconv)    
@@ -46,8 +54,7 @@ if (EXPRTK_INCLUDE_DIR)
     install(TARGETS exprconv DESTINATION lib/modmqttd)
 endif()
 
-add_dependencies(modmqttd stdconv)
-add_dependencies(tests stdconv)
+
 
 install (TARGETS modmqttd DESTINATION bin)
 
