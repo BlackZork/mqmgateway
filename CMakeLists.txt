@@ -62,3 +62,5 @@ install (TARGETS modmqttsrv DESTINATION lib)
 install (DIRECTORY "${PROJECT_SOURCE_DIR}/libmodmqttconv" DESTINATION include FILES_MATCHING PATTERN "*.hpp")
 
 install(TARGETS stdconv DESTINATION lib/modmqttd)
+
+install(FILES modmqttd.service DESTINATION lib/systemd/system) 
