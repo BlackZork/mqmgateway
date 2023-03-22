@@ -53,7 +53,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
     You can add -DWITHOUT_TESTS=1 to skip build of unit test executable.
 
-1. Copy config.template.yml to /etc/modmqttd/config.yml.
+1. Copy config.template.yaml to /etc/modmqttd/config.yaml.
 
 1. Edit configuration and start service:
 
