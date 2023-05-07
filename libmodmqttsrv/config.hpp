@@ -100,9 +100,9 @@ class ModbusNetworkConfig {
         std::string mDevice = "";
         int mBaud = 0;
         char mParity = '\0';
-        uint8_t mDataBit = 0;
-        uint8_t mStopBit = 0;
-
+        int mDataBit = 0;
+        int mStopBit = 0;
+        
         //TCP only
         std::string mAddress = "";
         int mPort = 0;

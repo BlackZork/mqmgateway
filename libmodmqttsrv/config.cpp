@@ -24,8 +24,8 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
         mDevice = ConfigTools::readRequiredString(source, "device");
         mBaud = ConfigTools::readRequiredValue<int>(source, "baud");
         mParity = ConfigTools::readRequiredValue<char>(source, "parity");
-        mDataBit = ConfigTools::readRequiredValue<uint8_t>(source, "data_bit");
-        mStopBit = ConfigTools::readRequiredValue<uint8_t>(source, "stop_bit");
+        mDataBit = ConfigTools::readRequiredValue<int>(source, "data_bit");
+        mStopBit = ConfigTools::readRequiredValue<int>(source, "stop_bit");
     } else if (source["address"]) {
         mType = Type::TCPIP;
         mAddress = ConfigTools::readRequiredString(source, "address");
