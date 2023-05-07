@@ -213,7 +213,7 @@ ModbusThread::run() {
 
                         //initial wait set to infinity, scheduler will adjust this value
                         //to time period for next poll
-                        waitDuration = std::chrono::steady_clock::duration::max();
+                        waitDuration = std::chrono::seconds(100);
 
                         // note start time and find registers that need a refresh now
                         auto start = std::chrono::steady_clock::now();
@@ -235,7 +235,7 @@ ModbusThread::run() {
                         }
                     } else {
                         BOOST_LOG_SEV(log, Log::info) << "Waiting for mqtt network to become online";
-                        waitDuration = std::chrono::steady_clock::duration::max();
+                        waitDuration = std::chrono::seconds(2);
                     }
                 } else {
                     sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, false)));
@@ -251,7 +251,7 @@ ModbusThread::run() {
             //for next poll if we are exiting
             if (mShouldRun) {
                 QueueItem item;
-                BOOST_LOG_SEV(log, Log::debug) << "Waiting " <<  std::chrono::duration_cast<std::chrono::milliseconds>(waitDuration).count() << "ms for messages";
+                BOOST_LOG_SEV(log, Log::debug) << "Waiting " << std::chrono::duration_cast<std::chrono::milliseconds>(waitDuration).count() << "ms for messages";
                 if (!mToModbusQueue.wait_dequeue_timed(item, waitDuration))
                     continue;
                 dispatchMessages(item);
