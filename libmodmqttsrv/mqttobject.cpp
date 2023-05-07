@@ -119,7 +119,7 @@ MqttObjectAvailability::getAvailableFlag() const {
             break;
             case AvailableFlag::False:
                 return AvailableFlag::False;
-            break;
+                break;
             case AvailableFlag::True:
                 continue;
             break;
@@ -343,7 +343,7 @@ MqttObject::updateRegisterValue(const MqttObjectRegisterIdent& regIdent, uint16_
     bool stateChanged = mState.updateRegisterValue(regIdent, value);
     bool availChanged = mAvailability.updateRegisterValue(regIdent, value);
     if (stateChanged || availChanged)
-        updateAvailablityFlag();
+        updateAvailabilityFlag();
 }
 
 void
@@ -351,7 +351,7 @@ MqttObject::updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent) {
     bool stateChanged = mState.updateRegisterReadFailed(regIdent);
     bool availChanged = mAvailability.updateRegisterReadFailed(regIdent);
     if (stateChanged || availChanged)
-        updateAvailablityFlag();
+        updateAvailabilityFlag();
 }
 
 void
@@ -359,11 +359,11 @@ MqttObject::setModbusNetworkState(const std::string& networkName, bool isUp) {
     bool stateChanged = mState.setModbusNetworkState(networkName, isUp);
     bool availChanged = mAvailability.setModbusNetworkState(networkName, isUp);
     if (stateChanged || availChanged)
-        updateAvailablityFlag();
+        updateAvailabilityFlag();
 }
 
 void
-MqttObject::updateAvailablityFlag() {
+MqttObject::updateAvailabilityFlag() {
     // if we cannot read availability registers
     // then assume that state data is invalid
     if (!mAvailability.isPolling() || !mState.isPolling())
@@ -374,7 +374,7 @@ MqttObject::updateAvailablityFlag() {
         if (!mAvailability.hasValue() || !mState.hasValues()) {
             mIsAvailable = AvailableFlag::NotSet;
         } else {
-            //we have all values, check avaiabilty registers
+            //we have all values, check availability registers
             mIsAvailable = mAvailability.getAvailableFlag();
         }
     }

@@ -160,7 +160,7 @@ class MqttObject {
         std::string mAvailabilityTopic;
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
 
-        void updateAvailablityFlag();
+        void updateAvailabilityFlag();
 };
 
 }

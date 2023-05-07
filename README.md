@@ -3,19 +3,19 @@ A multithreaded C++ service that exposes data from multiple [Modbus](http://www.
 
 Main features:
 * Connects to multiple TCP and RTU modbus networks
-* Handles state and availablity for each configured MQTT object
+* Handles state and availability for each configured MQTT object
 * Allows to read and write to MODBUS registers from MQTT side with custom data conversion
 * Flexible MQTT state topic configuration:
   * single modbus register published as string value
   * multiple modbus registers as JSON object
-  * multiple modubs registers as JSON list
+  * multiple modbus registers as JSON list
   * registers from different slaves combined as single JSON list/object
 * Data conversion:
   * single register value to MQTT converters
   * multiple registers values to single MQTT value converters
   * support for [exprtk](https://github.com/ArashPartow/exprtk) expressions language when converting data
   * support for custom conversion plugins
-* Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
+* Fast modbus frequency polling, configurable per network, per mqtt object and per register
 * Optimized modbus pulling - registers used in multiple MQTT topics are polled only once
 
 MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosqutto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](link) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
@@ -64,7 +64,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
 # Configuration
 
-modmqttd configuration file is in YAML format. It is divied in three main sections:
+modmqttd configuration file is in YAML format. It is divided in three main sections:
 
 * modmqttd section contains information about custom plugins
 * modbus section contains modbus network definitions
@@ -157,7 +157,7 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
   * **host** (required)
 
-    MQTT boker IP address
+    MQTT broker IP address
 
   * **port** (optional, default 1883)
 
@@ -185,7 +185,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     - *commands* - for writing to modbus registers
     - *state* - for reading modbus registers
-    - *avaiability* - for checking if modbus data is available.
+    - *availability* - for checking if modbus data is available.
 
 ### Topic default values:
 
@@ -319,11 +319,11 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
 ### The *availability* section
 
-For every *state* topic there is another *availability* topic defined by default. If all data from modbus registers needed for *state* is read without errors then by default value "1" is published. If there is any network or device error when polling register data value "0" is published. This is the default behavoiur if *availability* section is not defined.
+For every *state* topic there is another *availability* topic defined by default. If all data from modbus registers needed for *state* is read without errors then by default value "1" is published. If there is any network or device error when polling register data value "0" is published. This is the default behaviour if *availability* section is not defined.
 
-Availablity flag is always published before state value. 
+Availability flag is always published before state value. 
 
-*Availability* section extends this default behaviour by defining a single or list of modbus registers that should be readed to check if state data is valid. This could be i.e. some fault indicator or hardware switch state.
+*Availability* section extends this default behaviour by defining a single or list of modbus registers that should be read to check if state data is valid. This could be i.e. some fault indicator or hardware switch state.
 
 Configuration values:
  
@@ -341,13 +341,13 @@ Configuration values:
 
   * **available_value** (optional, default 1)
 
-    Expected u_int16 value readed from availablity register when availablity flag should be set to "1". If other value is readed then availability flag is set to "0".
+    Expected `uint16` value read from availability register when availability flag should be set to "1". If other value is read then availability flag is set to "0".
 
-*register*, *register_type* and *available_value* can form a list when multiple registers should be readed.
+*register*, *register_type* and *available_value* can form a list when multiple registers should be read.
 
 ## Data conversion
 
-Data readed from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit or perform some simple divide operations a converter can be used.
+Data read from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit or perform some simple divide operations a converter can be used.
 
 ### Standard converters
 
@@ -360,7 +360,7 @@ M2MGateway contains *std* library with basic converters ready to use:
       - divider (required)
       - precision (optional)
 
-    Divides modbus value by divder and rounds to (precision) digits after the decimal.
+    Divides modbus value by divider and rounds to (precision) digits after the decimal.
 
   * **int32**
 
@@ -373,7 +373,7 @@ M2MGateway contains *std* library with basic converters ready to use:
     Arguments:
       - bitmask in hex (default "0xffff")
 
-    Applies a mask to value readed from modbus register.
+    Applies a mask to value read from modbus register.
 
 Converter can be added to modbus register in state section.
 
@@ -411,7 +411,7 @@ Here is a minimal example of custom conversion plugin with help of boost dll lib
 
 class MyConverter : public IStateConverter {
     public:
-        //called by modmqttd to set coverter arguments
+        //called by modmqttd to set converter arguments
         virtual void setArgs(const std::vector<std::string>& args) {
             mShift = getIntArg(0, args);
         }
@@ -474,5 +474,5 @@ mqtt:
 
 ```
 
-For more examples see libstdconv source code.
+For more examples see `libstdconv` source code.
 

@@ -126,8 +126,6 @@ class MqttBrokerConfig {
         int mKeepalive = 60;
         std::string mUsername;
         std::string mPassword;
-
-        std::string mClientId;
 };
 
 }
