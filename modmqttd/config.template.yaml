@@ -21,6 +21,16 @@ modbus:
       parity: E
       data_bit: 8
       stop_bit: 1
+      
+      # Optional settings for RTU 
+      
+      #rtu_serial_mode: rs232
+      #rtu_serial_mode: rs485
+
+      #rtu_rts_mode: up
+      #rtu_rts_mode: down
+
+      #rtu_rts_delay: 100   in microseconds
 
     - name: tcptest
       # if address is defined then this is a ModbusTCP network

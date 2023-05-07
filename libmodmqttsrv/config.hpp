@@ -73,6 +73,18 @@ class ModbusNetworkConfig {
             TCPIP
         } Type;
 
+        typedef enum {
+            NONE,
+            UP,
+            DOWN
+        } RtuRtsMode;
+
+        typedef enum {
+            UNSPECIFIED,
+            RS232,
+            RS485
+        } RtuSerialMode;
+
         ModbusNetworkConfig() {}
         ModbusNetworkConfig(const YAML::Node& source);
         bool isSameAs(const ModbusNetworkConfig& other) {
@@ -84,7 +96,10 @@ class ModbusNetworkConfig {
                             mBaud == other.mBaud &&
                             mParity == other.mParity &&
                             mDataBit == other.mDataBit &&
-                            mStopBit == other.mStopBit;
+                            mStopBit == other.mStopBit &&
+                            mRtuSerialMode == other.mRtuSerialMode &&
+                            mRtsMode == other.mRtsMode &&
+                            mRtsDelayUs == other.mRtsDelayUs;
                 break;
                 case TCPIP:
                     return mAddress == other.mAddress && mPort == other.mPort;
@@ -102,7 +117,10 @@ class ModbusNetworkConfig {
         char mParity = '\0';
         uint8_t mDataBit = 0;
         uint8_t mStopBit = 0;
-
+        RtuSerialMode mRtuSerialMode = RtuSerialMode::UNSPECIFIED;
+        RtuRtsMode mRtsMode = RtuRtsMode::NONE;
+        int mRtsDelayUs = 0;
+        
         //TCP only
         std::string mAddress = "";
         int mPort = 0;
