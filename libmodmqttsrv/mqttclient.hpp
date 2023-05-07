@@ -49,14 +49,14 @@ class MqttClient {
     private:
         std::shared_ptr<IMqttImpl> mMqttImpl;
 
-        void subscribeToCommandTopic(const std::string& objectName, const MqttObjectCommand& cmd);
+        void subscribeToCommandTopic(const std::string& objectName, const MqttObjectBase& cmd);
 
         boost::log::sources::severity_logger<Log::severity> log;
         ModMqtt& mOwner;
         MqttBrokerConfig mBrokerConfig;
 
         void checkAvailabilityChange(MqttObject& object, const MqttObjectRegisterIdent& ident, uint16_t value);
-        const MqttObjectCommand& findCommand(const char* topic) const;
+        const MqttObjectBase& findCommand(const char* topic) const;
 
         std::vector<std::shared_ptr<ModbusClient>> mModbusClients;
 

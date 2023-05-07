@@ -85,9 +85,10 @@ void
 MqttClient::onConnect() {
 	BOOST_LOG_SEV(log, Log::info) << "Mqtt conected, sending subscriptions...";
 
-    for(std::vector<MqttObject>::const_iterator obj = mObjects.begin(); obj != mObjects.end(); obj++)
-        for(std::vector<MqttObjectCommand>::const_iterator it = obj->mCommands.begin(); it != obj->mCommands.end(); it++)
+    for(std::vector<MqttObject>::const_iterator obj = mObjects.begin(); obj != mObjects.end(); obj++) {
+        for(auto it = obj->mCommands.begin(); it != obj->mCommands.end(); it++)
             subscribeToCommandTopic(obj->getTopic(), *it);
+    }
 
     mConnectionState = State::CONNECTED;
 
@@ -106,7 +107,7 @@ MqttClient::onConnect() {
 }
 
 void
-MqttClient::subscribeToCommandTopic(const std::string& objectTopic, const MqttObjectCommand& cmd) {
+MqttClient::subscribeToCommandTopic(const std::string& objectTopic, const MqttObjectBase& cmd) {
     std::string topic = objectTopic + "/" + cmd.mName;
     mMqttImpl->subscribe(topic.c_str());
 }
@@ -172,7 +173,7 @@ MqttClient::processModbusNetworkState(const std::string& networkName, bool isUp)
 void
 MqttClient::publishAvailabilityChange(const MqttObject& obj) {
     if (obj.getAvailableFlag() == AvailableFlag::NotSet)
-        return;
+            return;
     char msg = obj.getAvailableFlag() == AvailableFlag::True ? '1' : '0';
     int msgId;
     mMqttImpl->publish(obj.getAvailabilityTopic().c_str(), 1, &msg);
@@ -190,7 +191,7 @@ MqttClient::publishAll() {
 static const int MAX_DATA_LEN = 32;
 
 uint16_t
-convertMqttPayload(const MqttObjectCommand& command, const void* data, int datalen) {
+convertMqttPayload(const MqttObjectBase& command, const void* data, int datalen) {
     uint16_t ret(0);
     if (datalen > MAX_DATA_LEN)
         throw MqttPayloadConversionException(std::string("Conversion failed, payload too big (size:") + std::to_string(datalen) + ")");
@@ -229,7 +230,7 @@ convertMqttPayload(const MqttObjectCommand& command, const void* data, int datal
 void
 MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
     try {
-        const MqttObjectCommand& command = findCommand(topic);
+        const MqttObjectBase& command = findCommand(topic);
         const std::string network = command.mRegister.mNetworkName;
 
         //TODO is is thread safe to iterate on modbus clients from mosquitto callback?
@@ -250,7 +251,7 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
     }
 }
 
-const MqttObjectCommand&
+const MqttObjectBase&
 MqttClient::findCommand(const char* topic) const {
     std::string objectName;
     std::string commandName;
@@ -275,7 +276,7 @@ MqttClient::findCommand(const char* topic) const {
         );
         if (cmd != obj->mCommands.end())
             return *cmd;
-    }
+        }
     throw ObjectCommandNotFoundException(topic);
 }
 

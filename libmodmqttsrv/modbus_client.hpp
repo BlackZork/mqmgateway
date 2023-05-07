@@ -23,7 +23,7 @@ class ModbusClient {
             mToModbusQueue.enqueue(QueueItem::create(config));
         };
 
-        void sendCommand(const MqttObjectCommand& cmd, uint16_t value) {
+        void sendCommand(const MqttObjectBase& cmd, uint16_t value) {
             MsgRegisterValue val(
                 cmd.mRegister.mSlaveId,
                 cmd.mRegister.mRegisterType,

@@ -41,16 +41,29 @@ class MqttObjectRegisterIdent {
         RegisterType mRegisterType;
 };
 
-class MqttObjectCommand {
+class MqttObjectBase {
+    private:
+        size_t mTypeHash;
     public:
         enum PayloadType {
             STRING = 1
         };
-        MqttObjectCommand(const std::string& name, const MqttObjectRegisterIdent& ident, PayloadType ptype)
-            : mName(name), mRegister(ident), mPayloadType(ptype) {}
         std::string mName;
         PayloadType mPayloadType;
         MqttObjectRegisterIdent mRegister;
+
+        bool isSameAs(const std::type_info& type) const {
+            return type.hash_code() == mTypeHash;
+        }
+    protected:
+        MqttObjectBase(size_t typeHash, const std::string& name, const MqttObjectRegisterIdent& ident, PayloadType ptype)
+            : mTypeHash(typeHash), mName(name), mRegister(ident), mPayloadType(ptype) {}
+};
+
+class MqttObjectCommand : public MqttObjectBase {
+    public:
+        MqttObjectCommand(const std::string& name, const MqttObjectRegisterIdent& ident, PayloadType ptype)
+            : MqttObjectBase(typeid(MqttObjectCommand).hash_code(), name, ident, ptype) {}
 };
 
 class MqttObjectRegisterValue {
