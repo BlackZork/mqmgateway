@@ -21,8 +21,8 @@ class MqttObjectRegisterIdent {
     public:
         struct Compare {
             bool operator() (const MqttObjectRegisterIdent& left, const MqttObjectRegisterIdent& right) const {
-                return std::tie(left.mNetworkName, left.mSlaveId, left.mRegisterNumber, left.mRegisterType)
-                        < std::tie(right.mNetworkName, right.mSlaveId, right.mRegisterNumber, right.mRegisterType);
+                return std::tie(left.mNetworkName, left.mSlaveId, left.mRegisterAddress, left.mRegisterType)
+                        < std::tie(right.mNetworkName, right.mSlaveId, right.mRegisterAddress, right.mRegisterType);
             }
         };
         MqttObjectRegisterIdent(
@@ -32,12 +32,12 @@ class MqttObjectRegisterIdent {
             int registerNumber
         ) : mNetworkName(network),
             mSlaveId(slaveId),
-            mRegisterNumber(registerNumber),
+            mRegisterAddress(registerNumber),
             mRegisterType(regType)
         {}
         std::string mNetworkName;
         int mSlaveId;
-        int mRegisterNumber;
+        int mRegisterAddress;
         RegisterType mRegisterType;
 };
 

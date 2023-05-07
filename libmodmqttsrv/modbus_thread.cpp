@@ -34,15 +34,15 @@ ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<Regis
             reg.mLastRead = std::chrono::steady_clock::now();
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
+            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegisterAddress << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegisterAddress << ")"
                             << " polled in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
             if ((reg.mLastValue != newValue) || !sendIfChanged || (reg.mReadErrors != 0)) {
-                MsgRegisterValue val(slaveId, reg.mRegisterType, reg.mRegister, newValue);
+                MsgRegisterValue val(slaveId, reg.mRegisterType, reg.mRegisterAddress, newValue);
                 sendMessage(QueueItem::create(val));
                 reg.mLastValue = newValue;
                 reg.mReadErrors = 0;
-                BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister
+                BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegisterAddress
                     << " value sent, data=" << reg.mLastValue;
             };
             //handle incoming write requests
@@ -60,7 +60,7 @@ ModbusThread::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const 
     regPoll.mReadErrors++;
     if (regPoll.mReadErrors == 1 || (std::chrono::steady_clock::now() - regPoll.mFirstErrorTime > RegisterPoll::DurationBetweenLogError)) {
         BOOST_LOG_SEV(log, Log::error) << regPoll.mReadErrors << " error(s) when reading register "
-            << slaveId << "." << regPoll.mRegister << ", last error: " << errorMessage;
+            << slaveId << "." << regPoll.mRegisterAddress << ", last error: " << errorMessage;
         regPoll.mFirstErrorTime = std::chrono::steady_clock::now();
         if (regPoll.mReadErrors != 1)
             regPoll.mReadErrors = 0;
@@ -68,7 +68,7 @@ ModbusThread::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const 
 
     // start sending MsgRegisterReadFailed if we cannot read register DefaultReadErrorCount times
     if (regPoll.mReadErrors > RegisterPoll::DefaultReadErrorCount) {
-        MsgRegisterReadFailed msg(slaveId, regPoll.mRegisterType, regPoll.mRegister);
+        MsgRegisterReadFailed msg(slaveId, regPoll.mRegisterType, regPoll.mRegisterAddress);
         sendMessage(QueueItem::create(msg));
     }
 }
@@ -120,23 +120,23 @@ ModbusThread::processWrite(const MsgRegisterValue& msg) {
         //are polling this register
         std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::iterator slave = mRegisters.find(msg.mSlaveId);
         if (slave != mRegisters.end()) {
-            int regNumber = msg.mRegisterNumber;
+            int regNumber = msg.mRegisterAddress;
             std::vector<std::shared_ptr<RegisterPoll>>::iterator reg_it = std::find_if(
                 slave->second.begin(), slave->second.end(),
-                [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegister; }
+                [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegisterAddress; }
             );
             if (reg_it != slave->second.end()) {
                 RegisterPoll& reg = **reg_it;
                 reg.mLastValue = msg.mValue;
                 reg.mLastRead = std::chrono::steady_clock::now();
-                MsgRegisterValue val(msg.mSlaveId, msg.mRegisterType, msg.mRegisterNumber, msg.mValue);
+                MsgRegisterValue val(msg.mSlaveId, msg.mRegisterType, msg.mRegisterAddress, msg.mValue);
                 sendMessage(QueueItem::create(val));
             }
         }
     } catch (const ModbusWriteException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "error writing register "
-            << msg.mSlaveId << "." << msg.mRegisterNumber << ": " << ex.what();
-        MsgRegisterWriteFailed msg(msg.mSlaveId, msg.mRegisterType, msg.mRegisterNumber);
+            << msg.mSlaveId << "." << msg.mRegisterAddress << ": " << ex.what();
+        MsgRegisterWriteFailed msg(msg.mSlaveId, msg.mRegisterType, msg.mRegisterAddress);
         sendMessage(QueueItem::create(msg));
     }
 }

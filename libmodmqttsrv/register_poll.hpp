@@ -10,8 +10,8 @@ class RegisterPoll {
         static constexpr std::chrono::steady_clock::duration DurationBetweenLogError = std::chrono::minutes(5);
         // if we cannot read register in this time MsgRegisterReadFailed is sent
         static constexpr int DefaultReadErrorCount = 3;
-        RegisterPoll(int regNum, RegisterType regType, int refreshMsec);
-        int mRegister;
+        RegisterPoll(int registerAddress, RegisterType regType, int refreshMsec);
+        int mRegisterAddress;
         RegisterType mRegisterType;
         std::chrono::steady_clock::duration mRefresh;
         uint16_t mLastValue;

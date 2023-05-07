@@ -27,7 +27,7 @@ ModbusScheduler::getRegistersToPoll(
             //BOOST_LOG_SEV(log, Log::debug) << "time passed: " << std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll).count();
 
             if (time_passed >= reg.mRefresh) {
-                BOOST_LOG_SEV(log, Log::debug) << "Register " << slave->first << "." << reg.mRegister << " (0x" << std::hex << slave->first << ".0x" << std::hex << reg.mRegister << ")"
+                BOOST_LOG_SEV(log, Log::debug) << "Register " << slave->first << "." << reg.mRegisterAddress << " (0x" << std::hex << slave->first << ".0x" << std::hex << reg.mRegisterAddress << ")"
                                 << " added, last read " << std::chrono::duration_cast<std::chrono::milliseconds>(time_passed).count() << "ms ago";
                 ret[slave->first].push_back(*reg_it);
             } else {
@@ -36,7 +36,7 @@ ModbusScheduler::getRegistersToPoll(
             if (outDuration > time_to_poll) {
                 outDuration = time_to_poll;
                 BOOST_LOG_SEV(log, Log::debug) << "Wait duration set to " << std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll).count()
-                                << "ms as next poll for register " << slave->first << "." << reg.mRegister << " (0x" << std::hex << slave->first << ".0x" << std::hex << reg.mRegister << ")";
+                                << "ms as next poll for register " << slave->first << "." << reg.mRegisterAddress << " (0x" << std::hex << slave->first << ".0x" << std::hex << reg.mRegisterAddress << ")";
             }
         }
     }

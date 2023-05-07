@@ -19,32 +19,38 @@ class MsgMqttCommand {
 
 class MsgRegisterMessageBase {
     public:
-        MsgRegisterMessageBase(int slaveId, RegisterType regType, int registerNumber)
-            : mSlaveId(slaveId), mRegisterType(regType), mRegisterNumber(registerNumber) {}
+        MsgRegisterMessageBase(int slaveId, RegisterType regType, int registerAddress)
+            : mSlaveId(slaveId), mRegisterType(regType), mRegisterAddress(registerAddress) {}
         int mSlaveId;
         RegisterType mRegisterType;
-        int mRegisterNumber;
+        int mRegisterAddress;
 };
 
 class MsgRegisterValue : public MsgRegisterMessageBase {
     public:
-        MsgRegisterValue(int slaveId, RegisterType regType, int registerNumber, int16_t value)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber),
+        MsgRegisterValue(int slaveId, RegisterType regType, int registerAddress, int16_t value)
+            : MsgRegisterMessageBase(slaveId, regType, registerAddress),
               mValue(value) {}
         int16_t mValue;
 };
 
+/**
+ * Sent back to reset availability
+ * */
 class MsgRegisterReadFailed : public MsgRegisterMessageBase {
     public:
-        MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber)
+        MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerAddress)
+            : MsgRegisterMessageBase(slaveId, regType, registerAddress)
         {}
 };
 
+/**
+ * Sent back to reset availability
+ * */
 class MsgRegisterWriteFailed : public MsgRegisterMessageBase {
     public:
-        MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber)
+        MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerAddress)
+            : MsgRegisterMessageBase(slaveId, regType, registerAddress)
         {}
 };
 

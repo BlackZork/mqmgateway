@@ -27,7 +27,7 @@ class ModbusClient {
             MsgRegisterValue val(
                 cmd.mRegister.mSlaveId,
                 cmd.mRegister.mRegisterType,
-                cmd.mRegister.mRegisterNumber,
+                cmd.mRegister.mRegisterAddress,
                 value
             );
             mToModbusQueue.enqueue(QueueItem::create(val));

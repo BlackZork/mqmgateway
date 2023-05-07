@@ -68,11 +68,11 @@ class RegisterConfigName {
                 throw ConfigurationException(data["register"].Mark(), "Unknown slave id in register specification");
             }
 
-            mRegisterNumber = std::stoi(matches[3], nullptr, 0);
+            mRegisterAddress = std::stoi(matches[3], nullptr, 0);
         };
         std::string mNetworkName;
         int mSlaveId = 0;
-        int mRegisterNumber;
+        int mRegisterAddress;
 };
 
 void
@@ -119,7 +119,7 @@ readCommand(const YAML::Node& node, const std::string& default_network, int defa
             rname.mNetworkName,
             rname.mSlaveId,
             rType,
-            rname.mRegisterNumber
+            rname.mRegisterAddress
             ),
         pType
     );
@@ -534,7 +534,7 @@ ModMqtt::updateSpecification(
     bool hasRefresh = parseAndAddRefresh(currentRefresh, data);
 
     MsgRegisterPoll poll;
-    poll.mRegister = rname.mRegisterNumber;
+    poll.mRegister = rname.mRegisterAddress;
     poll.mRegisterType = parseRegisterType(data);
     poll.mSlaveId = rname.mSlaveId;
     poll.mRefreshMsec = currentRefresh.top();
@@ -555,7 +555,7 @@ ModMqtt::updateSpecification(
     std::vector<MsgRegisterPoll>::iterator reg_it = std::find_if(
         spec_it->mRegisters.begin(), spec_it->mRegisters.end(),
         [&rname, &poll](const MsgRegisterPoll& r) -> bool {
-            return r.mRegister == rname.mRegisterNumber
+            return r.mRegister == rname.mRegisterAddress
                     && r.mRegisterType == poll.mRegisterType
                     && r.mSlaveId == poll.mSlaveId;
             }
@@ -666,15 +666,15 @@ ModMqtt::processModbusMessages() {
         while ((*client)->mFromModbusQueue.try_dequeue(item)) {
             if (item.isSameAs(typeid(MsgRegisterValue))) {
                 std::unique_ptr<MsgRegisterValue> val(item.getData<MsgRegisterValue>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
+                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterAddress);
                 mMqtt->processRegisterValue(ident, val->mValue);
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
+                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterAddress);
                 mMqtt->processRegisterOperationFailed(ident);
             } else if (item.isSameAs(typeid(MsgRegisterWriteFailed))) {
                 std::unique_ptr<MsgRegisterWriteFailed> val(item.getData<MsgRegisterWriteFailed>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
+                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterAddress);
                 mMqtt->processRegisterOperationFailed(ident);
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
