@@ -14,9 +14,9 @@ class DivideConverter : public IStateConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            divider = getDoubleArg(0, args);
+            divider = ConverterTools::getDoubleArg(0, args);
             if (args.size() == 2)
-                precision = getIntArg(1, args);
+                precision = ConverterTools::getIntArg(1, args);
         }
 
         virtual ~DivideConverter() {}

@@ -12,9 +12,10 @@
 /**
  *    Helper functions for IStateConverter interface.
  **/
-class ConverterBase {
+class ConverterTools {
+    private:
+        ConverterTools() {};
     public:
-
         /**
          * Converts string argument to double
          * */
@@ -63,12 +64,15 @@ class ConverterBase {
                 throw std::out_of_range("value out of range");
             return (uint16_t)ret;
         }
-
-        virtual void setArgs(const std::vector<std::string>& args) {};
-        virtual ~ConverterBase() {};
 };
 
-class IStateConverter : public ConverterBase {
+class IStateConverter {
     public:
+        virtual void setArgs(const std::vector<std::string>& args) {};
         virtual MqttValue toMqtt(const ModbusRegisters& data) const = 0;
+};
+
+class ICommandConverter {
+    public:
+        virtual ModbusRegisters toModbus(const MqttValue&, int registerCount) const = 0;
 };

@@ -39,10 +39,10 @@ class ExprtkConverter : public IStateConverter {
             }
 
             mExpression.register_symbol_table(mSymbolTable);
-            mParser.compile(getArg(0, args), mExpression);
+            mParser.compile(ConverterTools::getArg(0, args), mExpression);
 
             if (args.size() == 2)
-                precision = getIntArg(1, args);
+                precision = ConverterTools::getIntArg(1, args);
         }
 
         virtual ~ExprtkConverter() {}

@@ -68,8 +68,8 @@ class ModMqtt {
 
         bool hasConverterPlugin(const std::string& name) const;
         boost::shared_ptr<ConverterPlugin> initConverterPlugin(const std::string& name);
-        std::shared_ptr<IStateConverter> createConverterInstance(const std::string plugin, const std::string& converter) const;
-        std::shared_ptr<IStateConverter> createConverter(const YAML::Node& data) const;
+        std::shared_ptr<IStateConverter> createStateConverterInstance(const std::string plugin, const std::string& converter) const;
+        std::shared_ptr<IStateConverter> createStateConverter(const YAML::Node& data) const;
 
 
         bool mMqttFinished = false;

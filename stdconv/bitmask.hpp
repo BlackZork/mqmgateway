@@ -11,7 +11,7 @@ class BitmaskConverter : public IStateConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            mask = getHex16Arg(0, args);
+            mask = ConverterTools::getHex16Arg(0, args);
         }
 
         virtual ~BitmaskConverter() {}

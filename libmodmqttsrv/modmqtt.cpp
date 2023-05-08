@@ -334,7 +334,7 @@ ModMqtt::readObjectState(
             is_unnamed = false;
         const YAML::Node& converter = state["converter"];
         if (converter.IsDefined()) {
-            object.mState.setConverter(createConverter(converter));
+            object.mState.setConverter(createStateConverter(converter));
         }
         const YAML::Node& node = state["registers"];
         if (node.IsDefined()) {
@@ -363,7 +363,7 @@ ModMqtt::readObjectState(
 }
 
 std::shared_ptr<IStateConverter>
-ModMqtt::createConverter(const YAML::Node& node) const {
+ModMqtt::createStateConverter(const YAML::Node& node) const {
     if (!node.IsScalar())
         throw ConfigurationException(node.Mark(), "converter must be a string");
     std::string line = ConfigTools::readRequiredValue<std::string>(node);
@@ -371,7 +371,7 @@ ModMqtt::createConverter(const YAML::Node& node) const {
     try {
         ConverterSpecification spec(ConverterNameParser::parse(line));
 
-        std::shared_ptr<IStateConverter> conv = createConverterInstance(spec.plugin, spec.converter);
+        std::shared_ptr<IStateConverter> conv = createStateConverterInstance(spec.plugin, spec.converter);
         if (conv == nullptr)
             throw ConfigurationException(node.Mark(), "Converter " + spec.plugin + "." + spec.converter + " not found");
         try {
@@ -386,7 +386,7 @@ ModMqtt::createConverter(const YAML::Node& node) const {
 }
 
 std::shared_ptr<IStateConverter>
-ModMqtt::createConverterInstance(const std::string pluginName, const std::string& converter) const {
+ModMqtt::createStateConverterInstance(const std::string pluginName, const std::string& converter) const {
     auto it = std::find_if(
         mConverterPlugins.begin(),
         mConverterPlugins.end(),
@@ -416,7 +416,7 @@ ModMqtt::readObjectStateNode(
     const YAML::Node& converter = node["converter"];
     std::shared_ptr<IStateConverter> conv;
     if (converter.IsDefined()) {
-        conv = createConverter(converter);
+        conv = createStateConverter(converter);
     }
     object.mState.addRegister(stateName, ident, conv);
 }
