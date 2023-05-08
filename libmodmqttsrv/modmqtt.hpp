@@ -49,20 +49,21 @@ class ModMqtt {
 
         std::shared_ptr<MqttClient> mMqtt;
         std::vector<std::shared_ptr<ModbusClient>> mModbusClients;
+        std::vector<MsgRegisterPollSpecification> mSpecs;
 
         std::vector<boost::shared_ptr<ConverterPlugin>> mConverterPlugins;
 
         void initServer(const YAML::Node& config);
         void initBroker(const YAML::Node& config);
         void initModbusClients(const YAML::Node& config);
-        std::vector<MsgRegisterPollSpecification> initObjects(const YAML::Node& config);
+        void initObjects(const YAML::Node& config);
         void waitForSignal();
 
-        MqttObjectRegisterIdent updateSpecification(std::stack<int>& currentRefresh, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs, const YAML::Node& data);
+        MqttObjectRegisterIdent updateSpecification(std::stack<int>& currentRefresh, const std::string& default_network, int default_slave, const YAML::Node& data);
         bool parseAndAddRefresh(std::stack<int>& values, const YAML::Node& data);
-        void readObjectState(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const YAML::Node& state);
-        void readObjectStateNode(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const std::string& stateName, const YAML::Node& node);
-        void readObjectAvailability(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<int>& currentRefresh, const YAML::Node& availability);
+        void readObjectState(MqttObject& object, const std::string& default_network, int default_slave, std::stack<int>& currentRefresh, const YAML::Node& state);
+        void readObjectStateNode(MqttObject& object, const std::string& default_network, int default_slave, std::stack<int>& currentRefresh, const std::string& stateName, const YAML::Node& node);
+        void readObjectAvailability(MqttObject& object, const std::string& default_network, int default_slave, std::stack<int>& currentRefresh, const YAML::Node& availability);
         void readObjectCommands(MqttObject& object, const std::string& default_network, int default_slave, const YAML::Node& commands);
         void processModbusMessages();
 

@@ -149,18 +149,18 @@ void
 ModMqtt::init(const YAML::Node& config) {
     initServer(config);
     initBroker(config);
-    std::vector<MsgRegisterPollSpecification> specs = initObjects(config);
+    initObjects(config);
 
     initModbusClients(config);
 
-    for(std::vector<MsgRegisterPollSpecification>::iterator sit = specs.begin(); sit != specs.end(); sit++) {
+    for(std::vector<MsgRegisterPollSpecification>::iterator sit = mSpecs.begin(); sit != mSpecs.end(); sit++) {
         const std::string& netname = sit->mNetworkName;
         std::vector<std::shared_ptr<ModbusClient>>::iterator client = std::find_if(
             mModbusClients.begin(), mModbusClients.end(),
             [&netname](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mName == netname; }
         );
         if (client == mModbusClients.end()) {
-            BOOST_LOG_SEV(log, Log::error) << "Modbus client for " << netname << " not initailized, ignoring specification";
+            BOOST_LOG_SEV(log, Log::error) << "Modbus client for " << netname << " not initialized, ignoring specification";
         } else {
             BOOST_LOG_SEV(log, Log::debug) << "Sending register specification to modbus thread for network " << netname;
             (*client)->mToModbusQueue.enqueue(QueueItem::create(*sit));
@@ -319,7 +319,6 @@ ModMqtt::readObjectState(
     MqttObject& object,
     const std::string& default_network,
     int default_slave,
-    std::vector<MsgRegisterPollSpecification>& specs_out,
     std::stack<int>& currentRefresh,
     const YAML::Node& state)
 {
@@ -342,11 +341,11 @@ ModMqtt::readObjectState(
                 throw ConfigurationException(node.Mark(), "registers content should be a list");
             for(size_t i = 0; i < node.size(); i++) {
                 const YAML::Node& regdata = node[i];
-                readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, regdata);
+                readObjectStateNode(object, default_network, default_slave, currentRefresh, name, regdata);
             };
         } else {
             //single named register
-            readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, state);
+            readObjectStateNode(object, default_network, default_slave, currentRefresh, name, state);
         }
     } else if (state.IsSequence()) {
         std::string name;
@@ -357,7 +356,7 @@ ModMqtt::readObjectState(
             else if (!is_unnamed)
                 throw ConfigurationException(regdata.Mark(), "missing name attribute");
             const YAML::Node& converter = state["converter"];
-            readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, regdata);
+            readObjectStateNode(object, default_network, default_slave, currentRefresh, name, regdata);
         }
     }
 }
@@ -407,12 +406,11 @@ ModMqtt::readObjectStateNode(
     MqttObject& object,
     const std::string& default_network,
     int default_slave,
-    std::vector<MsgRegisterPollSpecification>& specs_out,
     std::stack<int>& currentRefresh,
     const std::string& stateName,
     const YAML::Node& node
 ) {
-    MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, node);
+    MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, node);
     const YAML::Node& converter = node["converter"];
     std::shared_ptr<IStateConverter> conv;
     if (converter.IsDefined()) {
@@ -426,20 +424,19 @@ ModMqtt::readObjectAvailability(
     MqttObject& object,
     const std::string& default_network,
     int default_slave,
-    std::vector<MsgRegisterPollSpecification>& specs_out,
     std::stack<int>& currentRefresh,
     const YAML::Node& availability)
 {
     if (!availability.IsDefined())
         return;
     if (availability.IsMap()) {
-        MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, availability);
+        MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, availability);
         uint16_t availValue = ConfigTools::readRequiredValue<uint16_t>(availability, "available_value");
         object.mAvailability.addRegister(ident, availValue);
     } else if (availability.IsSequence()) {
         for(size_t i = 0; i < availability.size(); i++) {
             const YAML::Node& regdata = availability[i];
-            MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, regdata);
+            MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, regdata);
             uint16_t availValue = ConfigTools::readRequiredValue<uint16_t>(availability, "available_value");
             object.mAvailability.addRegister(ident, availValue);
         }
@@ -466,10 +463,9 @@ ModMqtt::readObjectCommands(
     }
 }
 
-std::vector<MsgRegisterPollSpecification>
+void
 ModMqtt::initObjects(const YAML::Node& config)
 {
-    std::vector<MsgRegisterPollSpecification> specs_out;
     std::vector<MqttObjectCommand> commands;
     std::vector<MqttObject> objects;
 
@@ -503,8 +499,8 @@ ModMqtt::initObjects(const YAML::Node& config)
 
         bool hasObjectRefresh = parseAndAddRefresh(currentRefresh, objdata);
 
-        readObjectState(object, default_network, default_slave, specs_out, currentRefresh, objdata["state"]);
-        readObjectAvailability(object, default_network, default_slave, specs_out, currentRefresh, objdata["availability"]);
+        readObjectState(object, default_network, default_slave, currentRefresh, objdata["state"]);
+        readObjectAvailability(object, default_network, default_slave, currentRefresh, objdata["availability"]);
         readObjectCommands(object, default_network, default_slave, objdata["commands"]);
 
         if (hasObjectRefresh)
@@ -518,7 +514,6 @@ ModMqtt::initObjects(const YAML::Node& config)
 
     mMqtt->setObjects(objects);
     BOOST_LOG_SEV(log, Log::debug) << "Finished reading config_objects specification";
-    return specs_out;
 }
 
 MqttObjectRegisterIdent
@@ -526,7 +521,6 @@ ModMqtt::updateSpecification(
     std::stack<int>& currentRefresh,
     const std::string& default_network,
     int default_slave,
-    std::vector<MsgRegisterPollSpecification>& specs,
     const YAML::Node& data)
 {
     const RegisterConfigName rname(data, default_network, default_slave);
@@ -541,14 +535,14 @@ ModMqtt::updateSpecification(
 
     // find network poll specification or create one
     std::vector<MsgRegisterPollSpecification>::iterator spec_it = std::find_if(
-        specs.begin(), specs.end(),
+        mSpecs.begin(), mSpecs.end(),
         [&rname](const MsgRegisterPollSpecification& s) -> bool { return s.mNetworkName == rname.mNetworkName; }
         );
 
-    if (spec_it == specs.end()) {
+    if (spec_it == mSpecs.end()) {
         BOOST_LOG_SEV(log, Log::debug) << "Creating new register specification for network " << rname.mNetworkName;
-        specs.insert(specs.begin(), MsgRegisterPollSpecification(rname.mNetworkName));
-        spec_it = specs.begin();
+        mSpecs.insert(mSpecs.begin(), MsgRegisterPollSpecification(rname.mNetworkName));
+        spec_it = mSpecs.begin();
     }
 
     // add new register poll or update refresh time on existing one
@@ -567,7 +561,7 @@ ModMqtt::updateSpecification(
         << " slaveId=" << rname.mSlaveId << " on network " << rname.mNetworkName;
         spec_it->mRegisters.push_back(poll);
     } else {
-        //set the shortest poll period of all occurences in config file
+        //set the shortest poll period of all occurrences in config file
         if (reg_it->mRefreshMsec > poll.mRefreshMsec) {
             reg_it->mRefreshMsec = poll.mRefreshMsec;
             BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << poll.mRefreshMsec << " on existing register " << poll.mRegister;
