@@ -27,7 +27,7 @@ TEST_CASE ("Unnamed state list without register value should not be available") 
     MockedModMqttServerThread server(config);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 7);
-    server.setModbusRegisterReadError("tcptest", 1, 3, modmqttd::RegisterType::INPUT);
+    server.setModbusRegisterError("tcptest", 1, 3, modmqttd::RegisterType::INPUT);
 
     server.start();
 

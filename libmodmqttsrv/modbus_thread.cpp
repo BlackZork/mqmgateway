@@ -142,6 +142,34 @@ ModbusThread::processWrite(const MsgRegisterValue& msg) {
 }
 
 void
+ModbusThread::processWrite(const MsgRegisterWriteRemoteCall& msg) {
+    try {
+        mModbus->writeModbusRegisters(msg);
+        MsgRegisterRemoteCallResponse resp(msg.mSlaveId, msg.mRegisterType, msg.mRegisterAddress, msg.mResponseProps);
+        sendMessage(QueueItem::create(resp));
+    } catch (const ModbusWriteException& ex) {
+        BOOST_LOG_SEV(log, Log::error) << "error writing register array "
+            << msg.mSlaveId << "." << msg.mRegisterAddress << ": " << ex.what();
+        MsgRegisterRemoteCallError resp(msg.mSlaveId, msg.mRegisterType, msg.mRegisterAddress, msg.mResponseProps, ex);
+        sendMessage(QueueItem::create(resp));
+    }
+}
+
+void
+ModbusThread::processRead(const MsgRegisterReadRemoteCall& msg) {
+    try {
+        std::vector<uint16_t> data = mModbus->readModbusRegisters(msg);
+        MsgRegisterRemoteCallResponse resp(msg.mSlaveId, msg.mRegisterType, msg.mRegisterAddress, msg.mResponseProps, data);
+        sendMessage(QueueItem::create(resp));
+    } catch (const ModbusReadException& ex) {
+        BOOST_LOG_SEV(log, Log::error) << "error reading register array "
+            << msg.mSlaveId << "." << msg.mRegisterAddress << ": " << ex.what();
+        MsgRegisterRemoteCallError resp(msg.mSlaveId, msg.mRegisterType, msg.mRegisterAddress, msg.mResponseProps, ex);
+        sendMessage(QueueItem::create(resp));
+    }
+}
+
+void
 ModbusThread::dispatchMessages(const QueueItem& readed) {
     QueueItem item(readed);
     bool gotItem = true;
@@ -158,6 +186,10 @@ ModbusThread::dispatchMessages(const QueueItem& readed) {
             mShouldRun = false;
         } else if (item.isSameAs(typeid(MsgRegisterValue))) {
             processWrite(*item.getData<MsgRegisterValue>());
+        } else if (item.isSameAs(typeid(MsgRegisterReadRemoteCall))) {
+            processRead(*item.getData<MsgRegisterReadRemoteCall>());
+        } else if (item.isSameAs(typeid(MsgRegisterWriteRemoteCall))) {
+            processWrite(*item.getData<MsgRegisterWriteRemoteCall>());
         } else if (item.isSameAs(typeid(MsgMqttNetworkState))) {
             std::unique_ptr<MsgMqttNetworkState> netstate(item.getData<MsgMqttNetworkState>());
             mShouldPoll = netstate->mIsUp;

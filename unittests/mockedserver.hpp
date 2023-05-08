@@ -79,6 +79,11 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         REQUIRE(is_published == true);
     }
 
+    bool checkForPublish(const char* topic, std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
+        INFO("Checking for publish on " << topic);
+        return mMqtt->waitForPublish(topic, timeout);
+    }
+
     std::string waitForFirstPublish(std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
         std::string topic = mMqtt->waitForFirstPublish(timeout);
         INFO("Getting first published topic");
@@ -88,6 +93,10 @@ class MockedModMqttServerThread : public ModMqttServerThread {
 
     void publish(const char* topic, const std::string& value) {
         mMqtt->publish(topic, value.length(), value.c_str());
+    }
+
+    void publish(const char* topic, const std::string& value, const modmqttd::MqttPublishProps& props) {
+        mMqtt->publish(topic, value.length(), value.c_str(), props);
     }
 
     void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
@@ -101,16 +110,30 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         return mMqtt->mqttValue(topic);
     }
 
+    modmqttd::MqttPublishProps mqttValueProps(const char* topic) {
+        bool has_topic = mMqtt->hasTopic(topic);
+        REQUIRE(has_topic);
+        return mMqtt->mqttValueProps(topic);
+    }
+
     void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val) {
         mModbusFactory->setModbusRegisterValue(network, slaveId, regNum, regtype, val);
+    }
+
+    uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+        return mModbusFactory->getModbusRegisterValue(network, slaveId, regNum, regtype);
+    }
+
+    int getModbusRegisterReadCount(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType) {
+        return mModbusFactory->getRegisterReadCount(network, slaveId, regNum, regType);
     }
 
     void disconnectModbusSlave(const char* network, int slaveId) {
         mModbusFactory->disconnectModbusSlave(network, slaveId);
     }
 
-    void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
-        mModbusFactory->setModbusRegisterReadError(network, slaveId, regNum, regtype);
+    void setModbusRegisterError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+        mModbusFactory->setModbusRegisterError(network, slaveId, regNum, regtype);
     }
 
     std::shared_ptr<MockedModbusFactory> mModbusFactory;

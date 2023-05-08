@@ -79,6 +79,42 @@ ModbusContext::readModbusRegister(int slaveId, const RegisterPoll& regData) {
     return value;
 }
 
+std::vector<uint16_t>
+ModbusContext::readModbusRegisters(const MsgRegisterReadRemoteCall& msg) {
+    if (msg.mSlaveId != 0)
+        modbus_set_slave(mCtx, msg.mSlaveId);
+    else
+        modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
+
+    std::vector<uint8_t> bits(msg.mSize);
+    std::vector<uint16_t> value(msg.mSize);
+    int retCode;
+    switch(msg.mRegisterType) {
+        case RegisterType::COIL:
+            retCode = modbus_read_bits(mCtx, msg.mRegisterAddress, msg.mSize, &bits[0]);
+            // Convert bytes in short
+            std::copy(bits.begin(), bits.end(), value.begin());
+        break;
+        case RegisterType::BIT:
+            retCode = modbus_read_input_bits(mCtx, msg.mRegisterAddress, msg.mSize, &bits[0]);
+            // Convert bytes in short
+            std::copy(bits.begin(), bits.end(), value.begin());
+        break;
+        case RegisterType::HOLDING:
+            retCode = modbus_read_registers(mCtx, msg.mRegisterAddress, msg.mSize, &value[0]);
+        break;
+        case RegisterType::INPUT:
+            retCode = modbus_read_input_registers(mCtx, msg.mRegisterAddress, msg.mSize, &value[0]);
+        break;
+        default:
+            throw ModbusContextException(std::string("Cannot read, unknown register type ") + std::to_string(msg.mRegisterType));
+    }
+    if (retCode == -1)
+        throw ModbusReadException(std::string("read array fn ") + std::to_string(msg.mRegisterAddress) + " failed");
+
+    return value;
+}
+
 void
 ModbusContext::writeModbusRegister(const MsgRegisterValue& msg) {
     if (msg.mSlaveId != 0)
@@ -99,6 +135,30 @@ ModbusContext::writeModbusRegister(const MsgRegisterValue& msg) {
     }
     if (retCode == -1)
         throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterAddress) + " failed");
+}
+
+void
+ModbusContext::writeModbusRegisters(const MsgRegisterWriteRemoteCall& msg) {
+    if (msg.mSlaveId != 0)
+        modbus_set_slave(mCtx, msg.mSlaveId);
+    else
+        modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
+
+    int retCode;
+    switch(msg.mRegisterType) {
+        case RegisterType::COIL: {
+            std::vector<uint8_t> buffer(msg.mValues.size());
+            std::transform(msg.mValues.begin(), msg.mValues.end(), buffer.begin(), [] (uint16_t v) { return (v == 1 ? TRUE : FALSE); });
+            retCode = modbus_write_bits(mCtx, msg.mRegisterAddress, buffer.size(), &buffer[0]);
+        } break;
+        case RegisterType::HOLDING:
+            retCode = modbus_write_registers(mCtx, msg.mRegisterAddress, msg.mValues.size(), &msg.mValues[0]);
+        break;
+        default:
+            throw ModbusContextException(std::string("Cannot write array, unknown register type ") + std::to_string(msg.mRegisterType));
+    }
+    if (retCode == -1)
+        throw ModbusWriteException(std::string("write array fn ") + std::to_string(msg.mRegisterAddress) + " failed");
 }
 
 } //namespace
