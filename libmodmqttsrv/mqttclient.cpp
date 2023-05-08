@@ -83,7 +83,7 @@ MqttClient::onDisconnect() {
 
 void
 MqttClient::onConnect() {
-	BOOST_LOG_SEV(log, Log::info) << "Mqtt conected, sending subscriptions...";
+	BOOST_LOG_SEV(log, Log::info) << "Mqtt connected, sending subscriptions...";
 
     for(std::vector<MqttObject>::const_iterator obj = mObjects.begin(); obj != mObjects.end(); obj++) {
         for(auto it = obj->mCommands.begin(); it != obj->mCommands.end(); it++)
@@ -219,7 +219,7 @@ convertMqttPayload(const MqttObjectBase& command, const void* data, int datalen)
     switch(command.mRegister.mRegisterType) {
         case RegisterType::BIT:
         case RegisterType::COIL:
-            if ((ret != 0) && (ret != 1)) {
+            if (ret != 0 && ret != 1) {
                 throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert " + std::to_string(ret) + " to single bit"));
             }
         break;
@@ -228,7 +228,7 @@ convertMqttPayload(const MqttObjectBase& command, const void* data, int datalen)
 }
 
 void
-MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
+MqttClient::onMessage(const char* topic, const void* payload, int payloadLen, const modmqttd::MqttPublishProps& md) {
     try {
         const MqttObjectBase& command = findCommand(topic);
         const std::string network = command.mRegister.mNetworkName;
@@ -241,7 +241,7 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
         if (it == mModbusClients.end()) {
             BOOST_LOG_SEV(log, Log::error) << "Modbus network " << network << " not found for command  " << topic << ", dropping message";
         } else {
-            uint16_t value = convertMqttPayload(command, payload, payloadlen);
+            uint16_t value = convertMqttPayload(command, payload, payloadLen);
             (*it)->sendCommand(command, value);
         }
     } catch (const MqttPayloadConversionException& ex) {

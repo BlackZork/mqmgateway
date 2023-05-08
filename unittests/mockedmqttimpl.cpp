@@ -1,5 +1,6 @@
 #include "mockedmqttimpl.hpp"
 #include "libmodmqttsrv/mqttclient.hpp"
+#include "libmodmqttsrv/mqttobject.hpp"
 
 void
 MockedMqttImpl::init(modmqttd::MqttClient* owner, const char* clientId) {
@@ -34,12 +35,18 @@ MockedMqttImpl::subscribe(const char* topic) {
 
 void
 MockedMqttImpl::publish(const char* topic, int len, const void* data) {
+    modmqttd::MqttPublishProps md;
+    publish(topic, len, data, md);
+}
+
+void
+MockedMqttImpl::publish(const char* topic, int len, const void* data, const modmqttd::MqttPublishProps& md) {
     std::unique_lock<std::mutex> lck(mMutex);
-    MqttValue v(data, len);
+    MqttValue v(data, len, md);
     mTopics[topic] = v;
     std::set<std::string>::const_iterator it = mSubscriptions.find(topic);
     if (it != mSubscriptions.end()) {
-        mOwner->onMessage(topic, data, len);
+        mOwner->onMessage(topic, data, len, md);
     }
     BOOST_LOG_SEV(log, modmqttd::Log::info) << "PUBLISH " << topic << ": <" << v.val << ">";
     mPublishedTopics.insert(std::make_pair(topic, mPublishedTopics.size() + 1));
@@ -175,7 +182,17 @@ MockedMqttImpl::mqttValue(const char* topic) {
     if (it == mTopics.end())
         throw MockedMqttException(std::string(topic) + " not found");
     const MqttValue data = it->second;
-    std::string val(static_cast<const char*>(data.val), data.len);
+    std::string val(reinterpret_cast<const char*>(data.val), data.len);
     return val;
+}
+
+modmqttd::MqttPublishProps
+MockedMqttImpl::mqttValueProps(const char* topic) {
+    std::unique_lock<std::mutex> lck(mMutex);
+    std::map<std::string, MqttValue>::const_iterator it = mTopics.find(topic);
+    if (it == mTopics.end())
+        throw MockedMqttException(std::string(topic) + " not found");
+    const MqttValue data = it->second;
+    return data.mProps;
 }
 

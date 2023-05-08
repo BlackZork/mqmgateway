@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mosquitto.h>
+#include <mqtt_protocol.h>
 #include "config.hpp"
 #include "common.hpp"
 #include "mqttobject.hpp"
@@ -10,6 +11,7 @@
 namespace modmqttd {
 
 class MqttClient;
+class MqttPublishProps;
 
 class Mosquitto : public IMqttImpl {
     public:
@@ -26,11 +28,12 @@ class Mosquitto : public IMqttImpl {
 
         virtual void subscribe(const char* topic);
         virtual void publish(const char* topic, int len, const void* data);
+        virtual void publish(const char* topic, int len, const void* data, const MqttPublishProps& md);
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);
         virtual void on_log(int level, const char* message);
-        virtual void on_message(const struct mosquitto_message *message);
+        virtual void on_message(const struct mosquitto_message *message, const mosquitto_property *props);
         virtual ~Mosquitto();
     private:
         mosquitto *mMosq = NULL;

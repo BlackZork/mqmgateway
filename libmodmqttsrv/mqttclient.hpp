@@ -42,7 +42,7 @@ class MqttClient {
         //mqtt communication callbacks
         void onDisconnect();
         void onConnect();
-        void onMessage(const char* topic, const void* payload, int payload_len);
+        void onMessage(const char* topic, const void* payload, int payload_len, const modmqttd::MqttPublishProps& md);
 
         //for unit tests
         void setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl) { mMqttImpl = impl; }

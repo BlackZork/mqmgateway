@@ -5,6 +5,7 @@
 namespace modmqttd {
 
 class MqttClient;
+class MqttPublishProps;
 
 /**
     Abstract base class for mqtt communication library implementation
@@ -19,6 +20,7 @@ class IMqttImpl {
 
         virtual void subscribe(const char* topic) = 0;
         virtual void publish(const char* topic, int len, const void* data) = 0;
+        virtual void publish(const char* topic, int len, const void* data, const MqttPublishProps& md) = 0;
 
         virtual void on_disconnect(int rc) = 0;
         virtual void on_connect(int rc)= 0;

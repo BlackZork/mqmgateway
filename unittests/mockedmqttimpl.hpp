@@ -7,6 +7,7 @@
 
 #include "libmodmqttsrv/imqttimpl.hpp"
 #include "libmodmqttsrv/logging.hpp"
+#include "libmodmqttsrv/mqttobject.hpp"
 
 class MockedMqttException : public modmqttd::ModMqttException {
     public:
@@ -20,11 +21,17 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
             MqttValue(const void* v, int l) {
                 copyData(v, l);
             }
+            MqttValue(const void* v, int l, modmqttd::MqttPublishProps props) 
+                :mProps(props) {
+                    copyData(v, l);
+                }
             MqttValue(const MqttValue& from) {
                 copyData(from.val, from.len);
+                mProps = from.mProps;
             }
             MqttValue& operator=(const MqttValue& other) {
                 copyData(other.val, other.len);
+                mProps = other.mProps;
                 return *this;
             }
             ~MqttValue() {
@@ -33,6 +40,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
             }
             char* val = NULL;
             int len = 0;
+            modmqttd::MqttPublishProps mProps;
         private:
             void copyData(const void* v, int l) {
                 if (val)
@@ -52,6 +60,8 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         virtual void subscribe(const char* topic);
         virtual void publish(const char* topic, int len, const void* data);
+        virtual void publish(const char* topic, int len, const void* data, const modmqttd::MqttPublishProps& md);
+        void publish(const char* topic, int len, const void* data, modmqttd::MqttObjectBase::PayloadType payloadType);
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);
@@ -62,6 +72,8 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         std::string waitForFirstPublish(std::chrono::milliseconds timeout);
         bool hasTopic(const char* topic);
         std::string mqttValue(const char* topic);
+        modmqttd::MqttPublishProps mqttValueProps(const char* topic);
+
         //returns current value on timeout
         std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = std::chrono::seconds(1));
         //clear all topics and simulate broker disconnection

@@ -9,6 +9,16 @@
 
 namespace modmqttd {
 
+/**
+ * Optional properties for MQTT publications
+ * */
+class MqttPublishProps {
+    public:
+        // Used in MQTT request-response
+        std::string mResponseTopic;
+        std::vector<uint8_t> mCorrelationData;
+};
+
 class MsgMqttCommand {
     public:
         int mSlave;
