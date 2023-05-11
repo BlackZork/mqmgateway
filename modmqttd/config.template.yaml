@@ -83,5 +83,11 @@ mqtt:
         register_type: input
         refresh: 1s
 
-
+    - topic: rpc_sensor/generic
+      remote_calls:
+        # Expose a range of 12 holding registries to remote calls (R/W)
+        name: calibration_data
+        register: rtutest.2.1024
+        register_type: holding
+        size: 12
 

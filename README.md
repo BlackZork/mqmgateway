@@ -345,6 +345,36 @@ Configuration values:
 
 *register*, *register_type* and *available_value* can form a list when multiple registers should be read.
 
+### The *remote_call* section
+
+  The `remote_call` sections defines how to access modbus data using the MQTT remote calls (RPC).
+  In this way, value polling and availability (state) is not processed at all, and a MQTT client can be used in remote call mode to read/write register data.
+
+  The string data format is a space-separated list of value, and converters are not available.
+
+  NOTE: When at least one `remote_call` is specified, the MQTT connects using version 5, so the broker must be compatible with v5.
+
+  * **name** (required)
+
+    The last part of topic name where value should be published. Full topic name is created as `topic.name/remote_call.name`
+
+  * **register** (required)
+
+    Modbus register address in the form of <network_name>.<slave_id>.<address>
+
+  * **register_type** (required)
+
+    Modbus register type: coil, input, holding
+
+  * **size** (required)
+
+    Modbus register range count
+
+  To start a read call, publish a MQTT topic with an empty payload and with valid `response_topic` and `correlation_data` to produce the response. The response payload contains the read data, or an error message.
+
+  To start a write call, publish a MQTT topic with the register values as payload, and with valid `response_topic` and `correlation_data` to produce the empty response as acknowledge. In case of error, the response payload contains the error message.
+
+
 ## Data conversion
 
 Data read from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit or perform some simple divide operations a converter can be used.
