@@ -88,6 +88,8 @@ MqttClient::onConnect() {
     for(std::vector<MqttObject>::const_iterator obj = mObjects.begin(); obj != mObjects.end(); obj++) {
         for(auto it = obj->mCommands.begin(); it != obj->mCommands.end(); it++)
             subscribeToCommandTopic(obj->getTopic(), *it);
+        for(auto it = obj->mRemoteCalls.begin(); it != obj->mRemoteCalls.end(); it++)
+            subscribeToCommandTopic(obj->getTopic(), *it);
     }
 
     mConnectionState = State::CONNECTED;
@@ -188,39 +190,59 @@ MqttClient::publishAll() {
     }
 }
 
-static const int MAX_DATA_LEN = 32;
+/**
+ * Make a char* readable
+ */
+class MemStream : public std::istream {
+private:
+    class MemBuf : public std::basic_streambuf<char> {
+    public:
+        MemBuf(const void *data, int dataLen) {
+            setg((char*)data, (char*)data, (char*)data + dataLen);
+        }
+    };
+    MemBuf _buffer;
+public:
+    MemStream(const void* data, int dataLen)
+        :std::istream(&_buffer), _buffer(data, dataLen) {
+            rdbuf(&_buffer);
+        }
+};
 
-uint16_t
-convertMqttPayload(const MqttObjectBase& command, const void* data, int datalen) {
-    uint16_t ret(0);
-    if (datalen > MAX_DATA_LEN)
-        throw MqttPayloadConversionException(std::string("Conversion failed, payload too big (size:") + std::to_string(datalen) + ")");
+static std::vector<uint16_t>
+convertMqttPayload(const MqttObjectBase& command, const void* data, int dataLen, bool expectedScalar) {
+    std::vector<uint16_t> ret;
 
     switch(command.mPayloadType) {
         case MqttObjectCommand::PayloadType::STRING: {
-            std::string value((const char*)data, datalen);
-            try {
-                int temp(std::stoi(value.c_str()));
-                if (temp <= static_cast<int>(UINT16_MAX) && temp >=0) {
-                    ret = static_cast<uint16_t>(temp);
-                } else {
-                    throw MqttPayloadConversionException(std::string("Conversion failed, value " + std::to_string(temp) + " out of range"));
+            MemStream stream(data, dataLen);
+            // istream will treat negative number as signed and then force it in unsigned
+            // So use a larger int to detect invalid values
+            int32_t temp;
+            while (!stream.eof() && stream >> temp) {
+                if (temp > UINT16_MAX || temp < 0) {
+                    throw MqttPayloadConversionException(std::string("Conversion to uint16 failed, value " + std::to_string(temp) + " out of range"));
                 }
-            } catch (const std::invalid_argument& ex) {
-                throw MqttPayloadConversionException("Failed to convert mqtt value to int16");
-            } catch (const std::out_of_range& ex) {
-                throw MqttPayloadConversionException("mqtt value if out of range");
+                ret.push_back(static_cast<uint16_t>(temp));
+            }
+            if (stream.fail()) {
+                throw MqttPayloadConversionException(std::string("Conversion to number failed, value " + std::string((char*)data, std::min(dataLen, 128))));
             }
         } break;
         default:
           throw MqttPayloadConversionException("Conversion failed, unknown payload type" + std::to_string(command.mPayloadType));
     }
+    if (expectedScalar && ret.size() != 1) {
+        throw MqttPayloadConversionException(std::string("Conversion to scalar failed, value " + std::string((char*)data, std::min(dataLen, 128))));
+    }
 
     switch(command.mRegister.mRegisterType) {
         case RegisterType::BIT:
         case RegisterType::COIL:
-            if (ret != 0 && ret != 1) {
-                throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert " + std::to_string(ret) + " to single bit"));
+            for (auto it = ret.begin(); it != ret.end(); ++it) {
+                if (*it != 0 && *it != 1) {
+                    throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert " + std::to_string(*it) + " to single bit"));
+                }
             }
         break;
     }
@@ -241,8 +263,23 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadLen, co
         if (it == mModbusClients.end()) {
             BOOST_LOG_SEV(log, Log::error) << "Modbus network " << network << " not found for command  " << topic << ", dropping message";
         } else {
-            uint16_t value = convertMqttPayload(command, payload, payloadLen);
-            (*it)->sendCommand(command, value);
+            if (command.isSameAs(typeid(MqttObjectRemoteCall))) {
+                // RPC for read/write
+                if (md.mResponseTopic.size() == 0) {
+                    BOOST_LOG_SEV(log, Log::error) << "Empty response topic for remote call  " << topic << ", dropping message";
+                } else {
+                    if (payloadLen == 0) {
+                        (*it)->sendReadCommand(static_cast<const MqttObjectRemoteCall&>(command), md);
+                    } else {
+                        std::vector<uint16_t> value = convertMqttPayload(command, payload, payloadLen, false);
+                        (*it)->sendWriteCommand(command, value, md);
+                    }
+                }
+            } else {
+                // Read single value
+                std::vector<uint16_t> value = convertMqttPayload(command, payload, payloadLen, true);
+                (*it)->sendCommand(command, value[0]);
+            }
         }
     } catch (const MqttPayloadConversionException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "Value error for " << topic << ":" << ex.what();
@@ -264,20 +301,47 @@ MqttClient::findCommand(const char* topic) const {
         objectName = topic;
     }
 
-
     std::vector<MqttObject>::const_iterator obj = std::find_if(
         mObjects.begin(), mObjects.end(),
         [&objectName](const MqttObject& item) -> bool { return item.getTopic() == objectName; }
     );
     if (obj != mObjects.end()) {
+        // Search in commands
         std::vector<MqttObjectCommand>::const_iterator cmd = std::find_if(
             obj->mCommands.begin(), obj->mCommands.end(),
             [&commandName](const MqttObjectCommand& item) -> bool { return item.mName == commandName; }
         );
-        if (cmd != obj->mCommands.end())
+        if (cmd != obj->mCommands.end()) {
             return *cmd;
         }
+        // Else search in rpc
+        std::vector<MqttObjectRemoteCall>::const_iterator rpc = std::find_if(
+            obj->mRemoteCalls.begin(), obj->mRemoteCalls.end(),
+            [&commandName](const MqttObjectRemoteCall& item) -> bool { return item.mName == commandName; }
+        );
+        if (rpc != obj->mRemoteCalls.end()) {
+            return *rpc;
+        }
+    }
     throw ObjectCommandNotFoundException(topic);
+}
+
+void 
+MqttClient::processRemoteCallResponse(const MqttObjectRegisterIdent& ident, const MqttPublishProps& responseProps, std::vector<uint16_t> data) {
+    std::stringstream str;
+    bool first = true;
+    for (auto it = data.begin(); it != data.end(); ++it, first = false) {
+        ((!first) ? (str << " ") : str) << *it ;
+    }
+    std::string msg = str.str();
+    mMqttImpl->publish(responseProps.mResponseTopic.c_str(), msg.size(), msg.c_str(), responseProps);
+}
+
+void 
+MqttClient::processRemoteCallResponseError(const MqttObjectRegisterIdent& ident, const MqttPublishProps& responseProps, std::string error) {
+    // Override type
+    MqttPublishProps props = responseProps;
+    mMqttImpl->publish(responseProps.mResponseTopic.c_str(), error.size(), error.c_str(), props);
 }
 
 }

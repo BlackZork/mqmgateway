@@ -23,7 +23,7 @@ class MqttClient {
         void setClientId(const std::string& clientId);
         void setBrokerConfig(const MqttBrokerConfig& config);
         void setModbusClients(const std::vector<std::shared_ptr<ModbusClient>>& clients) { mModbusClients = clients; }
-        void start() ;//TODO throw(MosquittoException) - depreciated?;
+        void start() ;//TODO throw(MosquittoException) - deprecated?;
         bool isStarted() { return mIsStarted; }
         void shutdown();
         bool isConnected() const { return mConnectionState == State::CONNECTED; }
@@ -38,6 +38,8 @@ class MqttClient {
         void processRegisterOperationFailed(const MqttObjectRegisterIdent& ident);
         void processModbusNetworkState(const std::string& networkName, bool isUp);
         void publishAvailabilityChange(const MqttObject& obj);
+        void processRemoteCallResponse(const MqttObjectRegisterIdent& ident, const MqttPublishProps& responseProps, std::vector<uint16_t> data);
+        void processRemoteCallResponseError(const MqttObjectRegisterIdent& ident, const MqttPublishProps& responseProps, std::string error);
 
         //mqtt communication callbacks
         void onDisconnect();

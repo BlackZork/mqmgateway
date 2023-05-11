@@ -33,6 +33,7 @@ add_executable(tests
     single_register_tests.cpp
     stdconv_tests.cpp
     two_slaves_tests.cpp
+    mqtt_remote_call_tests.cpp
 )
 
 target_link_libraries(tests 

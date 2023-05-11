@@ -108,7 +108,11 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
     if (rc != MOSQ_ERR_SUCCESS) {
         BOOST_LOG_SEV(log, Log::error) << "Error connecting to mqtt broker: " << returnCodeToStr(rc);
     } else {
-        mosquitto_reconnect_delay_set(mMosq, 3,60, true);
+        if (config.mUseRpc) {
+            BOOST_LOG_SEV(log, Log::info) << "Using protocol version 5";
+            mosquitto_int_option(mMosq, MOSQ_OPT_PROTOCOL_VERSION, MQTT_PROTOCOL_V5);
+        }
+        mosquitto_reconnect_delay_set(mMosq, 3, 60, true);
         mosquitto_connect_callback_set(mMosq, on_connect_wrapper);
         mosquitto_connect_with_flags_callback_set(mMosq, on_connect_with_flags_wrapper);
         mosquitto_disconnect_callback_set(mMosq, on_disconnect_wrapper);

@@ -125,6 +125,25 @@ readCommand(const YAML::Node& node, const std::string& default_network, int defa
     );
 }
 
+static MqttObjectRemoteCall readRemoteCall(const YAML::Node& node, const std::string& default_network, int default_slave) {
+    std::string name = ConfigTools::readRequiredString(node, "name");
+    RegisterConfigName rname(node, default_network, default_slave);
+    RegisterType rType = parseRegisterType(node);
+    MqttObjectCommand::PayloadType pType = parsePayloadType(node);
+    int size = ConfigTools::readRequiredValue<int>(node, "size");
+    return MqttObjectRemoteCall(
+        name,
+        MqttObjectRegisterIdent(
+            rname.mNetworkName,
+            rname.mSlaveId,
+            rType,
+            rname.mRegisterAddress
+            ),
+        pType,
+        size
+    );
+}
+
 ModMqtt::ModMqtt()
 {
     // unit tests create main class multiple times
@@ -148,8 +167,8 @@ void ModMqtt::init(const std::string& configPath) {
 void
 ModMqtt::init(const YAML::Node& config) {
     initServer(config);
-    initBroker(config);
     initObjects(config);
+    initBroker(config);
 
     initModbusClients(config);
 
@@ -261,7 +280,7 @@ void ModMqtt::initBroker(const YAML::Node& config) {
         throw ConfigurationException(config.Mark(), "no broker configuration in mqtt section");
 
     MqttBrokerConfig brokerConfig(broker);
-
+    brokerConfig.mUseRpc = mUseRpc;
     mMqtt->setBrokerConfig(brokerConfig);
     BOOST_LOG_SEV(log, Log::debug) << "Broker configuration initialized";
 }
@@ -464,6 +483,28 @@ ModMqtt::readObjectCommands(
 }
 
 void
+ModMqtt::readObjectRemoteCalls(
+    MqttObject& object,
+    const std::string& default_network,
+    int default_slave,
+    const YAML::Node& remoteCalls
+) {
+    if (!remoteCalls.IsDefined())
+        return;
+    if (remoteCalls.IsMap()) {
+        object.mRemoteCalls.push_back(readRemoteCall(remoteCalls, default_network, default_slave));
+        BOOST_LOG_SEV(log, Log::debug) << "remote_call map";
+        mUseRpc = true;
+    } else if (remoteCalls.IsSequence()) {
+        for(size_t i = 0; i < remoteCalls.size(); i++) {
+            object.mRemoteCalls.push_back(readRemoteCall(remoteCalls[i], default_network, default_slave));
+            BOOST_LOG_SEV(log, Log::debug) << "remote_call seq";
+            mUseRpc = true;
+        }
+    }
+}
+
+void
 ModMqtt::initObjects(const YAML::Node& config)
 {
     std::vector<MqttObjectCommand> commands;
@@ -502,6 +543,7 @@ ModMqtt::initObjects(const YAML::Node& config)
         readObjectState(object, default_network, default_slave, currentRefresh, objdata["state"]);
         readObjectAvailability(object, default_network, default_slave, currentRefresh, objdata["availability"]);
         readObjectCommands(object, default_network, default_slave, objdata["commands"]);
+        readObjectRemoteCalls(object, default_network, default_slave, objdata["remote_calls"]);
 
         if (hasObjectRefresh)
             currentRefresh.pop();
@@ -670,6 +712,14 @@ ModMqtt::processModbusMessages() {
                 std::unique_ptr<MsgRegisterWriteFailed> val(item.getData<MsgRegisterWriteFailed>());
                 MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterAddress);
                 mMqtt->processRegisterOperationFailed(ident);
+            } else if (item.isSameAs(typeid(MsgRegisterRemoteCallResponse))) {
+                std::unique_ptr<MsgRegisterRemoteCallResponse> val(item.getData<MsgRegisterRemoteCallResponse>());
+                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterAddress);
+                mMqtt->processRemoteCallResponse(ident, val->mProps, val->mData);
+            } else if (item.isSameAs(typeid(MsgRegisterRemoteCallError))) {
+                std::unique_ptr<MsgRegisterRemoteCallError> val(item.getData<MsgRegisterRemoteCallError>());
+                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterAddress);
+                mMqtt->processRemoteCallResponseError(ident, val->mProps, val->mError);
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);

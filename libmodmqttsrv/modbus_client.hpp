@@ -33,6 +33,31 @@ class ModbusClient {
             mToModbusQueue.enqueue(QueueItem::create(val));
         }
 
+        void sendWriteCommand(const MqttObjectBase& cmd, const std::vector<uint16_t>& value, const MqttPublishProps& responseProps) {
+            MsgRegisterWriteRemoteCall val(
+                cmd.mRegister.mSlaveId,
+                cmd.mRegister.mRegisterType,
+                cmd.mRegister.mRegisterAddress,
+                value,
+                responseProps
+            );
+            mToModbusQueue.enqueue(QueueItem::create(val));
+        }
+
+        /**
+         * Engage a Remote Call read call
+         * */
+        void sendReadCommand(const MqttObjectRemoteCall& cmd, const MqttPublishProps& responseProps) {
+            MsgRegisterReadRemoteCall val(
+                cmd.mRegister.mSlaveId,
+                cmd.mRegister.mRegisterType,
+                cmd.mRegister.mRegisterAddress,
+                cmd.mSize,
+                responseProps
+            );
+            mToModbusQueue.enqueue(QueueItem::create(val));
+        }
+
         void sendMqttNetworkIsUp(bool up) {
             mToModbusQueue.enqueue(QueueItem::create(MsgMqttNetworkState(up)));
         }
