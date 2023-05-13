@@ -13,6 +13,7 @@ ModbusContext::init(const ModbusNetworkConfig& config)
                 (MODBUS_ERROR_RECOVERY_PROTOCOL|MODBUS_ERROR_RECOVERY_LINK)
         );
     } else {
+        BOOST_LOG_SEV(log, Log::info) << "Creating RTU context: " << config.mDevice << ", " << config.mBaud << "-" << config.mDataBit << config.mParity << config.mStopBit;
         mCtx = modbus_new_rtu(
             config.mDevice.c_str(),
             config.mBaud,
@@ -21,6 +22,64 @@ ModbusContext::init(const ModbusNetworkConfig& config)
             config.mStopBit
         );
         modbus_set_error_recovery(mCtx, MODBUS_ERROR_RECOVERY_PROTOCOL);
+
+        int serialMode;
+        std::string serialModeStr;
+        switch (config.mRtuSerialMode) {
+            case ModbusNetworkConfig::RtuSerialMode::RS232:
+                serialMode = MODBUS_RTU_RS232;
+                serialModeStr = "RS232";
+                break;
+            case ModbusNetworkConfig::RtuSerialMode::RS485:
+                serialMode = MODBUS_RTU_RS485;
+                serialModeStr = "RS485";
+                break;
+            case ModbusNetworkConfig::RtuSerialMode::UNSPECIFIED:
+            default:
+                serialMode = -1;
+                break;
+        }
+        if (serialMode >= 0) {
+            BOOST_LOG_SEV(log, Log::info) << "Set RTU serial mode to " << serialModeStr;
+            if (modbus_rtu_set_serial_mode(mCtx, serialMode)) {
+                throw ModbusContextException("Unable to set RTU serial mode");
+            }
+        }
+
+        int rtsMode;
+        std::string rtsModeStr;
+        switch (config.mRtsMode) {
+            case ModbusNetworkConfig::RtuRtsMode::UP:
+                rtsMode = MODBUS_RTU_RTS_UP;
+                rtsModeStr = "UP";
+                break;
+            case ModbusNetworkConfig::RtuRtsMode::DOWN:
+                rtsMode = MODBUS_RTU_RTS_DOWN;
+                rtsModeStr = "DOWN";
+                break;
+            case ModbusNetworkConfig::RtuRtsMode::NONE:
+            default:
+                rtsMode = -1;
+                break;
+        }
+        if (rtsMode >= 0) {
+            BOOST_LOG_SEV(log, Log::info) << "Set RTU RTS mode to " << rtsModeStr;
+            if (modbus_rtu_set_rts(mCtx, rtsMode)) {
+                throw ModbusContextException("Unable to set RTS mode");
+            }
+        }
+
+        if (config.mRtsDelayUs > 0) {
+            BOOST_LOG_SEV(log, Log::info) << "Set RTU delay to " << config.mRtsDelayUs << "us";
+            if (modbus_rtu_set_rts_delay(mCtx, config.mRtsDelayUs)) {
+                throw ModbusContextException("Unable to set RTS delay");
+            }
+        }
+
+        BOOST_LOG_SEV(log, Log::info) << "Set RTU response timeout to 1s";
+        if (modbus_set_response_timeout(mCtx, 1, 0)) {
+            throw ModbusContextException("Unable to set response timeout");
+        }
     }
 
     if (mCtx == NULL)
