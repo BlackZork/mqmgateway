@@ -1,6 +1,36 @@
 #include "config.hpp"
 #include "common.hpp"
 
+template<>
+struct YAML::convert<modmqttd::ModbusNetworkConfig::RtuSerialMode> {
+    static bool decode(const YAML::Node& node, modmqttd::ModbusNetworkConfig::RtuSerialMode& rhs) {
+        auto str = node.as<std::string>();
+        if (str == "rs232") {
+            rhs = modmqttd::ModbusNetworkConfig::RtuSerialMode::RS232;
+        } else if (str == "rs485") {
+            rhs = modmqttd::ModbusNetworkConfig::RtuSerialMode::RS485;
+        } else {
+            return false;
+        }
+        return true;
+    }
+};
+
+template<>
+struct YAML::convert<modmqttd::ModbusNetworkConfig::RtuRtsMode> {
+    static bool decode(const YAML::Node& node, modmqttd::ModbusNetworkConfig::RtuRtsMode& rhs) {
+        auto str = node.as<std::string>();
+        if (str == "down") {
+            rhs = modmqttd::ModbusNetworkConfig::RtuRtsMode::DOWN;
+        } else if (str == "up") {
+            rhs = modmqttd::ModbusNetworkConfig::RtuRtsMode::UP;
+        } else {
+            return false;
+        }
+        return true;
+    }
+};
+
 namespace modmqttd {
 
 
@@ -26,6 +56,9 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
         mParity = ConfigTools::readRequiredValue<char>(source, "parity");
         mDataBit = ConfigTools::readRequiredValue<int>(source, "data_bit");
         mStopBit = ConfigTools::readRequiredValue<int>(source, "stop_bit");
+        ConfigTools::readOptionalValue<RtuSerialMode>(this->mRtuSerialMode, source, "rtu_serial_mode");
+        ConfigTools::readOptionalValue<RtuRtsMode>(this->mRtsMode, source, "rtu_rts_mode");
+        ConfigTools::readOptionalValue<int>(this->mRtsDelayUs, source, "rtu_rts_delay");
     } else if (source["address"]) {
         mType = Type::TCPIP;
         mAddress = ConfigTools::readRequiredString(source, "address");
