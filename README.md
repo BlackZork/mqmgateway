@@ -122,11 +122,23 @@ Modbus network configuration parameters are listed below:
 
   * **data_bit** (required)
 
-    the number of bits of data (5,6,7,8)
+    the number of data bits (5,6,7,8)
 
   * **stop_bit** (required)
 
-    the bits of stop
+    serial port stop bit value (0 or 1)
+
+  * **rtu_serial_mode** (optional)
+
+    serial port mode: rs232 or rs485. See modbus_rtu_set_serial_mode(3)
+
+  * **rtu_rts_mode** (optional)
+
+    modbus Request To Send mode (up or down). See modbus_rtu_set_rts(3)
+
+  * **rtu_rts_delay_us** (optional)
+
+    modbus Request To Send delay period in microseconds. See modbus_rtu_set_rts_delay(3)
 
 * TCP/IP device settings
 
