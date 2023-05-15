@@ -74,7 +74,9 @@
         "concepts": "cpp",
         "ranges": "cpp",
         "stop_token": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "charconv": "cpp",
+        "format": "cpp"
     },
     "cmake.configureOnOpen": true,
     "testMate.cpp.debug.configTemplate": {

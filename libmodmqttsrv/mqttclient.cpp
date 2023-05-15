@@ -240,8 +240,8 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
         if (it == mModbusClients.end()) {
             BOOST_LOG_SEV(log, Log::error) << "Modbus network " << network << " not found for command  " << topic << ", dropping message";
         } else {
-            uint16_t value = convertMqttPayload(command, payload, payloadlen);
-            (*it)->sendCommand(command, value);
+            ModbusRegisters reg_values = convertMqttPayload(command, payload, payloadlen);
+            (*it)->sendCommand(command, reg_values);
         }
     } catch (const MqttPayloadConversionException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "Value error for " << topic << ":" << ex.what();

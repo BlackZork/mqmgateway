@@ -6,7 +6,7 @@
 namespace modmqttd {
 
 class RegisterPoll;
-class MsgRegisterValue;
+class MsgRegisterValues;
 class ModbusNetworkConfig;
 
 /**
@@ -19,7 +19,7 @@ class IModbusContext {
         virtual bool isConnected() const = 0;
         virtual void disconnect() = 0;
         virtual uint16_t readModbusRegister(int slaveId, const RegisterPoll& regData) = 0;
-        virtual void writeModbusRegister(const MsgRegisterValue& msg) = 0;
+        virtual void writeModbusRegisters(const MsgRegisterValues& msg) = 0;
         virtual ~IModbusContext() {};
 };
 

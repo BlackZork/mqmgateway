@@ -51,6 +51,11 @@ class MqttObjectCommand {
         std::string mName;
         PayloadType mPayloadType;
         MqttObjectRegisterIdent mRegister;
+
+        void setConverter(std::shared_ptr<ICommandConverter> conv) { mConverter = conv; }
+        bool hasConverter() const { return mConverter != nullptr; }
+    private:
+        std::shared_ptr<ICommandConverter> mConverter;
 };
 
 class MqttObjectRegisterValue {
@@ -81,6 +86,9 @@ class MqttObjectAvailabilityValue : public MqttObjectRegisterValue {
         uint16_t mAvailableValue;
 };
 
+/*!
+    Base class for state an availability
+*/
 template <typename T>
 class MqttObjectRegisterHolder {
     public:
@@ -125,6 +133,10 @@ class MqttObjectState {
         bool isPolling() const;
     private:
         std::vector<MqttObjectStateValue> mValues;
+        /*!
+            a converter used for scalar state - if only one register is
+            pulled for topic
+        */
         std::shared_ptr<IStateConverter> mConverter;
 };
 

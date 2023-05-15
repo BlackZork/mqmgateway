@@ -664,10 +664,10 @@ ModMqtt::processModbusMessages() {
         client < mModbusClients.end(); client++)
     {
         while ((*client)->mFromModbusQueue.try_dequeue(item)) {
-            if (item.isSameAs(typeid(MsgRegisterValue))) {
-                std::unique_ptr<MsgRegisterValue> val(item.getData<MsgRegisterValue>());
+            if (item.isSameAs(typeid(MsgRegisterValues))) {
+                std::unique_ptr<MsgRegisterValues> val(item.getData<MsgRegisterValues>());
                 MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterValue(ident, val->mValue);
+                mMqtt->processRegisterValue(ident, val->mValues.getValue(0));
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
                 MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
