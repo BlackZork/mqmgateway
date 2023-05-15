@@ -10,6 +10,21 @@ modbus:
     - name: tcptest
       address: localhost
       port: 64555
+    - name: rtutest
+      response_timeout: 500ms
+      response_data_timeout: 500ms
+      device: /dev/ttyUSB0
+      baud: 9600
+      parity: E
+      data_bit: 8
+      stop_bit: 1
+
+      # Optional settings for RTU
+
+      rtu_serial_mode: rs232
+      rtu_rts_mode: up
+      rtu_rts_delay_us: 100
+
 mqtt:
   client_id: mqttc
   broker:
