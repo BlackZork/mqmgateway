@@ -109,8 +109,6 @@ class MqttObjectStateValue : public MqttObjectRegisterHolder<MqttObjectRegisterV
         bool isUnnamed() const { return mName.empty(); }
         bool isScalar() const { return mRegisterValues.size() == 1; }
         std::string mName;
-    private:
-        std::shared_ptr<IStateConverter> mConverter;
 };
 
 class MqttObjectState {
