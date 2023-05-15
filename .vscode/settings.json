@@ -76,7 +76,12 @@
         "stop_token": "cpp",
         "valarray": "cpp",
         "charconv": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "source_location": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "span": "cpp",
+        "stdfloat": "cpp"
     },
     "cmake.configureOnOpen": true,
     "testMate.cpp.debug.configTemplate": {
