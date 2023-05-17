@@ -16,7 +16,7 @@ DefaultCommandConverter::toModbus(const MqttValue& value, int registerCount) con
             int32_t temp = value.getInt();
             if (temp <= static_cast<int>(UINT16_MAX) && temp >=0) {
                 uint16_t regval = static_cast<uint16_t>(temp);
-                ret.addValue(regval);
+                ret.appendValue(regval);
             } else {
                 throw ConvException(std::string("Conversion failed, value " + std::to_string(temp) + " out of range"));
             }

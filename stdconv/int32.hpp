@@ -3,7 +3,7 @@
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
 
-class Int32Converter : public IStateConverter {
+class Int32Converter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             int val = data.getValue(0);
@@ -13,6 +13,17 @@ class Int32Converter : public IStateConverter {
             }
             return MqttValue::fromInt(val);
         }
+
+        virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
+            ModbusRegisters ret;
+            int val = value.getInt();
+            ret.appendValue(val);
+            if (registerCount == 2) {
+                ret.prependValue(val >> 16);
+            }
+            return ret;
+        }
+
 
         virtual ~Int32Converter() {}
     private:

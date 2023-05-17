@@ -7,7 +7,7 @@ class MqttValue;
 
 namespace modmqttd {
 
-class DefaultCommandConverter : public ICommandConverter {
+class DefaultCommandConverter : public DataConverter {
     public:
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const;
         static void parseAsJson(ModbusRegisters& ret, const std::string jsonData, int registerCount);

@@ -3,7 +3,7 @@
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
 
-class BitmaskConverter : public IStateConverter {
+class BitmaskConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             int val = data.getValue(0) & mask;

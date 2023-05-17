@@ -24,7 +24,7 @@ MqttObjectAvailabilityValue::getAvailabilityFlag() const {
 
 template <typename T>
 void
-MqttObjectRegisterHolder<T>::addRegister(const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<IStateConverter>& conv) {
+MqttObjectRegisterHolder<T>::addRegister(const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv) {
     auto it = mRegisterValues.find(regIdent);
     if (it == mRegisterValues.end()) {
         mRegisterValues[regIdent] = T();
@@ -100,7 +100,7 @@ MqttObjectRegisterHolder<T>::getRawArray() const {
     ModbusRegisters ret;
 
     for(auto it = mRegisterValues.begin(); it != mRegisterValues.end(); it++)
-        ret.addValue(it->second.getRawValue());
+        ret.appendValue(it->second.getRawValue());
 
     return ret;
 }
@@ -129,7 +129,7 @@ MqttObjectAvailability::getAvailableFlag() const {
 }
 
 void
-MqttObjectState::addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<IStateConverter>& conv) {
+MqttObjectState::addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv) {
     std::vector<MqttObjectStateValue>::iterator existing = std::find_if(
         mValues.begin(),
         mValues.end(),
@@ -185,7 +185,7 @@ void
 createConvertedValue(
     rapidjson::Writer<rapidjson::StringBuffer>& writer,
     const ModbusRegisters& registers,
-    const IStateConverter& converter
+    const DataConverter& converter
 ) {
     MqttValue v = converter.toMqtt(registers);
     createConvertedValue(writer, v);
@@ -195,7 +195,7 @@ void
 createConvertedValue(
     rapidjson::Writer<rapidjson::StringBuffer>& writer,
     const MqttObjectStateValue& stateValue,
-    const std::shared_ptr<IStateConverter>& converter
+    const std::shared_ptr<DataConverter>& converter
 ) {
     if (stateValue.isScalar()) {
         //single value

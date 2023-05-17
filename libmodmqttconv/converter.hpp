@@ -10,7 +10,7 @@
 #include "modbusregisters.hpp"
 
 /**
- *    Helper functions for IStateConverter interface.
+ *    Helper functions for DataConverter interface.
  **/
 class ConverterTools {
     private:
@@ -66,13 +66,14 @@ class ConverterTools {
         }
 };
 
-class IStateConverter {
+class DataConverter {
     public:
         virtual void setArgs(const std::vector<std::string>& args) {};
-        virtual MqttValue toMqtt(const ModbusRegisters& data) const = 0;
+        virtual MqttValue toMqtt(const ModbusRegisters& data) const {
+            throw std::logic_error("Converstion to mqtt value is not implemented");
+        };
+        virtual ModbusRegisters toModbus(const MqttValue&, int registerCount) const {
+            throw std::logic_error("Converstion to modbus register values is not implemented");
+        };
 };
 
-class ICommandConverter {
-    public:
-        virtual ModbusRegisters toModbus(const MqttValue&, int registerCount) const = 0;
-};

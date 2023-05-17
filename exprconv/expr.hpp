@@ -4,7 +4,7 @@
 #include "libmodmqttconv/convexception.hpp"
 #include "libmodmqttconv/converter.hpp"
 
-class ExprtkConverter : public IStateConverter {
+class ExprtkConverter : public DataConverter {
     public:
         static const int MAX_REGISTERS = 10;
 

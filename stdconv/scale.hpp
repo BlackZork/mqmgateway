@@ -3,7 +3,7 @@
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
 
-class ScaleConverter : public IStateConverter {
+class ScaleConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             double sourceValue = data.getValue(0);

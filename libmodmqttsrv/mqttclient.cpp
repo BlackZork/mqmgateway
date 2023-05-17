@@ -221,9 +221,13 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
         } else {
             MqttValue tmpval(createMqttValue(command, payload, payloadlen));
 
-            ICommandConverter* conv = &mDefaultConverter;
+            ModbusRegisters reg_values;
 
-            ModbusRegisters reg_values = conv->toModbus(tmpval, 1);
+            if (command.hasConverter()) {
+                reg_values = command.getConverter().toModbus(tmpval, 1);
+            } else {
+                reg_values = mDefaultConverter.toModbus(tmpval, 1);
+            }
 
             switch(command.mRegister.mRegisterType) {
                 case RegisterType::BIT:
