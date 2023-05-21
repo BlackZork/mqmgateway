@@ -16,7 +16,7 @@ class ModMqttServerThread {
         ModMqttServerThread(const std::string& config) : mConfig(config) {};
 
         void RequireNoThrow() {
-            CHECK(mException == std::string());
+            CHECK(mException.get() == nullptr);
         }
 
         void start() {
@@ -34,6 +34,15 @@ class ModMqttServerThread {
             RequireNoThrow();
         }
 
+        bool initOk() const {
+            return !mInitError;
+        }
+
+        const std::exception& getException() const {
+            CHECK(mException != nullptr);
+            return *mException;
+        }
+
         ~ModMqttServerThread() {
             stop();
         }
@@ -45,17 +54,17 @@ class ModMqttServerThread {
                 master.mServer.start();
             } catch (const modmqttd::ConfigurationException& ex) {
                 std::cerr << "Bad config: " << ex.what() << std::endl;
-                master.mException = ex.what();
+                master.mException.reset(new modmqttd::ConfigurationException(ex));
                 master.mInitError = true;
             } catch (const std::exception& ex) {
                 std::cerr << ex.what() << std::endl;
-                master.mException = ex.what();
+                master.mException.reset(new std::exception(ex));
             }
         };
         std::string mConfig;
         modmqttd::ModMqtt mServer;
         std::shared_ptr<std::thread> mServerThread;
-        std::string mException;
+        std::shared_ptr<std::exception> mException;
         bool mInitError;
 
 };

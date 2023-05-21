@@ -142,7 +142,7 @@ ModMqtt::init(const YAML::Node& config) {
             [&netname](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mName == netname; }
         );
         if (client == mModbusClients.end()) {
-            BOOST_LOG_SEV(log, Log::error) << "Modbus client for " << netname << " not initailized, ignoring specification";
+            BOOST_LOG_SEV(log, Log::error) << "Modbus client for network [" << netname << "] not initailized, ignoring specification";
         } else {
             BOOST_LOG_SEV(log, Log::debug) << "Sending register specification to modbus thread for network " << netname;
             (*client)->mToModbusQueue.enqueue(QueueItem::create(*sit));
@@ -350,6 +350,8 @@ ModMqtt::readObjectCommand(const YAML::Node& node, const std::string& default_ne
     RegisterConfigName rname(node, default_network, default_slave);
     RegisterType rType = parseRegisterType(node);
     MqttObjectCommand::PayloadType pType = parsePayloadType(node);
+
+
 
     MqttObjectCommand cmd(
         name,
