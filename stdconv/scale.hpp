@@ -3,7 +3,7 @@
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
 
-class ScaleConverter : public IStateConverter {
+class ScaleConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             double sourceValue = data.getValue(0);
@@ -18,13 +18,13 @@ class ScaleConverter : public IStateConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            sourceScaleFrom = getDoubleArg(0, args);
-            sourceScaleTo = getDoubleArg(1, args);
-            targetScaleFrom = getDoubleArg(2, args);
-            targetScaleTo = getDoubleArg(3, args);
+            sourceScaleFrom = ConverterTools::getDoubleArg(0, args);
+            sourceScaleTo = ConverterTools::getDoubleArg(1, args);
+            targetScaleFrom = ConverterTools::getDoubleArg(2, args);
+            targetScaleTo = ConverterTools::getDoubleArg(3, args);
 
             if (args.size() == 5)
-                precision = getIntArg(4, args);
+                precision = ConverterTools::getIntArg(4, args);
         }
 
         virtual ~ScaleConverter() {}

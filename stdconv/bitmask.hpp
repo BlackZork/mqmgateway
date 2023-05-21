@@ -3,7 +3,7 @@
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
 
-class BitmaskConverter : public IStateConverter {
+class BitmaskConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             int val = data.getValue(0) & mask;
@@ -11,7 +11,7 @@ class BitmaskConverter : public IStateConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            mask = getHex16Arg(0, args);
+            mask = ConverterTools::getHex16Arg(0, args);
         }
 
         virtual ~BitmaskConverter() {}

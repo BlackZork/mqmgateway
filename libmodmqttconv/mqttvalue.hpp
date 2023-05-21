@@ -6,6 +6,9 @@
 #include <string>
 #include <sstream>
 #include <limits>
+#include <memory>
+
+#include "convexception.hpp"
 
 class MqttValue {
     public:
@@ -26,6 +29,14 @@ class MqttValue {
             return MqttValue(val);
         }
 
+        static MqttValue fromBinary(const void* ptr, size_t size) {
+            return MqttValue(ptr, size);
+        }
+
+        MqttValue() {
+            setInt(0);
+        }
+
         MqttValue(int val) {
             setInt(val);
         }
@@ -34,18 +45,40 @@ class MqttValue {
             setDouble(val);
         }
 
+        MqttValue(const void* ptr, size_t size){
+            mBinaryValue = std::shared_ptr<void>(malloc(size), free);
+            memcpy(mBinaryValue.get(), ptr, size);
+            mType = SourceType::BINARY;
+            mBinarySize = size;
+        }
+
         void setString(const char* val) {
             size_t len = strlen(val);
-            mValue.binary = (char*)malloc(len);
-            memcpy(mValue.binary, val, len);
+            mBinaryValue = std::shared_ptr<void>(malloc(len), free);
+            memcpy(mBinaryValue.get(), val, len);
+            mBinarySize = len;
         }
-        void setDouble(double val) { mValue.v_double = val, mType = SourceType::DOUBLE; }
-        void setInt(int32_t val) { mValue.v_int = val, mType = SourceType::INT; }
+
+        void setDouble(double val) {
+            mValue.v_double = val;
+            mType = SourceType::DOUBLE;
+        }
+
+        void setInt(int32_t val) {
+            mValue.v_int = val;
+            mType = SourceType::INT;
+        }
+
+        void setBinary(const void* ptr, size_t size) {
+            mBinaryValue = std::shared_ptr<void>(malloc(size), free);
+            memcpy(mBinaryValue.get(), ptr, size);
+            mType = SourceType::BINARY;
+        }
 
         std::string getString() const {
             switch(mType) {
                 case SourceType::BINARY:
-                    return std::string(static_cast<const char*>(mValue.binary), mBinarySize);
+                    return std::string(static_cast<const char*>(mBinaryValue.get()), mBinarySize);
                 case SourceType::INT:
                     return std::to_string(mValue.v_int);
                 case SourceType::DOUBLE:
@@ -56,8 +89,15 @@ class MqttValue {
 
         double getDouble() const {
             switch(mType) {
-                case SourceType::BINARY:
-                    return std::strtod(static_cast<const char*>(mValue.binary), nullptr);
+                case SourceType::BINARY: {
+                    char* endptr;
+                    std::string strval(getString());
+                    double ret = std::strtod(strval.c_str(), &endptr);
+                    if (endptr == nullptr || *endptr != '\0') {
+                        throw ConvException(std::string("Cannot convert") + strval + " to double");
+                    }
+                    return ret;
+                }
                 case SourceType::INT:
                     return mValue.v_int;
                 case SourceType::DOUBLE:
@@ -68,9 +108,15 @@ class MqttValue {
 
         int32_t getInt() const {
             switch(mType) {
-                case SourceType::BINARY:
-                    return std::strtol(static_cast<const char*>(mValue.binary), nullptr, 10);
-                case SourceType::INT:
+                case SourceType::BINARY: {
+                    char* endptr;
+                    std::string strval(getString());
+                    int32_t ret = std::strtol(strval.c_str(), &endptr, 10);
+                    if (endptr == nullptr || *endptr != '\0') {
+                        throw ConvException(std::string("Cannot convert") + strval + " to int");
+                    }
+                    return ret;
+                } case SourceType::INT:
                     return mValue.v_int;
                 case SourceType::DOUBLE:
                     return mValue.v_double;
@@ -81,7 +127,7 @@ class MqttValue {
         void* getBinaryPtr() const {
             switch(mType) {
                 case SourceType::BINARY:
-                    return mValue.binary;
+                    return mBinaryValue.get();
                 default:
                     return (void*)&mValue;
             }
@@ -102,10 +148,6 @@ class MqttValue {
 
         SourceType getSourceType() const { return mType; }
 
-        ~MqttValue() {
-            if (mType == SourceType::BINARY && mValue.binary != nullptr)
-                free(mValue.binary);
-        }
     private:
         /**
          * Value holders
@@ -113,10 +155,10 @@ class MqttValue {
         typedef union {
             int32_t v_int;
             double v_double;
-            void* binary;
         } Variant;
 
         Variant mValue;
+        std::shared_ptr<void> mBinaryValue;
         size_t mBinarySize;
         SourceType mType;
 

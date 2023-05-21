@@ -6,8 +6,8 @@
 #include "bitmask.hpp"
 #include "scale.hpp"
 
-IStateConverter*
-StdConvPlugin::getStateConverter(const std::string& name) {
+DataConverter*
+StdConvPlugin::getConverter(const std::string& name) {
     if (name == "divide")
         return new DivideConverter();
     else if (name == "int32")

@@ -5,6 +5,7 @@
 #include "mqttobject.hpp"
 #include "modbus_client.hpp"
 #include "imqttimpl.hpp"
+#include "default_command_converter.hpp"
 
 namespace modmqttd {
 
@@ -65,6 +66,7 @@ class MqttClient {
         State mConnectionState = State::DISCONNECTED;
         bool mIsStarted = false;
         std::vector<MqttObject> mObjects;
+        DefaultCommandConverter mDefaultConverter;
 };
 
 }

@@ -38,7 +38,7 @@ ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<Regis
                             << " polled in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
             if ((reg.mLastValue != newValue) || !sendIfChanged || (reg.mReadErrors != 0)) {
-                MsgRegisterValue val(slaveId, reg.mRegisterType, reg.mRegister, newValue);
+                MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValue);
                 sendMessage(QueueItem::create(val));
                 reg.mLastValue = newValue;
                 reg.mReadErrors = 0;
@@ -113,9 +113,9 @@ ModbusThread::hasRegisters() const {
 }
 
 void
-ModbusThread::processWrite(const MsgRegisterValue& msg) {
+ModbusThread::processWrite(const MsgRegisterValues& msg) {
     try {
-        mModbus->writeModbusRegister(msg);
+        mModbus->writeModbusRegisters(msg);
         //send state change immediately if we
         //are polling this register
         std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::iterator slave = mRegisters.find(msg.mSlaveId);
@@ -126,11 +126,7 @@ ModbusThread::processWrite(const MsgRegisterValue& msg) {
                 [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegister; }
             );
             if (reg_it != slave->second.end()) {
-                RegisterPoll& reg = **reg_it;
-                reg.mLastValue = msg.mValue;
-                reg.mLastRead = std::chrono::steady_clock::now();
-                MsgRegisterValue val(msg.mSlaveId, msg.mRegisterType, msg.mRegisterNumber, msg.mValue);
-                sendMessage(QueueItem::create(val));
+                sendMessage(QueueItem::create(msg));
             }
         }
     } catch (const ModbusWriteException& ex) {
@@ -156,8 +152,8 @@ ModbusThread::dispatchMessages(const QueueItem& readed) {
         } else if (item.isSameAs(typeid(EndWorkMessage))) {
             BOOST_LOG_SEV(log, Log::debug) << "Got exit command";
             mShouldRun = false;
-        } else if (item.isSameAs(typeid(MsgRegisterValue))) {
-            processWrite(*item.getData<MsgRegisterValue>());
+        } else if (item.isSameAs(typeid(MsgRegisterValues))) {
+            processWrite(*item.getData<MsgRegisterValues>());
         } else if (item.isSameAs(typeid(MsgMqttNetworkState))) {
             std::unique_ptr<MsgMqttNetworkState> netstate(item.getData<MsgMqttNetworkState>());
             mShouldPoll = netstate->mIsUp;

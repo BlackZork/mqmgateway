@@ -10,11 +10,12 @@
 #include "modbusregisters.hpp"
 
 /**
- *    Helper functions for IStateConverter interface.
+ *    Helper functions for DataConverter interface.
  **/
-class ConverterBase {
+class ConverterTools {
+    private:
+        ConverterTools() {};
     public:
-
         /**
          * Converts string argument to double
          * */
@@ -63,12 +64,16 @@ class ConverterBase {
                 throw std::out_of_range("value out of range");
             return (uint16_t)ret;
         }
-
-        virtual void setArgs(const std::vector<std::string>& args) {};
-        virtual ~ConverterBase() {};
 };
 
-class IStateConverter : public ConverterBase {
+class DataConverter {
     public:
-        virtual MqttValue toMqtt(const ModbusRegisters& data) const = 0;
+        virtual void setArgs(const std::vector<std::string>& args) {};
+        virtual MqttValue toMqtt(const ModbusRegisters& data) const {
+            throw std::logic_error("Converstion to mqtt value is not implemented");
+        };
+        virtual ModbusRegisters toModbus(const MqttValue&, int registerCount) const {
+            throw std::logic_error("Converstion to modbus register values is not implemented");
+        };
 };
+

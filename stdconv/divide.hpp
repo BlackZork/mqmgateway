@@ -3,20 +3,26 @@
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
 
-class DivideConverter : public IStateConverter {
+class DivideConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            double val = data.getValue(0) / divider;
-            if (precision != 0)
-                val = round(val, precision);
+            return MqttValue::fromDouble(doMath(data.getValue(0)));
+        }
 
-            return MqttValue::fromDouble(val);
+        virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
+            ModbusRegisters ret;
+            int val = (int)doMath(value.getDouble());
+            ret.appendValue(val);
+            if (registerCount == 2) {
+                ret.prependValue(val >> 16);
+            }
+            return ret;
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            divider = getDoubleArg(0, args);
+            divider = ConverterTools::getDoubleArg(0, args);
             if (args.size() == 2)
-                precision = getIntArg(1, args);
+                precision = ConverterTools::getIntArg(1, args);
         }
 
         virtual ~DivideConverter() {}
@@ -28,5 +34,12 @@ class DivideConverter : public IStateConverter {
             double divider = pow(10, decimal_digits);
             int dummy = (int)(val * divider);
             return dummy / divider;
+        }
+
+        double doMath(double value) const {
+            double ret = value / divider;
+            if (precision != 0)
+                ret = round(ret, precision);
+            return ret;
         }
 };

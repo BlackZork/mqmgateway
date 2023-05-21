@@ -15,14 +15,14 @@ TEST_CASE ("Exprtk converter test") {
         boost::dll::load_mode::append_decorations
     );
 
-    std::shared_ptr<IStateConverter> conv(plugin->getStateConverter("evaluate"));
+    std::shared_ptr<DataConverter> conv(plugin->getConverter("evaluate"));
     std::vector<std::string> args = {
         "R0 * 2"
     };
     conv->setArgs(args);
 
     ModbusRegisters data;
-    data.addValue(10);
+    data.appendValue(10);
     MqttValue ret = conv->toMqtt(data);
 
     REQUIRE(ret.getString() == "20");
@@ -37,14 +37,14 @@ TEST_CASE ("Exprtk converter test with precission") {
         boost::dll::load_mode::append_decorations
     );
 
-    std::shared_ptr<IStateConverter> conv(plugin->getStateConverter("evaluate"));
+    std::shared_ptr<DataConverter> conv(plugin->getConverter("evaluate"));
     std::vector<std::string> args = {
         "R0 / 3", "3"
     };
     conv->setArgs(args);
 
     ModbusRegisters data;
-    data.addValue(10);
+    data.appendValue(10);
     MqttValue ret = conv->toMqtt(data);
 
     REQUIRE(ret.getString() == "3.333");

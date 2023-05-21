@@ -139,19 +139,21 @@ ModbusContext::readModbusRegister(int slaveId, const RegisterPoll& regData) {
 }
 
 void
-ModbusContext::writeModbusRegister(const MsgRegisterValue& msg) {
+ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
     if (msg.mSlaveId != 0)
         modbus_set_slave(mCtx, msg.mSlaveId);
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
 
+    u_int16_t value = msg.mValues.getValue(0);
+
     int retCode;
     switch(msg.mRegisterType) {
         case RegisterType::COIL:
-            retCode = modbus_write_bit(mCtx, msg.mRegisterNumber, msg.mValue == 1 ? TRUE : FALSE);
+            retCode = modbus_write_bit(mCtx, msg.mRegisterNumber, value == 1 ? TRUE : FALSE);
         break;
         case RegisterType::HOLDING:
-            retCode = modbus_write_register(mCtx, msg.mRegisterNumber, msg.mValue);
+            retCode = modbus_write_register(mCtx, msg.mRegisterNumber, value);
         break;
         default:
             throw ModbusContextException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));

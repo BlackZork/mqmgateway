@@ -3,6 +3,7 @@
 #include "mqttclient.hpp"
 #include "exceptions.hpp"
 #include "modmqtt.hpp"
+#include "default_command_converter.hpp"
 
 namespace modmqttd {
 
@@ -189,40 +190,18 @@ MqttClient::publishAll() {
 
 static const int MAX_DATA_LEN = 32;
 
-uint16_t
-convertMqttPayload(const MqttObjectCommand& command, const void* data, int datalen) {
-    uint16_t ret(0);
-    if (datalen > MAX_DATA_LEN)
-        throw MqttPayloadConversionException(std::string("Conversion failed, payload too big (size:") + std::to_string(datalen) + ")");
+MqttValue
+createMqttValue(const MqttObjectCommand& command, const void* data, int datalen) {
+    MqttValue ret;
 
     switch(command.mPayloadType) {
-        case MqttObjectCommand::PayloadType::STRING: {
-            std::string value((const char*)data, datalen);
-            try {
-                int temp(std::stoi(value.c_str()));
-                if (temp <= static_cast<int>(UINT16_MAX) && temp >=0) {
-                    ret = static_cast<uint16_t>(temp);
-                } else {
-                    throw MqttPayloadConversionException(std::string("Conversion failed, value " + std::to_string(temp) + " out of range"));
-                }
-            } catch (const std::invalid_argument& ex) {
-                throw MqttPayloadConversionException("Failed to convert mqtt value to int16");
-            } catch (const std::out_of_range& ex) {
-                throw MqttPayloadConversionException("mqtt value if out of range");
-            }
-        } break;
+        case MqttObjectCommand::PayloadType::STRING:
+            ret = MqttValue::fromBinary(data, datalen);
+        break;
         default:
           throw MqttPayloadConversionException("Conversion failed, unknown payload type" + std::to_string(command.mPayloadType));
     }
 
-    switch(command.mRegister.mRegisterType) {
-        case RegisterType::BIT:
-        case RegisterType::COIL:
-            if ((ret != 0) && (ret != 1)) {
-                throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert " + std::to_string(ret) + " to single bit"));
-            }
-        break;
-    }
     return ret;
 }
 
@@ -240,9 +219,34 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
         if (it == mModbusClients.end()) {
             BOOST_LOG_SEV(log, Log::error) << "Modbus network " << network << " not found for command  " << topic << ", dropping message";
         } else {
-            uint16_t value = convertMqttPayload(command, payload, payloadlen);
-            (*it)->sendCommand(command, value);
+            MqttValue tmpval(createMqttValue(command, payload, payloadlen));
+
+            ModbusRegisters reg_values;
+
+            if (command.hasConverter()) {
+                reg_values = command.getConverter().toModbus(tmpval, 1);
+            } else {
+                reg_values = mDefaultConverter.toModbus(tmpval, 1);
+            }
+
+            switch(command.mRegister.mRegisterType) {
+                case RegisterType::BIT:
+                case RegisterType::COIL:
+                    if (reg_values.getCount() > 1) {
+                        throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert ") + std::to_string(reg_values.getCount()) + " register values to single bit");
+                    } else {
+                        u_int16_t val = reg_values.getValue(0);
+                        if ((val != 0) && (val != 1)) {
+                            throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert " + std::to_string(val) + " to single bit"));
+                        }
+                    }
+                break;
+            }
+
+            (*it)->sendCommand(command, reg_values);
         }
+    } catch (const ConvException& ex) {
+        BOOST_LOG_SEV(log, Log::error) << "Converter error for " << topic << ":" << ex.what();
     } catch (const MqttPayloadConversionException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "Value error for " << topic << ":" << ex.what();
     } catch (const ObjectCommandNotFoundException&) {

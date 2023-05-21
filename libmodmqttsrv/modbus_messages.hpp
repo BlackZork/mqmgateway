@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "modbus_types.hpp"
+#include "libmodmqttconv/modbusregisters.hpp"
 
 namespace modmqttd {
 
@@ -26,12 +27,16 @@ class MsgRegisterMessageBase {
         int mRegisterNumber;
 };
 
-class MsgRegisterValue : public MsgRegisterMessageBase {
+class MsgRegisterValues : public MsgRegisterMessageBase {
     public:
-        MsgRegisterValue(int slaveId, RegisterType regType, int registerNumber, int16_t value)
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& values)
             : MsgRegisterMessageBase(slaveId, regType, registerNumber),
-              mValue(value) {}
-        int16_t mValue;
+              mValues(values) {}
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, u_int16_t value)
+            : MsgRegisterMessageBase(slaveId, regType, registerNumber),
+              mValues(value) {}
+
+        ModbusRegisters mValues;
 };
 
 class MsgRegisterReadFailed : public MsgRegisterMessageBase {

@@ -51,6 +51,12 @@ class MqttObjectCommand {
         std::string mName;
         PayloadType mPayloadType;
         MqttObjectRegisterIdent mRegister;
+
+        void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
+        bool hasConverter() const { return mConverter != nullptr; }
+        const DataConverter& getConverter() const { return *mConverter; }
+    private:
+        std::shared_ptr<DataConverter> mConverter;
 };
 
 class MqttObjectRegisterValue {
@@ -60,7 +66,7 @@ class MqttObjectRegisterValue {
         MqttObjectRegisterValue() : mHasValue(false), mReadOk(true) {}
         void setValue(uint16_t val) { mValue = val; mHasValue = true; }
         void setReadError(bool pFlag) { mReadOk = !pFlag; }
-        void setConverter(std::shared_ptr<IStateConverter> conv) { mConverter = conv; }
+        void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         bool hasConverter() const { return mConverter != nullptr; }
         uint16_t getRawValue() const { return mValue; }
         MqttValue getConvertedValue() const;
@@ -70,7 +76,7 @@ class MqttObjectRegisterValue {
         bool mReadOk = false;
         bool mHasValue = false;
         uint16_t mValue;
-        std::shared_ptr<IStateConverter> mConverter;
+        std::shared_ptr<DataConverter> mConverter;
 };
 
 class MqttObjectAvailabilityValue : public MqttObjectRegisterValue {
@@ -81,10 +87,13 @@ class MqttObjectAvailabilityValue : public MqttObjectRegisterValue {
         uint16_t mAvailableValue;
 };
 
+/*!
+    Base class for state an availability
+*/
 template <typename T>
 class MqttObjectRegisterHolder {
     public:
-        void addRegister(const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<IStateConverter>& conv);
+        void addRegister(const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
         bool hasRegister(const MqttObjectRegisterIdent& regIdent) const;
         bool updateRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t value);
         bool updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent);
@@ -101,7 +110,7 @@ class MqttObjectRegisterHolder {
 
 class MqttObjectStateValue : public MqttObjectRegisterHolder<MqttObjectRegisterValue> {
     public:
-        MqttObjectStateValue(const std::string& name, const MqttObjectRegisterIdent& ident, const std::shared_ptr<IStateConverter>& conv)
+        MqttObjectStateValue(const std::string& name, const MqttObjectRegisterIdent& ident, const std::shared_ptr<DataConverter>& conv)
             : mName(name)
         {
             addRegister(ident, conv);
@@ -109,25 +118,27 @@ class MqttObjectStateValue : public MqttObjectRegisterHolder<MqttObjectRegisterV
         bool isUnnamed() const { return mName.empty(); }
         bool isScalar() const { return mRegisterValues.size() == 1; }
         std::string mName;
-    private:
-        std::shared_ptr<IStateConverter> mConverter;
 };
 
 class MqttObjectState {
     public:
-        void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<IStateConverter>& conv);
+        void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
         bool hasRegister(const MqttObjectRegisterIdent& regIdent) const;
         bool usesModbusNetwork(const std::string& networkName) const;
         bool updateRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t value);
         bool updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
-        void setConverter(std::shared_ptr<IStateConverter> conv) { mConverter = conv; }
+        void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         std::string createMessage() const;
         bool hasValues() const;
         bool isPolling() const;
     private:
         std::vector<MqttObjectStateValue> mValues;
-        std::shared_ptr<IStateConverter> mConverter;
+        /*!
+            a converter used for scalar state - if only one register is
+            pulled for topic
+        */
+        std::shared_ptr<DataConverter> mConverter;
 };
 
 class MqttObjectAvailability : public MqttObjectRegisterHolder<MqttObjectAvailabilityValue> {

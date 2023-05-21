@@ -66,10 +66,13 @@ class ModMqtt {
         void readObjectCommands(MqttObject& object, const std::string& default_network, int default_slave, const YAML::Node& commands);
         void processModbusMessages();
 
+        MqttObjectCommand readObjectCommand(const YAML::Node& node, const std::string& default_network, int default_slave);
+
         bool hasConverterPlugin(const std::string& name) const;
         boost::shared_ptr<ConverterPlugin> initConverterPlugin(const std::string& name);
-        std::shared_ptr<IStateConverter> createConverterInstance(const std::string plugin, const std::string& converter) const;
-        std::shared_ptr<IStateConverter> createConverter(const YAML::Node& data) const;
+
+        std::shared_ptr<DataConverter> createConverterInstance(const std::string plugin, const std::string& converter) const;
+        std::shared_ptr<DataConverter> createConverter(const YAML::Node& data) const;
 
 
         bool mMqttFinished = false;

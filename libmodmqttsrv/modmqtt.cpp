@@ -107,24 +107,6 @@ parsePayloadType(const YAML::Node& data) {
     throw ConfigurationException(data.Mark(), std::string("Unknown payload type ") + ptype);
 }
 
-MqttObjectCommand
-readCommand(const YAML::Node& node, const std::string& default_network, int default_slave) {
-    std::string name = ConfigTools::readRequiredString(node, "name");
-    RegisterConfigName rname(node, default_network, default_slave);
-    RegisterType rType = parseRegisterType(node);
-    MqttObjectCommand::PayloadType pType = parsePayloadType(node);
-    return MqttObjectCommand(
-        name,
-        MqttObjectRegisterIdent(
-            rname.mNetworkName,
-            rname.mSlaveId,
-            rType,
-            rname.mRegisterNumber
-            ),
-        pType
-    );
-}
-
 ModMqtt::ModMqtt()
 {
     // unit tests create main class multiple times
@@ -362,7 +344,34 @@ ModMqtt::readObjectState(
     }
 }
 
-std::shared_ptr<IStateConverter>
+MqttObjectCommand
+ModMqtt::readObjectCommand(const YAML::Node& node, const std::string& default_network, int default_slave) {
+    std::string name = ConfigTools::readRequiredString(node, "name");
+    RegisterConfigName rname(node, default_network, default_slave);
+    RegisterType rType = parseRegisterType(node);
+    MqttObjectCommand::PayloadType pType = parsePayloadType(node);
+
+    MqttObjectCommand cmd(
+        name,
+        MqttObjectRegisterIdent(
+            rname.mNetworkName,
+            rname.mSlaveId,
+            rType,
+            rname.mRegisterNumber
+            ),
+        pType
+    );
+
+    const YAML::Node& converter = node["converter"];
+    if (converter.IsDefined()) {
+        cmd.setConverter(createConverter(converter));
+    }
+
+    return cmd;
+}
+
+
+std::shared_ptr<DataConverter>
 ModMqtt::createConverter(const YAML::Node& node) const {
     if (!node.IsScalar())
         throw ConfigurationException(node.Mark(), "converter must be a string");
@@ -371,7 +380,7 @@ ModMqtt::createConverter(const YAML::Node& node) const {
     try {
         ConverterSpecification spec(ConverterNameParser::parse(line));
 
-        std::shared_ptr<IStateConverter> conv = createConverterInstance(spec.plugin, spec.converter);
+        std::shared_ptr<DataConverter> conv = createConverterInstance(spec.plugin, spec.converter);
         if (conv == nullptr)
             throw ConfigurationException(node.Mark(), "Converter " + spec.plugin + "." + spec.converter + " not found");
         try {
@@ -385,8 +394,9 @@ ModMqtt::createConverter(const YAML::Node& node) const {
     }
 }
 
-std::shared_ptr<IStateConverter>
-ModMqtt::createConverterInstance(const std::string pluginName, const std::string& converter) const {
+
+std::shared_ptr<DataConverter>
+ModMqtt::createConverterInstance(const std::string pluginName, const std::string& converterName) const {
     auto it = std::find_if(
         mConverterPlugins.begin(),
         mConverterPlugins.end(),
@@ -398,7 +408,8 @@ ModMqtt::createConverterInstance(const std::string pluginName, const std::string
         return nullptr;
     }
 
-    std::shared_ptr<IStateConverter> ret((*it)->getStateConverter(converter));
+    std::shared_ptr<DataConverter> ret((*it)->getConverter(converterName));
+
     return ret;
 }
 
@@ -414,7 +425,7 @@ ModMqtt::readObjectStateNode(
 ) {
     MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, node);
     const YAML::Node& converter = node["converter"];
-    std::shared_ptr<IStateConverter> conv;
+    std::shared_ptr<DataConverter> conv;
     if (converter.IsDefined()) {
         conv = createConverter(converter);
     }
@@ -457,11 +468,11 @@ ModMqtt::readObjectCommands(
     if (!commands.IsDefined())
         return;
     if (commands.IsMap()) {
-        object.mCommands.push_back(readCommand(commands, default_network, default_slave));
+        object.mCommands.push_back(readObjectCommand(commands, default_network, default_slave));
     } else if (commands.IsSequence()) {
         for(size_t i = 0; i < commands.size(); i++) {
             const YAML::Node& cmddata = commands[i];
-            object.mCommands.push_back(readCommand(cmddata, default_network, default_slave));
+            object.mCommands.push_back(readObjectCommand(cmddata, default_network, default_slave));
         }
     }
 }
@@ -664,10 +675,10 @@ ModMqtt::processModbusMessages() {
         client < mModbusClients.end(); client++)
     {
         while ((*client)->mFromModbusQueue.try_dequeue(item)) {
-            if (item.isSameAs(typeid(MsgRegisterValue))) {
-                std::unique_ptr<MsgRegisterValue> val(item.getData<MsgRegisterValue>());
+            if (item.isSameAs(typeid(MsgRegisterValues))) {
+                std::unique_ptr<MsgRegisterValues> val(item.getData<MsgRegisterValues>());
                 MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterValue(ident, val->mValue);
+                mMqtt->processRegisterValue(ident, val->mValues.getValue(0));
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
                 MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
