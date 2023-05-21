@@ -231,7 +231,11 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Modbus register type: coil, input, holding
 
-  M2MGateway expects mqtt data as UTF-8 string value. It is converted to u_int16 and written to modbus register.
+  * **converter** (optional)
+
+    The name of function that should be called to convert mqtt value to u_int16 value. Format of function name is `plugin name.function name`. See converters for details. 
+
+  Unless you provide a custom converter M2MGateway expects register value as UTF-8 string value. It is converted to u_int16 and written to modbus register.
 
 ### The *state* section
 
@@ -359,7 +363,11 @@ Configuration values:
 
 ## Data conversion
 
-Data readed from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit or perform some simple divide operations a converter can be used.
+M2MGateway uses converstion plugins to convert state data readed from modbus registers to mqtt value and command mqtt payload to register value.
+
+Data readed from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations a converter can be used.
+
+Converter can also be used to convert mqtt command payload to register value.
 
 ### Standard converters
 
@@ -368,13 +376,18 @@ M2MGateway contains *std* library with basic converters ready to use:
 
   * **divide**
 
+    Usage: state, command
+
     Arguments:
       - divider (required)
       - precision (optional)
 
+
     Divides modbus value by divder and rounds to (precision) digits after the decimal.
 
   * **int32**
+
+    Usage: state, command
 
     Arguments: none
 
@@ -382,12 +395,15 @@ M2MGateway contains *std* library with basic converters ready to use:
 
   * **bitmask**
 
+    Usage: state
+
     Arguments:
       - bitmask in hex (default "0xffff")
 
+
     Applies a mask to value readed from modbus register.
 
-Converter can be added to modbus register in state section.
+Converter can be added to modbus register in state and command section.
 
 When state is a single modbus register:
 
@@ -398,7 +414,7 @@ When state is a single modbus register:
     converter: std.divide(10,2)
 ```
 
-When state is a single MQTT value combined from multiple modbus registers:
+When state is combined from multiple modbus registers:
 
 ```
   state:
@@ -408,6 +424,16 @@ When state is a single MQTT value combined from multiple modbus registers:
       register_type: input
     - register: device1.slave2.13
       register_type: input
+```
+
+When mqtt command payload should be converted to register value:
+
+```
+    command:
+      name: set_val
+      register: device1.slave2.12
+      register_type: input
+      converter: std.divide(10)
 ```
 
 ### Adding custom converters
