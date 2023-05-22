@@ -45,5 +45,6 @@ TEST_CASE ("Named state list should output converted value") {
 
     //2^17 + 1
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{\"some_name\": 131073}");
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
     server.stop();
 }

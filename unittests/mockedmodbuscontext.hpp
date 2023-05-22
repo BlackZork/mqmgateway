@@ -16,8 +16,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
         class Slave {
             struct RegData {
-                uint16_t mValue;
-                bool mError;
+                uint16_t mValue = 0;
+                bool mError = false;
             };
             public:
                 Slave(int id = 0) : mId(id) {}
@@ -29,6 +29,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 void clearError(int regNum, modmqttd::RegisterType regType)
                     { setError(regNum, regType, false); }
                 bool hasError(int regNum, modmqttd::RegisterType regType) const;
+                int getReadCount() const { return mReadCount; }
+                int getWriteCount() const { return mWriteCount; }
 
                 std::map<int, RegData> mInput;
                 std::map<int, RegData> mHolding;
@@ -43,6 +45,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 bool hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num) const;
                 uint16_t readRegister(std::map<int, RegData>& table, int num);
                 bool mDisconnected = false;
+                int mReadCount = 0;
+                int mWriteCount = 0;
         };
 
         virtual void init(const modmqttd::ModbusNetworkConfig& config);
@@ -51,6 +55,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual void disconnect() { mIsConnected = false; }
         virtual uint16_t readModbusRegister(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(const modmqttd::MsgRegisterValues& msg);
+        int getReadCount(int slaveId) const;
+        int getWriteCount(int slaveId) const;
 
         Slave& getSlave(int slaveId);
 
@@ -82,6 +88,10 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
 
         void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val);
         void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
+        MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
+            auto it = mModbusNetworks.find(networkName);
+            return *(it->second);
+        }
         void disconnectModbusSlave(const char* network, int slaveId);
     private:
         std::shared_ptr<MockedModbusContext> getOrCreateContext(const char* network);

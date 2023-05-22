@@ -42,6 +42,8 @@ MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool i
         default:
             throw modmqttd::ModbusWriteException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
     };
+    mWriteCount++;
+
 }
 
 uint16_t
@@ -120,6 +122,7 @@ MockedModbusContext::Slave::setError(int regNum, modmqttd::RegisterType regType,
 
 uint16_t
 MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::Slave::RegData>& table, int num) {
+    mReadCount++;
     auto it = table.find(num);
     if (it == table.end())
         return 0;
@@ -184,6 +187,22 @@ MockedModbusContext::Slave&
 MockedModbusContext::getSlave(int slaveId) {
     return findOrCreateSlave(slaveId)->second;
 }
+
+int
+MockedModbusContext::getReadCount(int slaveId) const {
+    std::map<int, Slave>::const_iterator it = mSlaves.find(slaveId);
+    return it->second.getReadCount();
+}
+
+int
+MockedModbusContext::getWriteCount(int slaveId) const {
+    std::map<int, Slave>::const_iterator it = mSlaves.find(slaveId);
+    return it->second.getWriteCount();
+}
+
+int
+MockedModbusContext::getWriteCount(int slaveId) const;
+
 
 std::shared_ptr<MockedModbusContext>
 MockedModbusFactory::getOrCreateContext(const char* network) {
