@@ -7,6 +7,7 @@ class ModbusRegisters {
     public:
         ModbusRegisters() {};
         ModbusRegisters(uint16_t value) { appendValue(value); }
+        ModbusRegisters(const std::vector<uint16_t>& values) : mRegisters(values) {}
         int getCount() const { return mRegisters.size(); }
         uint16_t getValue(int idx) const { return mRegisters[idx]; }
         void setValue(int idx, uint16_t val) { mRegisters[idx] = val; }

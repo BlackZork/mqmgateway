@@ -2,6 +2,7 @@
 
 #include "libmodmqttsrv/modbus_messages.hpp"
 #include "libmodmqttsrv/modbus_context.hpp"
+#include "libmodmqttsrv/debugtools.hpp"
 #include "catch2/catch.hpp"
 
 #include <thread>
@@ -46,7 +47,7 @@ MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool i
 
 }
 
-uint16_t
+std::vector<uint16_t>
 MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mReadTime);
@@ -61,16 +62,16 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
     }
     switch(regData.mRegisterType) {
         case modmqttd::RegisterType::COIL:
-            return readRegister(mCoil, regData.mRegister);
+            return readRegisters(mCoil, regData.mRegister, regData.getCount());
         break;
         case modmqttd::RegisterType::HOLDING:
-            return readRegister(mHolding, regData.mRegister);
+            return readRegisters(mHolding, regData.mRegister, regData.getCount());
         break;
         case modmqttd::RegisterType::INPUT:
-            return readRegister(mInput, regData.mRegister);
+            return readRegisters(mInput, regData.mRegister, regData.getCount());
         break;
         case modmqttd::RegisterType::BIT:
-            return readRegister(mBit, regData.mRegister);
+            return readRegisters(mBit, regData.mRegister, regData.getCount());
         break;
         default:
             throw modmqttd::ModbusReadException(std::string("Cannot read, unknown register type ") + std::to_string(regData.mRegisterType));
@@ -120,12 +121,22 @@ MockedModbusContext::Slave::setError(int regNum, modmqttd::RegisterType regType,
     };
 }
 
+std::vector<uint16_t>
+MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) {
+    mReadCount++;
+    std::vector<uint16_t> ret(count);
+    for (int i = num; i < count; i++) {
+        ret.push_back(readRegister(table, num));
+    };
+    return ret;
+}
+
 uint16_t
 MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::Slave::RegData>& table, int num) {
-    mReadCount++;
     auto it = table.find(num);
     if (it == table.end())
         return 0;
+
     return it->second.mValue;
 }
 
@@ -137,15 +148,41 @@ MockedModbusContext::Slave::hasError(const std::map<int, MockedModbusContext::Sl
     return it->second.mError;
 }
 
-uint16_t
-MockedModbusContext::readModbusRegister(int slaveId, const modmqttd::RegisterPoll& regData) {
+std::vector<uint16_t>
+MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData) {
     std::unique_lock<std::mutex> lck(mMutex);
     std::map<int, Slave>::iterator it = findOrCreateSlave(slaveId);
-    uint16_t ret = it->second.read(regData, mInternalOperation);
+    std::vector<uint16_t> data(it->second.read(regData, mInternalOperation));
+
+    std::vector<uint16_t> ret;
+    switch(regData.mRegisterType) {
+        case modmqttd::RegisterType::COIL:
+        case modmqttd::RegisterType::BIT: {
+            int toSet = 0;
+            uint16_t retval = 0;
+            for(auto &val: data) {
+                if (val) {
+                    retval &= (1 << toSet);
+                }
+                toSet++;
+                if (toSet == 16) {
+                    toSet = 0;
+                    ret.push_back(retval);
+                    retval = 0;
+                }
+            }
+        } break;
+        case modmqttd::RegisterType::HOLDING:
+        case modmqttd::RegisterType::INPUT:
+            ret = data;
+        break;
+    };
+
+
     if (mInternalOperation)
         BOOST_LOG_SEV(log, modmqttd::Log::info) << "MODBUS: " << mNetworkName
             << "." << it->second.mId << "." << regData.mRegister
-            << " READED: " << ret;
+            << " READED: " << modmqttd::DebugTools::registersToStr(ret);
 
     mInternalOperation = false;
     return ret;
@@ -199,10 +236,6 @@ MockedModbusContext::getWriteCount(int slaveId) const {
     std::map<int, Slave>::const_iterator it = mSlaves.find(slaveId);
     return it->second.getWriteCount();
 }
-
-int
-MockedModbusContext::getWriteCount(int slaveId) const;
-
 
 std::shared_ptr<MockedModbusContext>
 MockedModbusFactory::getOrCreateContext(const char* network) {

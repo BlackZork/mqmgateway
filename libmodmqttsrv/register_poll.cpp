@@ -4,10 +4,11 @@ namespace modmqttd {
 
 constexpr std::chrono::steady_clock::duration RegisterPoll::DurationBetweenLogError;
 
-RegisterPoll::RegisterPoll(int regNum, RegisterType regType, int refreshMsec)
+RegisterPoll::RegisterPoll(int regNum, RegisterType regType, int regCount, int refreshMsec)
     : mLastRead(std::chrono::steady_clock::now() - std::chrono::hours(24)),
     mRegister(regNum),
-    mRegisterType(regType)
+    mRegisterType(regType),
+    mLastValues(regCount)
 {
     mRefresh = std::chrono::milliseconds(refreshMsec);
     mReadErrors = 0;

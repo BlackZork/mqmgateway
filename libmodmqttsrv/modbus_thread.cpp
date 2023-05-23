@@ -1,5 +1,6 @@
 #include "modbus_thread.hpp"
 
+#include "debugtools.hpp"
 #include "modmqtt.hpp"
 #include "modbus_types.hpp"
 #include "modbus_context.hpp"
@@ -28,22 +29,21 @@ ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<Regis
     {
         try {
             std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-            u_int16_t newValue;
             RegisterPoll& reg(**reg_it);
-            newValue = mModbus->readModbusRegister(slaveId, reg);
+            std::vector<uint16_t> newValues(mModbus->readModbusRegisters(slaveId, reg));
             reg.mLastRead = std::chrono::steady_clock::now();
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
+            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << "(0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
                             << " polled in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
-            if ((reg.mLastValue != newValue) || !sendIfChanged || (reg.mReadErrors != 0)) {
-                MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValue);
+            if ((reg.getValues() != newValues) || !sendIfChanged || (reg.mReadErrors != 0)) {
+                MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValues);
                 sendMessage(QueueItem::create(val));
-                reg.mLastValue = newValue;
+                reg.update(newValues);
                 reg.mReadErrors = 0;
                 BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister
-                    << " value sent, data=" << reg.mLastValue;
+                    << " value sent, data=" << DebugTools::registersToStr(reg.getValues());
             };
             //handle incoming write requests
             //in poll loop to avoid delays
@@ -78,7 +78,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     for(std::vector<MsgRegisterPoll>::const_iterator it = spec.mRegisters.begin();
         it != spec.mRegisters.end(); it++)
     {
-        std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mRefreshMsec));
+        std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
         mRegisters[it->mSlaveId].push_back(reg);
     }
     BOOST_LOG_SEV(log, Log::debug) << "Poll specification set, got " << mRegisters.size() << " slaves," << spec.mRegisters.size() << " registers to poll";

@@ -22,7 +22,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
             public:
                 Slave(int id = 0) : mId(id) {}
                 void write(const modmqttd::MsgRegisterValues& msg, bool internalOperation = false);
-                uint16_t read(const modmqttd::RegisterPoll& regData, bool internalOperation = false);
+                std::vector<uint16_t> read(const modmqttd::RegisterPoll& regData, bool internalOperation = false);
 
                 void setDisconnected(bool flag = true) { mDisconnected = flag; }
                 void setError(int regNum, modmqttd::RegisterType regType, bool flag = true);
@@ -43,6 +43,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
             private:
                 bool hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num) const;
+                std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count);
                 uint16_t readRegister(std::map<int, RegData>& table, int num);
                 bool mDisconnected = false;
                 int mReadCount = 0;
@@ -53,7 +54,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual void connect() { mIsConnected = true; }
         virtual bool isConnected() const { return mIsConnected; }
         virtual void disconnect() { mIsConnected = false; }
-        virtual uint16_t readModbusRegister(int slaveId, const modmqttd::RegisterPoll& regData);
+        virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(const modmqttd::MsgRegisterValues& msg);
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;

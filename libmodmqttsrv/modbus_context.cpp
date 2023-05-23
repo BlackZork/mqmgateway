@@ -104,38 +104,48 @@ ModbusContext::disconnect() {
     modbus_close(mCtx);
 }
 
-uint16_t
-ModbusContext::readModbusRegister(int slaveId, const RegisterPoll& regData) {
+std::vector<uint16_t>
+ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
     if (slaveId != 0)
         modbus_set_slave(mCtx, slaveId);
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
 
     uint8_t bits;
-    uint16_t value;
+    std::shared_ptr<uint16_t> values;
+    int arraySize = 0;
     int retCode;
     switch(regData.mRegisterType) {
+        //for COIL and BIT store bits in uint16_t array
         case RegisterType::COIL:
-            retCode = modbus_read_bits(mCtx, regData.mRegister, 1, &bits);
-            value = bits;
+            arraySize = regData.getCount()/16 + 1;
+            values.reset((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
+            retCode = modbus_read_bits(mCtx, regData.mRegister, regData.getCount(), (uint8_t*)values.get());
         break;
         case RegisterType::BIT:
-            retCode = modbus_read_input_bits(mCtx, regData.mRegister, 1, &bits);
-            value = bits;
+            arraySize = regData.getCount()/16 + 1;
+            values.reset((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
+            retCode = modbus_read_input_bits(mCtx, regData.mRegister, regData.getCount(), (uint8_t*)values.get());
         break;
         case RegisterType::HOLDING:
-            retCode = modbus_read_registers(mCtx, regData.mRegister, 1, &value);
+            arraySize = regData.getCount();
+            values.reset((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
+            retCode = modbus_read_registers(mCtx, regData.mRegister, regData.getCount(), values.get());
         break;
         case RegisterType::INPUT:
-            retCode = modbus_read_input_registers(mCtx, regData.mRegister, 1, &value);
+            arraySize = regData.getCount();
+            values.reset((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
+            retCode = modbus_read_input_registers(mCtx, regData.mRegister, regData.getCount(), values.get());
         break;
         default:
             throw ModbusContextException(std::string("Cannot read, unknown register type ") + std::to_string(regData.mRegisterType));
     }
     if (retCode == -1)
-        throw ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + " failed");
+        throw ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + std::string(" failed with return code ") + std::to_string(retCode));
 
-    return value;
+    std::vector<uint16_t> ret(values.get(), values.get() + arraySize);
+
+    return ret;
 }
 
 void

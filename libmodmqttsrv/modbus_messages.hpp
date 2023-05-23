@@ -32,9 +32,9 @@ class MsgRegisterValues : public MsgRegisterMessageBase {
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& values)
             : MsgRegisterMessageBase(slaveId, regType, registerNumber),
               mValues(values) {}
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, u_int16_t value)
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<u_int16_t>& values)
             : MsgRegisterMessageBase(slaveId, regType, registerNumber),
-              mValues(value) {}
+              mValues(values) {}
 
         ModbusRegisters mValues;
 };
@@ -58,6 +58,7 @@ class MsgRegisterPoll {
     public:
         int mSlaveId;
         int mRegister;
+        int mCount;
         RegisterType mRegisterType;
         int mRefreshMsec;
 };

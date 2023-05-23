@@ -7,6 +7,8 @@ add_library(modmqttsrv
     config.hpp
     conv_name_parser.cpp
     conv_name_parser.hpp
+    debugtools.cpp
+    debugtools.hpp
     default_command_converter.cpp
     default_command_converter.hpp
     logging.cpp
