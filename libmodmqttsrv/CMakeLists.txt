@@ -17,6 +17,8 @@ add_library(modmqttsrv
     modbus_client.hpp 
     modbus_context.cpp
     modbus_context.hpp
+    modbus_messages.cpp
+    modbus_messages.hpp
     modbus_scheduler.cpp
     modbus_scheduler.hpp
     modbus_thread.cpp

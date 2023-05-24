@@ -332,6 +332,7 @@ ModMqtt::readObjectState(
         }
     } else if (state.IsSequence()) {
         std::string name;
+        std::vector<MsgRegisterPollSpecification> specs_in;
         for(size_t i = 0; i < state.size(); i++) {
             const YAML::Node& regdata = state[i];
             if (ConfigTools::readOptionalValue<std::string>(name, regdata, "name"))
@@ -339,7 +340,23 @@ ModMqtt::readObjectState(
             else if (!is_unnamed)
                 throw ConfigurationException(regdata.Mark(), "missing name attribute");
             const YAML::Node& converter = state["converter"];
-            readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, regdata);
+            readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, regdata);
+        }
+        for(auto& sin: specs_in) {
+            //group reads
+            sin.group();
+
+            std::vector<MsgRegisterPollSpecification>::iterator spec_it = std::find_if(
+                specs_out.begin(), specs_out.end(),
+                [&sin](const MsgRegisterPollSpecification& s) -> bool { return s.mNetworkName == sin.mNetworkName; }
+                );
+
+            if (spec_it == specs_out.end()) {
+                specs_out.insert(specs_out.begin(), sin);
+            } else {
+                //merge overlapping read grups
+                spec_it->merge(sin.mRegisters);
+            }
         }
     }
 }
@@ -559,33 +576,11 @@ ModMqtt::updateSpecification(
         );
 
     if (spec_it == specs.end()) {
-        BOOST_LOG_SEV(log, Log::debug) << "Creating new register specification for network " << rname.mNetworkName;
         specs.insert(specs.begin(), MsgRegisterPollSpecification(rname.mNetworkName));
         spec_it = specs.begin();
     }
 
-    // add new register poll or update refresh time on existing one
-    std::vector<MsgRegisterPoll>::iterator reg_it = std::find_if(
-        spec_it->mRegisters.begin(), spec_it->mRegisters.end(),
-        [&rname, &poll](const MsgRegisterPoll& r) -> bool {
-            return r.mRegister == rname.mRegisterNumber
-                    && r.mRegisterType == poll.mRegisterType
-                    && r.mSlaveId == poll.mSlaveId;
-            }
-    );
-
-    if (reg_it == spec_it->mRegisters.end()) {
-        BOOST_LOG_SEV(log, Log::debug) << "Adding new register " << poll.mRegister <<
-        " type=" << poll.mRegisterType << " refresh=" << poll.mRefreshMsec
-        << " slaveId=" << rname.mSlaveId << " on network " << rname.mNetworkName;
-        spec_it->mRegisters.push_back(poll);
-    } else {
-        //set the shortest poll period of all occurences in config file
-        if (reg_it->mRefreshMsec > poll.mRefreshMsec) {
-            reg_it->mRefreshMsec = poll.mRefreshMsec;
-            BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << poll.mRefreshMsec << " on existing register " << poll.mRegister;
-        }
-    }
+    spec_it->merge(poll);
 
     if (hasRefresh)
         currentRefresh.pop();

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <vector>
 
+#include "logging.hpp"
 #include "modbus_types.hpp"
 #include "libmodmqttconv/modbusregisters.hpp"
 
@@ -65,7 +66,29 @@ class MsgRegisterPoll {
 
 class MsgRegisterPollSpecification {
     public:
+        boost::log::sources::severity_logger<Log::severity> log;
+
         MsgRegisterPollSpecification(const std::string& networkName) : mNetworkName(networkName) {}
+
+        /*!
+            Convert subsequent slave registers
+            of the same type to single MsgRegisterPoll instance
+            with corresponding mCount value
+        */
+        void group();
+
+        void merge(const std::vector<MsgRegisterPoll>& lst) {
+            for(auto& poll: lst)
+                merge(poll);
+        }
+
+        /*!
+            Merge overlapping
+            register group with arg and adjust refresh time
+            or add new register to poll
+        */
+        void merge(const MsgRegisterPoll& poll);
+
         std::string mNetworkName;
         std::vector<MsgRegisterPoll> mRegisters;
 };
