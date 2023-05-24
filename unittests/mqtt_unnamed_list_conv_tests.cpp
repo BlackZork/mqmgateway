@@ -42,6 +42,7 @@ TEST_CASE ("Unnamed state list should output converted value") {
 
     server.waitForPublish("test_state/state", REGWAIT_MSEC);
 
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
     REQUIRE(server.mqttValue("test_state/state") == "65537");
     server.stop();
 }

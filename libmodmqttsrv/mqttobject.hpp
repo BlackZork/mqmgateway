@@ -135,8 +135,8 @@ class MqttObjectState {
     private:
         std::vector<MqttObjectStateValue> mValues;
         /*!
-            a converter used for scalar state - if only one register is
-            pulled for topic
+            a converter used for converting multiple register
+            values into a single mqtt value
         */
         std::shared_ptr<DataConverter> mConverter;
 };

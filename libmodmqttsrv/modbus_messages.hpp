@@ -57,11 +57,24 @@ class MsgRegisterWriteFailed : public MsgRegisterMessageBase {
 
 class MsgRegisterPoll {
     public:
+        boost::log::sources::severity_logger<Log::severity> log;
+
         int mSlaveId;
         int mRegister;
         int mCount;
         RegisterType mRegisterType;
         int mRefreshMsec;
+
+        /*!
+            Fo consecutive is true, then method will merge consecutive groups, i.e:
+            1-3,4-8 to 1-8, otherwise poll is merged only if it overlaps with this.
+
+            returns true if other was merged, false otherwise
+        */
+        bool merge(const MsgRegisterPoll& other, bool consecutive=false);
+        bool overlaps(const MsgRegisterPoll& poll) const;
+        int firstRegister() const { return mRegister; }
+        int lastRegister() const { return (mRegister + mCount) - 1; }
 };
 
 class MsgRegisterPollSpecification {
@@ -74,6 +87,8 @@ class MsgRegisterPollSpecification {
             Convert subsequent slave registers
             of the same type to single MsgRegisterPoll instance
             with corresponding mCount value
+
+            This method will not join overlapping groups.
         */
         void group();
 
@@ -86,6 +101,7 @@ class MsgRegisterPollSpecification {
             Merge overlapping
             register group with arg and adjust refresh time
             or add new register to poll
+
         */
         void merge(const MsgRegisterPoll& poll);
 
