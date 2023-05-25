@@ -113,13 +113,18 @@ MqttClient::subscribeToCommandTopic(const std::string& objectTopic, const MqttOb
 }
 
 void
-MqttClient::processRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t value) {
+MqttClient::processRegisterValues(const MsgRegisterValues& values) {
     if (!isConnected()) {
         // we drop changes when there is no connection
         // retain flag is set so
         // broker will send last known value for us.
         return;
     }
+
+/*
+    TODO update all objects first and publish state/availability
+    for changed ones. updateRegisterValue should return false
+    if register exists but value was not changed
 
     for(std::vector<MqttObject>::iterator it = mObjects.begin();
         it != mObjects.end(); it++)
@@ -136,6 +141,7 @@ MqttClient::processRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t 
             publishAvailabilityChange(*it);
         }
     }
+*/
 }
 
 void
@@ -147,7 +153,11 @@ MqttClient::publishState(const MqttObject& obj) {
 }
 
 void
-MqttClient::processRegisterOperationFailed(const MqttObjectRegisterIdent& ident) {
+MqttClient::processRegistersOperationFailed(const MsgRegisterMessageBase& registerValues) {
+    /*
+    TODO loop on register values and create object
+    list that were affected
+
     for(std::vector<MqttObject>::iterator it = mObjects.begin();
         it != mObjects.end(); it++)
     {
@@ -156,6 +166,7 @@ MqttClient::processRegisterOperationFailed(const MqttObjectRegisterIdent& ident)
         if (oldAvail != it->getAvailableFlag())
             publishAvailabilityChange(*it);
     }
+    */
 }
 
 void

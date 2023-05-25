@@ -68,7 +68,7 @@ ModbusThread::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const 
 
     // start sending MsgRegisterReadFailed if we cannot read register DefaultReadErrorCount times
     if (regPoll.mReadErrors > RegisterPoll::DefaultReadErrorCount) {
-        MsgRegisterReadFailed msg(slaveId, regPoll.mRegisterType, regPoll.mRegister);
+        MsgRegisterReadFailed msg(slaveId, regPoll.mRegisterType, regPoll.mRegister, regPoll.getCount());
         sendMessage(QueueItem::create(msg));
     }
 }
@@ -132,7 +132,7 @@ ModbusThread::processWrite(const MsgRegisterValues& msg) {
     } catch (const ModbusWriteException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "error writing register "
             << msg.mSlaveId << "." << msg.mRegisterNumber << ": " << ex.what();
-        MsgRegisterWriteFailed msg(msg.mSlaveId, msg.mRegisterType, msg.mRegisterNumber);
+        MsgRegisterWriteFailed msg(msg.mSlaveId, msg.mRegisterType, msg.mRegisterNumber, msg.mCount);
         sendMessage(QueueItem::create(msg));
     }
 }

@@ -674,15 +674,13 @@ ModMqtt::processModbusMessages() {
             if (item.isSameAs(typeid(MsgRegisterValues))) {
                 std::unique_ptr<MsgRegisterValues> val(item.getData<MsgRegisterValues>());
                 MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterValue(ident, val->mValues.getValue(0));
+                mMqtt->processRegisterValues(*item.getData<MsgRegisterValues>());
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterOperationFailed(ident);
+                mMqtt->processRegistersOperationFailed(*item.getData<MsgRegisterReadFailed>());
             } else if (item.isSameAs(typeid(MsgRegisterWriteFailed))) {
                 std::unique_ptr<MsgRegisterWriteFailed> val(item.getData<MsgRegisterWriteFailed>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterOperationFailed(ident);
+                mMqtt->processRegistersOperationFailed(*item.getData<MsgRegisterWriteFailed>());
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);

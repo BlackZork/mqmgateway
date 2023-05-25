@@ -35,8 +35,8 @@ class MqttClient {
         void publishAll();
         void publishState(const MqttObject& obj);
 
-        void processRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t value);
-        void processRegisterOperationFailed(const MqttObjectRegisterIdent& ident);
+        void processRegisterValues(const MsgRegisterValues& values);
+        void processRegistersOperationFailed(const MsgRegisterMessageBase& values);
         void processModbusNetworkState(const std::string& networkName, bool isUp);
         void publishAvailabilityChange(const MqttObject& obj);
 

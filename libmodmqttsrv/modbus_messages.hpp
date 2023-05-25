@@ -22,20 +22,21 @@ class MsgMqttCommand {
 
 class MsgRegisterMessageBase {
     public:
-        MsgRegisterMessageBase(int slaveId, RegisterType regType, int registerNumber)
-            : mSlaveId(slaveId), mRegisterType(regType), mRegisterNumber(registerNumber) {}
+        MsgRegisterMessageBase(int slaveId, RegisterType regType, int registerNumber, int registerCount)
+            : mSlaveId(slaveId), mRegisterType(regType), mRegisterNumber(registerNumber), mCount(registerCount) {}
         int mSlaveId;
         RegisterType mRegisterType;
         int mRegisterNumber;
+        int mCount;
 };
 
 class MsgRegisterValues : public MsgRegisterMessageBase {
     public:
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& values)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber),
+            : MsgRegisterMessageBase(slaveId, regType, registerNumber, values.getCount()),
               mValues(values) {}
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<u_int16_t>& values)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber),
+            : MsgRegisterMessageBase(slaveId, regType, registerNumber, values.size()),
               mValues(values) {}
 
         ModbusRegisters mValues;
@@ -43,15 +44,15 @@ class MsgRegisterValues : public MsgRegisterMessageBase {
 
 class MsgRegisterReadFailed : public MsgRegisterMessageBase {
     public:
-        MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber)
+        MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
+            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registerCount)
         {}
 };
 
 class MsgRegisterWriteFailed : public MsgRegisterMessageBase {
     public:
-        MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber)
+        MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
+            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registerCount)
         {}
 };
 
