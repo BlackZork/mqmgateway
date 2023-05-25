@@ -155,7 +155,7 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
 
-    u_int16_t value = msg.mValues.getValue(0);
+    u_int16_t value = msg.mRegisters.getValue(0);
 
     int retCode;
     switch(msg.mRegisterType) {

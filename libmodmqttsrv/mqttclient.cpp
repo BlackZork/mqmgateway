@@ -1,4 +1,5 @@
 #include <cstring>
+#include <map>
 
 #include "mqttclient.hpp"
 #include "exceptions.hpp"
@@ -113,7 +114,7 @@ MqttClient::subscribeToCommandTopic(const std::string& objectTopic, const MqttOb
 }
 
 void
-MqttClient::processRegisterValues(const MsgRegisterValues& values) {
+MqttClient::processRegisterValues(const std::string& modbusNetworkName, const MsgRegisterValues& slaveData) {
     if (!isConnected()) {
         // we drop changes when there is no connection
         // retain flag is set so
@@ -121,27 +122,31 @@ MqttClient::processRegisterValues(const MsgRegisterValues& values) {
         return;
     }
 
-/*
-    TODO update all objects first and publish state/availability
-    for changed ones. updateRegisterValue should return false
-    if register exists but value was not changed
+    std::map<MqttObject*, AvailableFlag> modified;
 
-    for(std::vector<MqttObject>::iterator it = mObjects.begin();
-        it != mObjects.end(); it++)
+    MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
+    for(auto& obj: mObjects)
     {
-        AvailableFlag oldAvail = it->getAvailableFlag();
-        it->updateRegisterValue(ident, value);
-        AvailableFlag newAvail = it->getAvailableFlag();
+        int regIndex = 0;
+        AvailableFlag oldAvail = obj.getAvailableFlag();
+        int lastRegister = slaveData.mRegisterNumber + slaveData.mCount;
+        for(int regNumber = slaveData.mRegisterNumber; regNumber < lastRegister; regNumber++) {
+            ident.mRegisterNumber = regNumber;
+            uint16_t value = slaveData.mRegisters.getValue(regIndex++);
+            if (!obj.updateRegisterValue(ident, value))
+                continue;
 
-        if (it->mState.hasRegister(ident) && it->mState.hasValues()) {
-            publishState(*it);
-        }
-
-        if (oldAvail != newAvail) {
-            publishAvailabilityChange(*it);
+            modified[&obj] = oldAvail;
         }
     }
-*/
+
+    for(auto& obj_it: modified) {
+        MqttObject& obj(*(obj_it.first));
+        publishState(obj);
+        AvailableFlag newAvail = obj.getAvailableFlag();
+        if (obj_it.second != newAvail)
+            publishAvailabilityChange(obj);
+    }
 }
 
 void
@@ -153,20 +158,31 @@ MqttClient::publishState(const MqttObject& obj) {
 }
 
 void
-MqttClient::processRegistersOperationFailed(const MsgRegisterMessageBase& registerValues) {
-    /*
-    TODO loop on register values and create object
-    list that were affected
+MqttClient::processRegistersOperationFailed(const std::string& modbusNetworkName, const MsgRegisterMessageBase& slaveData) {
+    std::map<MqttObject*, AvailableFlag> modified;
 
-    for(std::vector<MqttObject>::iterator it = mObjects.begin();
-        it != mObjects.end(); it++)
+    MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
+    for(auto& obj: mObjects)
     {
-        AvailableFlag oldAvail = it->getAvailableFlag();
-        it->updateRegisterReadFailed(ident);
-        if (oldAvail != it->getAvailableFlag())
-            publishAvailabilityChange(*it);
+        int regIndex = 0;
+        AvailableFlag oldAvail = obj.getAvailableFlag();
+        int lastRegister = slaveData.mRegisterNumber + slaveData.mCount;
+        for(int regNumber = slaveData.mRegisterNumber; regNumber < lastRegister; regNumber++) {
+            ident.mRegisterNumber = regNumber;
+            if (!obj.updateRegisterReadFailed(ident))
+                continue;
+
+            modified[&obj] = oldAvail;
+        }
     }
-    */
+
+    for(auto& obj_it: modified) {
+        MqttObject& obj(*(obj_it.first));
+        publishState(obj);
+        AvailableFlag newAvail = obj.getAvailableFlag();
+        if (obj_it.second != newAvail)
+            publishAvailabilityChange(obj);
+    }
 }
 
 void

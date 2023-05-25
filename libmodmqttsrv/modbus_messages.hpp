@@ -32,14 +32,14 @@ class MsgRegisterMessageBase {
 
 class MsgRegisterValues : public MsgRegisterMessageBase {
     public:
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& values)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber, values.getCount()),
-              mValues(values) {}
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<u_int16_t>& values)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber, values.size()),
-              mValues(values) {}
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers)
+            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registers.getCount()),
+              mRegisters(registers) {}
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<u_int16_t>& registers)
+            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registers.size()),
+              mRegisters(registers) {}
 
-        ModbusRegisters mValues;
+        ModbusRegisters mRegisters;
 };
 
 class MsgRegisterReadFailed : public MsgRegisterMessageBase {

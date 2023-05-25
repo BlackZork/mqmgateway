@@ -25,7 +25,7 @@ MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool i
         }
     }
 
-    u_int16_t value = msg.mValues.getValue(0);
+    u_int16_t value = msg.mRegisters.getValue(0);
 
     switch(msg.mRegisterType) {
         case modmqttd::RegisterType::COIL:
@@ -127,7 +127,7 @@ MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::Sla
     std::vector<uint16_t> ret;
     ret.reserve(count);
     for (int i = num; i < num + count; i++) {
-        ret.push_back(readRegister(table, num));
+        ret.push_back(readRegister(table, i));
     };
     return ret;
 }
@@ -202,7 +202,7 @@ MockedModbusContext::writeModbusRegisters(const modmqttd::MsgRegisterValues& msg
     std::map<int, Slave>::iterator it = findOrCreateSlave(msg.mSlaveId);
 
     //TODO write multiple registers at once
-    u_int16_t value = msg.mValues.getValue(0);
+    u_int16_t value = msg.mRegisters.getValue(0);
 
     if (mInternalOperation)
         BOOST_LOG_SEV(log, modmqttd::Log::info) << "MODBUS: " << mNetworkName

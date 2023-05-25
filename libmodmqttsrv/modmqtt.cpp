@@ -673,14 +673,13 @@ ModMqtt::processModbusMessages() {
         while ((*client)->mFromModbusQueue.try_dequeue(item)) {
             if (item.isSameAs(typeid(MsgRegisterValues))) {
                 std::unique_ptr<MsgRegisterValues> val(item.getData<MsgRegisterValues>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterValues(*item.getData<MsgRegisterValues>());
+                mMqtt->processRegisterValues((*client)->mName, *val);
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
-                mMqtt->processRegistersOperationFailed(*item.getData<MsgRegisterReadFailed>());
+                mMqtt->processRegistersOperationFailed((*client)->mName, *val);
             } else if (item.isSameAs(typeid(MsgRegisterWriteFailed))) {
                 std::unique_ptr<MsgRegisterWriteFailed> val(item.getData<MsgRegisterWriteFailed>());
-                mMqtt->processRegistersOperationFailed(*item.getData<MsgRegisterWriteFailed>());
+                mMqtt->processRegistersOperationFailed((*client)->mName, *val);
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);
