@@ -32,7 +32,7 @@ TEST_CASE ("Unnamed scalar should output converted value") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 32456);
     server.start();
     // default mocked modbus read time is 5ms per register
-    server.waitForPublish("test_sensor/state", REGWAIT_MSEC);
+    server.waitForPublish("test_sensor/state");
     REQUIRE(server.mqttValue("test_sensor/state") == "32.456");
     server.stop();
 }

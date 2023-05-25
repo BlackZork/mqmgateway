@@ -28,13 +28,13 @@ TEST_CASE ("Holding register valid write") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
-    server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/availability");
     REQUIRE(server.mqttValue("test_switch/availability") == "1");
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
 
     server.publish("test_switch/set", "32");
 
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
     REQUIRE(server.mqttValue("test_switch/state") == "32");
 
     server.stop();
@@ -45,13 +45,13 @@ TEST_CASE ("Coil register valid write") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::COIL, 0);
     server.start();
 
-    server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/availability");
     REQUIRE(server.mqttValue("test_switch/availability") == "1");
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
 
     server.publish("test_switch/set", "1");
 
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
     REQUIRE(server.mqttValue("test_switch/state") == "1");
 
     server.stop();
@@ -63,13 +63,13 @@ TEST_CASE ("Mqtt invalid value should not crash server") {
     server.start();
 
 
-    server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/availability");
     REQUIRE(server.mqttValue("test_switch/availability") == "1");
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
 
     server.publish("test_switch/set", "hello, world!");
     server.publish("test_switch/set", "1");
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
     REQUIRE(server.mqttValue("test_switch/state") == "1");
 
     server.stop();
@@ -101,13 +101,13 @@ TEST_CASE ("Holding register valid write to subpath topic") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
-    server.waitForPublish("some/subpath/test_switch/availability", REGWAIT_MSEC);
+    server.waitForPublish("some/subpath/test_switch/availability");
     REQUIRE(server.mqttValue("some/subpath/test_switch/availability") == "1");
-    server.waitForPublish("some/subpath/test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("some/subpath/test_switch/state");
 
     server.publish("some/subpath/test_switch/set", "32");
 
-    server.waitForPublish("some/subpath/test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("some/subpath/test_switch/state");
     REQUIRE(server.mqttValue("some/subpath/test_switch/state") == "32");
 
     server.stop();
@@ -145,13 +145,13 @@ TEST_CASE ("Holding register write converted value") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
-    server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/availability");
     REQUIRE(server.mqttValue("test_switch/availability") == "1");
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
 
     server.publish("test_switch/set", "32");
 
-    server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+    server.waitForPublish("test_switch/state");
     REQUIRE(server.mqttValue("test_switch/state") == "16");
 
     server.stop();

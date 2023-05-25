@@ -109,16 +109,16 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
         server.start();
 
-        server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+        server.waitForPublish("test_switch/state");
         REQUIRE(server.mqttValue("test_switch/state") == "1");
-        server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.mMqtt->resetBroker();
 
-        server.waitForPublish("test_switch/state", REGWAIT_MSEC);
+        server.waitForPublish("test_switch/state");
         REQUIRE(server.mqttValue("test_switch/state") == "1");
-        server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.stop();

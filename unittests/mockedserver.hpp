@@ -7,6 +7,7 @@
 
 #include "mockedmqttimpl.hpp"
 #include "mockedmodbuscontext.hpp"
+#include "defaults.hpp"
 
 
 #include <iostream>
@@ -82,13 +83,13 @@ class MockedModMqttServerThread : public ModMqttServerThread {
             mServer.addConverterPath("../exprconv");
         };
 
-    void waitForPublish(const char* topic, std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
+    void waitForPublish(const char* topic, std::chrono::milliseconds timeout = defaultWaitTime()) {
         INFO("Checking for publish on " << topic);
         bool is_published = mMqtt->waitForPublish(topic, timeout);
         REQUIRE(is_published == true);
     }
 
-    std::string waitForFirstPublish(std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
+    std::string waitForFirstPublish(std::chrono::milliseconds timeout = defaultWaitTime()) {
         std::string topic = mMqtt->waitForFirstPublish(timeout);
         INFO("Getting first published topic");
         REQUIRE(!topic.empty());
@@ -99,7 +100,7 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         mMqtt->publish(topic, value.length(), value.c_str());
     }
 
-    void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
+    void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = defaultWaitTime()) {
         std::string current  = mMqtt->waitForMqttValue(topic, expected, timeout);
         REQUIRE(current == expected);
     }

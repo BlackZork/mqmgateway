@@ -32,7 +32,7 @@ TEST_CASE ("Unnamed state list without register value should not be available") 
     server.start();
 
     //wait for 4sec for three read attempts
-    server.waitForPublish("test_state/availability", std::chrono::milliseconds(4000));
+    server.waitForPublish("test_state/availability", defaultWaitTime(std::chrono::milliseconds(4000)));
     REQUIRE(server.mqttValue("test_state/availability") == "0");
     server.stop();
 }
@@ -45,10 +45,10 @@ TEST_CASE ("Unnamed state list should output json array") {
     server.start();
 
     //to make sure that all registers have initial value
-    server.waitForPublish("test_state/availability", REGWAIT_MSEC);
+    server.waitForPublish("test_state/availability");
     REQUIRE(server.mqttValue("test_state/availability") == "1");
 
-    server.waitForPublish("test_state/state", REGWAIT_MSEC);
+    server.waitForPublish("test_state/state");
 
     REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[1,7]");
@@ -81,10 +81,10 @@ TEST_CASE ("Unnamed state list declared as starting register and count should ou
     server.start();
 
     //to make sure that all registers have initial value
-    server.waitForPublish("test_state/availability", REGDEBUG_MSEC);
+    server.waitForPublish("test_state/availability");
     REQUIRE(server.mqttValue("test_state/availability") == "1");
 
-    server.waitForPublish("test_state/state", REGDEBUG_MSEC);
+    server.waitForPublish("test_state/state");
 
     REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[2,4]");

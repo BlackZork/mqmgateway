@@ -33,10 +33,10 @@ TEST_CASE ("Named state list should output json array") {
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 7);
     server.start();
 
-    server.waitForPublish("test_state/availability", REGWAIT_MSEC);
+    server.waitForPublish("test_state/availability");
     REQUIRE(server.mqttValue("test_state/availability") == "1");
 
-    server.waitForPublish("test_state/state", REGWAIT_MSEC);
+    server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"test_name\": [1,7] }");
     REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);

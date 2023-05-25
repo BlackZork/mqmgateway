@@ -24,9 +24,9 @@ mqtt:
     TEST_CASE ("Availability flag for noavail register should be set after first read") {
         MockedModMqttServerThread server(config);
         server.start();
-        server.waitForPublish("test_switch/state", std::chrono::seconds(10));
+        server.waitForPublish("test_switch/state");
         REQUIRE(server.mqttValue("test_switch/state") == "0");
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(10));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
         server.stop();
     }
@@ -42,13 +42,13 @@ mqtt:
         MockedModMqttServerThread server(config);
 
         server.start();
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(10));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.disconnectModbusSlave("tcptest", 1);
 
         //max 4 sec for three register read attempts
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        server.waitForPublish("test_switch/availability", defaultWaitTime(std::chrono::seconds(5)));
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
         server.stop();
     }
@@ -57,7 +57,7 @@ mqtt:
         MockedModMqttServerThread server(config);
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::BIT, true);
         server.start();
-        std::string topic = server.waitForFirstPublish(REGWAIT_MSEC);
+        std::string topic = server.waitForFirstPublish();
         REQUIRE("test_switch/state" == topic);
 
         server.stop();
