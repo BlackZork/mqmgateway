@@ -13,6 +13,7 @@ add_executable(tests
     # tests
     converter_name_parser_tests.cpp
     exprconv_tests.cpp
+    modbus_poll_specification_tests.cpp
     mqtt_command_tests.cpp
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp

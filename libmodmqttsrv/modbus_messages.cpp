@@ -15,31 +15,39 @@ MsgRegisterPoll::overlaps(const MsgRegisterPoll& poll) const {
     );
 }
 
-bool
-MsgRegisterPoll::merge(const MsgRegisterPoll& other, bool consecutive) {
-    int first = firstRegister() ? firstRegister() <= other.firstRegister() : other.firstRegister();
-    int last = lastRegister() ? lastRegister() >= other.lastRegister() : other.lastRegister();
+void
+MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
+    int first = firstRegister() <= other.firstRegister() ? firstRegister() : other.firstRegister();
+    int last = lastRegister() >= other.lastRegister() ? lastRegister() : other.lastRegister();
 
-    bool overlap_merge = mRegister != first || lastRegister() != last;
-    bool slibbing_merge = consecutive && (lastRegister() + 1 == other.firstRegister() || other.lastRegister()+1 == firstRegister());
+    BOOST_LOG_SEV(log, Log::debug) << "Extending register "
+    << mRegister << "(" << mCount << ") to "
+    << first << "(" <<  last-first << ")";
 
-    if (overlap_merge || slibbing_merge) {
-        BOOST_LOG_SEV(log, Log::debug) << "Extending register "
-        << mRegister << "(" << mCount << ") to "
-        << first << last-first;
+    mRegister = first;
+    mCount = last - mRegister + 1;
 
-        mRegister = first;
-        mCount = last - mRegister;
-
-        //set the shortest poll period
-        if (mRefreshMsec > other.mRefreshMsec) {
-            mRefreshMsec = other.mRefreshMsec;
-            BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << mRefreshMsec << " on existing register " << mRegister;
-        }
-        return true;
+    //set the shortest poll period
+    if (mRefreshMsec > other.mRefreshMsec) {
+        mRefreshMsec = other.mRefreshMsec;
+        BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << mRefreshMsec << " on existing register " << mRegister;
     }
-    return false;
 }
+
+bool
+MsgRegisterPoll::isConsecutiveOf(const MsgRegisterPoll& other) const {
+    return (lastRegister() + 1 == other.firstRegister() || other.lastRegister()+1 == firstRegister());
+}
+
+bool
+MsgRegisterPoll::isSameAs(const MsgRegisterPoll& other) const {
+    if (mRegisterType != other.mRegisterType
+        || mSlaveId != other.mSlaveId
+    ) return false;
+
+    return mRegister == other.mRegister && mCount == other.mCount;
+}
+
 
 struct RegRange {
     RegRange(const MsgRegisterPoll& poll)
@@ -80,7 +88,9 @@ MsgRegisterPollSpecification::group() {
             std::vector<MsgRegisterPoll> grouped(1, regs.front()); regs.pop_front();
             auto group_it = grouped.begin();
             while(!regs.empty()) {
-                if (!group_it->merge(regs.front()))  {
+                if (group_it->isConsecutiveOf(regs.front()))  {
+                    group_it->merge(regs.front());
+                } else {
                     group_it = grouped.insert(grouped.end(), regs.front());
                 }
                 regs.pop_front();
@@ -93,21 +103,28 @@ MsgRegisterPollSpecification::group() {
 
 void
 MsgRegisterPollSpecification::merge(const MsgRegisterPoll& poll) {
-    // add new register poll or update count and refresh time on existing one
-    std::vector<MsgRegisterPoll>::iterator reg_it = std::find_if(
-        mRegisters.begin(), mRegisters.end(),
-        [&poll](const MsgRegisterPoll& r) -> bool {
-            return r.overlaps(poll);
+    // remove all registers that overlaps with poll
+    // merge them to one and push back
+    std::vector<MsgRegisterPoll> overlaped;
+    auto reg_it = mRegisters.begin();
+    while(reg_it != mRegisters.end()) {
+        if (poll.overlaps(*reg_it)) {
+            overlaped.push_back(*reg_it);
+            reg_it = mRegisters.erase(reg_it);
+        } else {
+            reg_it++;
         }
-    );
+    }
 
-    if (reg_it == mRegisters.end()) {
+    if (overlaped.empty()) {
         BOOST_LOG_SEV(log, Log::debug) << "Adding new register " << poll.mRegister <<
         " (" << poll.mCount << ")" << " type=" << poll.mRegisterType << " refresh=" <<
         poll.mRefreshMsec << " slaveId=" << poll.mSlaveId << " on network " << mNetworkName;
         mRegisters.push_back(poll);
     } else {
-        reg_it->merge(poll);
+        mRegisters.push_back(poll);
+        for(auto& reg: overlaped)
+            mRegisters.back().merge(reg);
     }
 }
 

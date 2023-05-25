@@ -65,14 +65,10 @@ class MsgRegisterPoll {
         RegisterType mRegisterType;
         int mRefreshMsec;
 
-        /*!
-            Fo consecutive is true, then method will merge consecutive groups, i.e:
-            1-3,4-8 to 1-8, otherwise poll is merged only if it overlaps with this.
-
-            returns true if other was merged, false otherwise
-        */
-        bool merge(const MsgRegisterPoll& other, bool consecutive=false);
+        void merge(const MsgRegisterPoll& other);
         bool overlaps(const MsgRegisterPoll& poll) const;
+        bool isConsecutiveOf(const MsgRegisterPoll& other) const;
+        bool isSameAs(const MsgRegisterPoll& other) const;
         int firstRegister() const { return mRegister; }
         int lastRegister() const { return (mRegister + mCount) - 1; }
 };
