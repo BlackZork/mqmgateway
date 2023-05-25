@@ -4,8 +4,7 @@
 
 modmqttd::MsgRegisterPoll
 createPoll(int firstRegister, int lastRegister, int refresh = 1) {
-    modmqttd::MsgRegisterPoll ret;
-    ret.mRegister = firstRegister;
+    modmqttd::MsgRegisterPoll ret(firstRegister);
     ret.mCount = lastRegister - firstRegister + 1;
     ret.mSlaveId = 1;
     ret.mRegisterType = modmqttd::RegisterType::INPUT;

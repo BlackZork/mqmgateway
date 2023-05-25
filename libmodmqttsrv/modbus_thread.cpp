@@ -35,7 +35,7 @@ ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<Regis
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << "(0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
-                            << " polled in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
+                            << " polled in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
             if ((reg.getValues() != newValues) || !sendIfChanged || (reg.mReadErrors != 0)) {
                 MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValues);
@@ -43,7 +43,7 @@ ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<Regis
                 reg.update(newValues);
                 reg.mReadErrors = 0;
                 BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister
-                    << " value sent, data=" << DebugTools::registersToStr(reg.getValues());
+                    << " values sent, data=" << DebugTools::registersToStr(reg.getValues());
             };
             //handle incoming write requests
             //in poll loop to avoid delays

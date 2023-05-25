@@ -8,6 +8,7 @@
 #include "logging.hpp"
 #include "modbus_types.hpp"
 #include "libmodmqttconv/modbusregisters.hpp"
+#include "debugtools.hpp"
 
 namespace modmqttd {
 
@@ -57,6 +58,17 @@ class MsgRegisterWriteFailed : public MsgRegisterMessageBase {
 
 class MsgRegisterPoll {
     public:
+        MsgRegisterPoll(int registerNumber, int count=1)
+            : mRegister(registerNumber), mCount(count)
+        {
+#ifndef NDEBUG
+            if (mRegister <= 0)
+                throw DebugException("Invalid register number");
+            if (mCount <= 0)
+                throw DebugException("Count cannot be 0 or negative");
+#endif
+        }
+
         boost::log::sources::severity_logger<Log::severity> log;
 
         int mSlaveId;

@@ -124,8 +124,9 @@ MockedModbusContext::Slave::setError(int regNum, modmqttd::RegisterType regType,
 std::vector<uint16_t>
 MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) {
     mReadCount++;
-    std::vector<uint16_t> ret(count);
-    for (int i = num; i < count; i++) {
+    std::vector<uint16_t> ret;
+    ret.reserve(count);
+    for (int i = num; i < num + count; i++) {
         ret.push_back(readRegister(table, num));
     };
     return ret;
@@ -162,7 +163,7 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
             uint16_t retval = 0;
             for(auto &val: data) {
                 if (val) {
-                    retval &= (1 << toSet);
+                    retval |= (1 << toSet);
                 }
                 toSet++;
                 if (toSet == 16) {
@@ -171,6 +172,8 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
                     retval = 0;
                 }
             }
+            if (toSet != 16)
+                ret.push_back(retval);
         } break;
         case modmqttd::RegisterType::HOLDING:
         case modmqttd::RegisterType::INPUT:

@@ -1,5 +1,6 @@
 #include "catch2/catch.hpp"
 
+#include "defaults.hpp"
 #include "mockedserver.hpp"
 
 static const std::string config = R"(
@@ -108,16 +109,16 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
         server.start();
 
-        server.waitForPublish("test_switch/state", std::chrono::milliseconds(15));
+        server.waitForPublish("test_switch/state", REGWAIT_MSEC);
         REQUIRE(server.mqttValue("test_switch/state") == "1");
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(1));
+        server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.mMqtt->resetBroker();
 
-        server.waitForPublish("test_switch/state", std::chrono::milliseconds(15));
+        server.waitForPublish("test_switch/state", REGWAIT_MSEC);
         REQUIRE(server.mqttValue("test_switch/state") == "1");
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(1));
+        server.waitForPublish("test_switch/availability", REGWAIT_MSEC);
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.stop();

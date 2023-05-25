@@ -563,8 +563,7 @@ ModMqtt::updateSpecification(
 
     bool hasRefresh = parseAndAddRefresh(currentRefresh, data);
 
-    MsgRegisterPoll poll;
-    poll.mRegister = rname.mRegisterNumber;
+    MsgRegisterPoll poll(rname.mRegisterNumber);
     poll.mRegisterType = parseRegisterType(data);
     poll.mSlaveId = rname.mSlaveId;
     poll.mRefreshMsec = currentRefresh.top();
