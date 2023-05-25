@@ -104,5 +104,8 @@
         "cwd": "${cwd}",
         "environment": "${envObjArray}",
         "sourceFileMap": "${sourceFileMapObj}",
+        "testMate.cpp.debug.setEnv": {
+            "MQM_TEST_DEFAULT_WAIT_MS": "100000"
+          }        
       }    
 }
