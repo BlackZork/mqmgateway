@@ -326,11 +326,11 @@ ModMqtt::readObjectState(
                 throw ConfigurationException(node.Mark(), "registers content should be a list");
             for(size_t i = 0; i < node.size(); i++) {
                 const YAML::Node& regdata = node[i];
-                readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, regdata);
+                readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, regdata, true);
             };
         } else {
-            //single named register
-            readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, state);
+            //single named register + optional count
+            readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, state);
         }
     } else if (state.IsSequence()) {
         std::string name;
@@ -341,10 +341,11 @@ ModMqtt::readObjectState(
             else if (!is_unnamed)
                 throw ConfigurationException(regdata.Mark(), "missing name attribute");
             const YAML::Node& converter = state["converter"];
-            readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, regdata);
+            readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, regdata, true);
         }
     }
 
+    //TODO merge with future modbus poll groups
     for(auto& sin: specs_in) {
         std::vector<MsgRegisterPollSpecification>::iterator spec_it = std::find_if(
             specs_out.begin(), specs_out.end(),
@@ -439,15 +440,29 @@ ModMqtt::readObjectStateNode(
     std::vector<MsgRegisterPollSpecification>& specs_out,
     std::stack<int>& currentRefresh,
     const std::string& stateName,
-    const YAML::Node& node
+    const YAML::Node& node,
+    bool isListMember
 ) {
-    MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, node);
+
+    int count = 1;
+    const YAML::Node& countNode = node["count"];
+    if (countNode.IsDefined()) {
+        if (isListMember)
+            throw ConfigurationException(node.Mark(), "state register list entry cannot contain count");
+        count = ConfigTools::readRequiredValue<int>(node, "count");
+    }
+
+    MqttObjectRegisterIdent first_ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, node, count);
     const YAML::Node& converter = node["converter"];
     std::shared_ptr<DataConverter> conv;
     if (converter.IsDefined()) {
         conv = createConverter(converter);
     }
-    object.mState.addRegister(stateName, ident, conv);
+    int end_idx = first_ident.mRegisterNumber + count;
+    for(int i = first_ident.mRegisterNumber; i < end_idx; i++) {
+        first_ident.mRegisterNumber = i;
+        object.mState.addRegister(stateName, first_ident, conv);
+    }
 }
 
 void
@@ -556,13 +571,14 @@ ModMqtt::updateSpecification(
     const std::string& default_network,
     int default_slave,
     std::vector<MsgRegisterPollSpecification>& specs,
-    const YAML::Node& data)
+    const YAML::Node& data,
+    int count)
 {
     const RegisterConfigName rname(data, default_network, default_slave);
 
     bool hasRefresh = parseAndAddRefresh(currentRefresh, data);
 
-    MsgRegisterPoll poll(rname.mRegisterNumber);
+    MsgRegisterPoll poll(rname.mRegisterNumber, count);
     poll.mRegisterType = parseRegisterType(data);
     poll.mSlaveId = rname.mSlaveId;
     poll.mRefreshMsec = currentRefresh.top();
