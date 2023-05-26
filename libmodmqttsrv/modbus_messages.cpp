@@ -28,7 +28,9 @@ MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
     mCount = last - mRegister + 1;
 
     //set the shortest poll period
-    if (mRefreshMsec > other.mRefreshMsec) {
+    if (mRefreshMsec == INVALID_REFRESH) {
+        mRefreshMsec = other.mRefreshMsec;
+    } else if (other.mRefreshMsec != INVALID_REFRESH && mRefreshMsec > other.mRefreshMsec) {
         mRefreshMsec = other.mRefreshMsec;
         BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << mRefreshMsec << " on existing register " << mRegister;
     }

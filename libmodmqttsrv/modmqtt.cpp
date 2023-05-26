@@ -42,7 +42,7 @@ class RegisterConfigName {
             std::string str = ConfigTools::readRequiredString(data, "register");
             boost::trim(str);
 
-            std::regex re("^([a-zA-Z0-9]+\\.)?([0-9]+\\.)?((0[xX])?[0-9a-fA-F]+)$");
+            std::regex re("^([a-zA-Z][a-zA-Z0-9]+\\.)?([0-9]+\\.)?((0[xX])?[0-9a-fA-F]+)$");
             std::cmatch matches;
 
             if (!std::regex_match(str.c_str(), matches, re))
@@ -52,7 +52,7 @@ class RegisterConfigName {
             if (!network.empty()) {
                 network.pop_back();
                 mNetworkName = network;
-            } else if (default_slave != -1) {
+            } else if (!default_network.empty()) {
                 mNetworkName = default_network;
             } else {
                 throw ConfigurationException(data["register"].Mark(), "Unknown network in register specification");
@@ -267,7 +267,26 @@ MsgRegisterPollSpecification
 ModMqtt::readModbusPollGroups(const std::string& modbus_network, const YAML::Node& groups) {
     MsgRegisterPollSpecification spec(modbus_network);
 
+    if (!groups.IsDefined())
+        return spec;
 
+    if (!groups.IsSequence())
+        throw ConfigurationException(groups.Mark(), "modbus network poll_groups must be a list");
+
+    for(std::size_t i = 0; i < groups.size(); i++) {
+        const YAML::Node& group(groups[i]);
+        RegisterConfigName reg(group, modbus_network, -1);
+        int count = ConfigTools::readRequiredValue<int>(group, "count");
+
+        MsgRegisterPoll poll(reg.mRegisterNumber, count);
+        poll.mSlaveId = reg.mSlaveId;
+        poll.mRegisterType = parseRegisterType(group);
+        poll.mCount = count;
+        // we do not set mRefreshMsec here, it should be merged
+        // from mqtt overlapping groups
+        // if no mqtt groups overlap, then modbus client will drop this poll group
+        spec.mRegisters.push_back(poll);
+    }
 
     return spec;
 }
