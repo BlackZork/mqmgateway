@@ -36,10 +36,10 @@ TEST_CASE ("Expression on list should evaluate") {
     server.start();
 
     //to make sure that all registers have initial value
-    server.waitForPublish("test_state/availability", REGWAIT_MSEC);
+    server.waitForPublish("test_state/availability");
     REQUIRE(server.mqttValue("test_state/availability") == "1");
 
-    server.waitForPublish("test_state/state", REGWAIT_MSEC);
+    server.waitForPublish("test_state/state");
 
     REQUIRE(server.mqttValue("test_state/state") == "3.333");
     server.stop();

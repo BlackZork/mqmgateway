@@ -338,28 +338,37 @@ MqttObject::MqttObject(const YAML::Node& data) {
     mAvailabilityTopic = mTopic + "/availability";
 };
 
-void
+bool
 MqttObject::updateRegisterValue(const MqttObjectRegisterIdent& regIdent, uint16_t value) {
     bool stateChanged = mState.updateRegisterValue(regIdent, value);
     bool availChanged = mAvailability.updateRegisterValue(regIdent, value);
-    if (stateChanged || availChanged)
+    if (stateChanged || availChanged) {
         updateAvailablityFlag();
+        return true;
+    }
+    return false;
 }
 
-void
+bool
 MqttObject::updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent) {
     bool stateChanged = mState.updateRegisterReadFailed(regIdent);
     bool availChanged = mAvailability.updateRegisterReadFailed(regIdent);
-    if (stateChanged || availChanged)
+    if (stateChanged || availChanged) {
         updateAvailablityFlag();
+        return true;
+    }
+    return false;
 }
 
-void
+bool
 MqttObject::setModbusNetworkState(const std::string& networkName, bool isUp) {
     bool stateChanged = mState.setModbusNetworkState(networkName, isUp);
     bool availChanged = mAvailability.setModbusNetworkState(networkName, isUp);
-    if (stateChanged || availChanged)
+    if (stateChanged || availChanged) {
         updateAvailablityFlag();
+        return true;
+    }
+    return false;
 }
 
 void

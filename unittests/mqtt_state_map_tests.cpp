@@ -12,7 +12,7 @@ modbus:
       port: 501
 mqtt:
   client_id: mqtt_test
-  refresh: 1s
+  refresh: 50ms
   broker:
     host: localhost
   objects:
@@ -32,11 +32,12 @@ TEST_CASE ("Named tuple should update if first component changes") {
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 2);
     server.start();
     // default mocked modbus read time is 5ms per register
-    server.waitForPublish("test_state/state", REGWAIT_MSEC);
+    server.waitForPublish("test_state/state");
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{\"sensor1\": 1, \"sensor2\": 2}");
 
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 10);
-    server.waitForPublish("test_state/state", std::chrono::seconds(2));
+    //poll time is 50ms
+    server.waitForPublish("test_state/state");
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{\"sensor1\": 10, \"sensor2\": 2}");
     server.stop();
 }

@@ -35,6 +35,14 @@ class MqttObjectRegisterIdent {
             mRegisterNumber(registerNumber),
             mRegisterType(regType)
         {}
+
+        MqttObjectRegisterIdent(const std::string& network, const MsgRegisterMessageBase& slaveData)
+          : mNetworkName(network),
+            mSlaveId(slaveData.mSlaveId),
+            mRegisterNumber(slaveData.mRegisterNumber),
+            mRegisterType(slaveData.mRegisterType)
+        {}
+
         std::string mNetworkName;
         int mSlaveId;
         int mRegisterNumber;
@@ -135,8 +143,8 @@ class MqttObjectState {
     private:
         std::vector<MqttObjectStateValue> mValues;
         /*!
-            a converter used for scalar state - if only one register is
-            pulled for topic
+            a converter used for converting multiple register
+            values into a single mqtt value
         */
         std::shared_ptr<DataConverter> mConverter;
 };
@@ -153,9 +161,9 @@ class MqttObject {
         const std::string& getTopic() const { return mTopic; };
         const std::string& getStateTopic() const { return mStateTopic; };
         const std::string& getAvailabilityTopic() const { return mAvailabilityTopic; }
-        void updateRegisterValue(const MqttObjectRegisterIdent& regIdent, uint16_t value);
-        void updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent);
-        void setModbusNetworkState(const std::string& networkName, bool isUp);
+        bool updateRegisterValue(const MqttObjectRegisterIdent& regIdent, uint16_t value);
+        bool updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent);
+        bool setModbusNetworkState(const std::string& networkName, bool isUp);
         std::string createStateMessage();
         AvailableFlag getAvailableFlag() const { return mIsAvailable; }
         bool hasCommand(const std::string& name) const;

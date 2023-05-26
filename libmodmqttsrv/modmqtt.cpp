@@ -42,7 +42,7 @@ class RegisterConfigName {
             std::string str = ConfigTools::readRequiredString(data, "register");
             boost::trim(str);
 
-            std::regex re("^([a-zA-Z0-9]+\\.)?([0-9]+\\.)?((0[xX])?[0-9a-fA-F]+)$");
+            std::regex re("^([a-zA-Z][a-zA-Z0-9]+\\.)?([0-9]+\\.)?((0[xX])?[0-9a-fA-F]+)$");
             std::cmatch matches;
 
             if (!std::regex_match(str.c_str(), matches, re))
@@ -52,7 +52,7 @@ class RegisterConfigName {
             if (!network.empty()) {
                 network.pop_back();
                 mNetworkName = network;
-            } else if (default_slave != -1) {
+            } else if (!default_network.empty()) {
                 mNetworkName = default_network;
             } else {
                 throw ConfigurationException(data["register"].Mark(), "Unknown network in register specification");
@@ -131,12 +131,27 @@ void
 ModMqtt::init(const YAML::Node& config) {
     initServer(config);
     initBroker(config);
-    std::vector<MsgRegisterPollSpecification> specs = initObjects(config);
+    std::vector<MsgRegisterPollSpecification> mqtt_specs = initObjects(config);
 
-    initModbusClients(config);
+    std::vector<MsgRegisterPollSpecification> modbus_specs = initModbusClients(config);
 
-    for(std::vector<MsgRegisterPollSpecification>::iterator sit = specs.begin(); sit != specs.end(); sit++) {
+    for(std::vector<MsgRegisterPollSpecification>::iterator sit = modbus_specs.begin(); sit != modbus_specs.end(); sit++) {
         const std::string& netname = sit->mNetworkName;
+
+        const auto& mqtt_spec = std::find_if(
+            mqtt_specs.begin(), mqtt_specs.end(),
+            [&netname](const auto& spec) -> bool { return spec.mNetworkName == netname; }
+        );
+
+        if (mqtt_spec == mqtt_specs.end()) {
+            BOOST_LOG_SEV(log, Log::error) << "No mqtt topics declared for [" << netname << "], ignoring poll group";
+            continue;
+        } else {
+            for(const auto& reg: mqtt_spec->mRegisters) {
+                sit->merge(reg);
+            }
+        }
+
         std::vector<std::shared_ptr<ModbusClient>>::iterator client = std::find_if(
             mModbusClients.begin(), mModbusClients.end(),
             [&netname](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mName == netname; }
@@ -248,7 +263,37 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     BOOST_LOG_SEV(log, Log::debug) << "Broker configuration initialized";
 }
 
-void ModMqtt::initModbusClients(const YAML::Node& config) {
+MsgRegisterPollSpecification
+ModMqtt::readModbusPollGroups(const std::string& modbus_network, const YAML::Node& groups) {
+    MsgRegisterPollSpecification spec(modbus_network);
+
+    if (!groups.IsDefined())
+        return spec;
+
+    if (!groups.IsSequence())
+        throw ConfigurationException(groups.Mark(), "modbus network poll_groups must be a list");
+
+    for(std::size_t i = 0; i < groups.size(); i++) {
+        const YAML::Node& group(groups[i]);
+        RegisterConfigName reg(group, modbus_network, -1);
+        int count = ConfigTools::readRequiredValue<int>(group, "count");
+
+        MsgRegisterPoll poll(reg.mRegisterNumber, count);
+        poll.mSlaveId = reg.mSlaveId;
+        poll.mRegisterType = parseRegisterType(group);
+        poll.mCount = count;
+        // we do not set mRefreshMsec here, it should be merged
+        // from mqtt overlapping groups
+        // if no mqtt groups overlap, then modbus client will drop this poll group
+        spec.mRegisters.push_back(poll);
+    }
+
+    return spec;
+}
+
+
+std::vector<MsgRegisterPollSpecification>
+ModMqtt::initModbusClients(const YAML::Node& config) {
     const YAML::Node& modbus = config["modbus"];
     if (!modbus.IsDefined())
         throw ConfigurationException(config.Mark(), "modbus section is missing");
@@ -262,15 +307,22 @@ void ModMqtt::initModbusClients(const YAML::Node& config) {
     if (networks.size() == 0)
         throw ConfigurationException(networks.Mark(), "No modbus networks defined");
 
+    std::vector<MsgRegisterPollSpecification> ret;
+
     for(std::size_t i = 0; i < networks.size(); i++) {
-        ModbusNetworkConfig modbus_config(networks[i]);
+        const YAML::Node& network(networks[i]);
+        ModbusNetworkConfig modbus_config(network);
 
         std::shared_ptr<ModbusClient> modbus(new ModbusClient());
         modbus->init(modbus_config);
         mModbusClients.push_back(modbus);
+
+        MsgRegisterPollSpecification spec(readModbusPollGroups(modbus_config.mName, network["poll_groups"]));
+        ret.push_back(spec);
     }
     mMqtt->setModbusClients(mModbusClients);
     BOOST_LOG_SEV(log, Log::debug) << "Modbus clients initialized";
+    return ret;
 }
 
 bool
@@ -309,6 +361,8 @@ ModMqtt::readObjectState(
         return;
 
     bool is_unnamed = true;
+    std::vector<MsgRegisterPollSpecification> specs_in;
+
     if (state.IsMap()) {
         //a map can contain name, converter and one or more registers
         std::string name;
@@ -324,11 +378,11 @@ ModMqtt::readObjectState(
                 throw ConfigurationException(node.Mark(), "registers content should be a list");
             for(size_t i = 0; i < node.size(); i++) {
                 const YAML::Node& regdata = node[i];
-                readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, regdata);
+                readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, regdata, true);
             };
         } else {
-            //single named register
-            readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, state);
+            //single named register + optional count
+            readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, state);
         }
     } else if (state.IsSequence()) {
         std::string name;
@@ -339,7 +393,22 @@ ModMqtt::readObjectState(
             else if (!is_unnamed)
                 throw ConfigurationException(regdata.Mark(), "missing name attribute");
             const YAML::Node& converter = state["converter"];
-            readObjectStateNode(object, default_network, default_slave, specs_out, currentRefresh, name, regdata);
+            readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, regdata, true);
+        }
+    }
+
+    //TODO merge with future modbus poll groups
+    for(auto& sin: specs_in) {
+        std::vector<MsgRegisterPollSpecification>::iterator spec_it = std::find_if(
+            specs_out.begin(), specs_out.end(),
+            [&sin](const MsgRegisterPollSpecification& s) -> bool { return s.mNetworkName == sin.mNetworkName; }
+            );
+
+        if (spec_it == specs_out.end()) {
+            specs_out.insert(specs_out.begin(), sin);
+        } else {
+            //merge overlapping read grups
+            spec_it->merge(sin.mRegisters);
         }
     }
 }
@@ -423,15 +492,29 @@ ModMqtt::readObjectStateNode(
     std::vector<MsgRegisterPollSpecification>& specs_out,
     std::stack<int>& currentRefresh,
     const std::string& stateName,
-    const YAML::Node& node
+    const YAML::Node& node,
+    bool isListMember
 ) {
-    MqttObjectRegisterIdent ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, node);
+
+    int count = 1;
+    const YAML::Node& countNode = node["count"];
+    if (countNode.IsDefined()) {
+        if (isListMember)
+            throw ConfigurationException(node.Mark(), "state register list entry cannot contain count");
+        count = ConfigTools::readRequiredValue<int>(node, "count");
+    }
+
+    MqttObjectRegisterIdent first_ident = updateSpecification(currentRefresh, default_network, default_slave, specs_out, node, count);
     const YAML::Node& converter = node["converter"];
     std::shared_ptr<DataConverter> conv;
     if (converter.IsDefined()) {
         conv = createConverter(converter);
     }
-    object.mState.addRegister(stateName, ident, conv);
+    int end_idx = first_ident.mRegisterNumber + count;
+    for(int i = first_ident.mRegisterNumber; i < end_idx; i++) {
+        first_ident.mRegisterNumber = i;
+        object.mState.addRegister(stateName, first_ident, conv);
+    }
 }
 
 void
@@ -540,14 +623,14 @@ ModMqtt::updateSpecification(
     const std::string& default_network,
     int default_slave,
     std::vector<MsgRegisterPollSpecification>& specs,
-    const YAML::Node& data)
+    const YAML::Node& data,
+    int count)
 {
     const RegisterConfigName rname(data, default_network, default_slave);
 
     bool hasRefresh = parseAndAddRefresh(currentRefresh, data);
 
-    MsgRegisterPoll poll;
-    poll.mRegister = rname.mRegisterNumber;
+    MsgRegisterPoll poll(rname.mRegisterNumber, count);
     poll.mRegisterType = parseRegisterType(data);
     poll.mSlaveId = rname.mSlaveId;
     poll.mRefreshMsec = currentRefresh.top();
@@ -559,33 +642,11 @@ ModMqtt::updateSpecification(
         );
 
     if (spec_it == specs.end()) {
-        BOOST_LOG_SEV(log, Log::debug) << "Creating new register specification for network " << rname.mNetworkName;
         specs.insert(specs.begin(), MsgRegisterPollSpecification(rname.mNetworkName));
         spec_it = specs.begin();
     }
 
-    // add new register poll or update refresh time on existing one
-    std::vector<MsgRegisterPoll>::iterator reg_it = std::find_if(
-        spec_it->mRegisters.begin(), spec_it->mRegisters.end(),
-        [&rname, &poll](const MsgRegisterPoll& r) -> bool {
-            return r.mRegister == rname.mRegisterNumber
-                    && r.mRegisterType == poll.mRegisterType
-                    && r.mSlaveId == poll.mSlaveId;
-            }
-    );
-
-    if (reg_it == spec_it->mRegisters.end()) {
-        BOOST_LOG_SEV(log, Log::debug) << "Adding new register " << poll.mRegister <<
-        " type=" << poll.mRegisterType << " refresh=" << poll.mRefreshMsec
-        << " slaveId=" << rname.mSlaveId << " on network " << rname.mNetworkName;
-        spec_it->mRegisters.push_back(poll);
-    } else {
-        //set the shortest poll period of all occurences in config file
-        if (reg_it->mRefreshMsec > poll.mRefreshMsec) {
-            reg_it->mRefreshMsec = poll.mRefreshMsec;
-            BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << poll.mRefreshMsec << " on existing register " << poll.mRegister;
-        }
-    }
+    spec_it->merge(poll);
 
     if (hasRefresh)
         currentRefresh.pop();
@@ -679,16 +740,13 @@ ModMqtt::processModbusMessages() {
         while ((*client)->mFromModbusQueue.try_dequeue(item)) {
             if (item.isSameAs(typeid(MsgRegisterValues))) {
                 std::unique_ptr<MsgRegisterValues> val(item.getData<MsgRegisterValues>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterValue(ident, val->mValues.getValue(0));
+                mMqtt->processRegisterValues((*client)->mName, *val);
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterOperationFailed(ident);
+                mMqtt->processRegistersOperationFailed((*client)->mName, *val);
             } else if (item.isSameAs(typeid(MsgRegisterWriteFailed))) {
                 std::unique_ptr<MsgRegisterWriteFailed> val(item.getData<MsgRegisterWriteFailed>());
-                MqttObjectRegisterIdent ident((*client)->mName, val->mSlaveId, val->mRegisterType, val->mRegisterNumber);
-                mMqtt->processRegisterOperationFailed(ident);
+                mMqtt->processRegistersOperationFailed((*client)->mName, *val);
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);

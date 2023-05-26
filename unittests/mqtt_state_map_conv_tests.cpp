@@ -38,8 +38,7 @@ TEST_CASE ("Named map should output json map with converted values") {
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 100);
     server.start();
     // default mocked modbus read time is 5ms per register
-    server.waitForPublish("test_state/state", REGWAIT_MSEC);
-    //TODO check json
+    server.waitForPublish("test_state/state");
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{\"sensor1\": 12.34, \"sensor2\": 10.0}");
     server.stop();
 }

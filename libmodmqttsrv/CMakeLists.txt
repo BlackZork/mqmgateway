@@ -7,6 +7,8 @@ add_library(modmqttsrv
     config.hpp
     conv_name_parser.cpp
     conv_name_parser.hpp
+    debugtools.cpp
+    debugtools.hpp
     default_command_converter.cpp
     default_command_converter.hpp
     logging.cpp
@@ -15,6 +17,8 @@ add_library(modmqttsrv
     modbus_client.hpp 
     modbus_context.cpp
     modbus_context.hpp
+    modbus_messages.cpp
+    modbus_messages.hpp
     modbus_scheduler.cpp
     modbus_scheduler.hpp
     modbus_thread.cpp

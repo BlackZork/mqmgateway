@@ -34,11 +34,11 @@ class MqttClient {
         //publish all data after broker is reconnected
         void publishAll();
         void publishState(const MqttObject& obj);
-
-        void processRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t value);
-        void processRegisterOperationFailed(const MqttObjectRegisterIdent& ident);
-        void processModbusNetworkState(const std::string& networkName, bool isUp);
         void publishAvailabilityChange(const MqttObject& obj);
+
+        void processRegisterValues(const std::string& modbusNetworkName, const MsgRegisterValues& values);
+        void processRegistersOperationFailed(const std::string& modbusNetworkName, const MsgRegisterMessageBase& values);
+        void processModbusNetworkState(const std::string& modbusNetworkName, bool isUp);
 
         //mqtt communication callbacks
         void onDisconnect();
