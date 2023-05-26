@@ -19,7 +19,7 @@ MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool i
             errno = EIO;
             throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterNumber) + " failed");
         }
-        if (hasError(msg.mRegisterNumber, msg.mRegisterType)) {
+        if (hasError(msg.mRegisterNumber, msg.mRegisterType, msg.mCount)) {
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("register write fn ") + std::to_string(msg.mRegisterNumber) + " failed");
         }
@@ -55,7 +55,7 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + " failed");
         }
-        if (hasError(regData.mRegister, regData.mRegisterType)) {
+        if (hasError(regData.mRegister, regData.mRegisterType, regData.getCount())) {
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("register read fn ") + std::to_string(regData.mRegister) + " failed");
         }
@@ -79,19 +79,19 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
 }
 
 bool
-MockedModbusContext::Slave::hasError(int regNum, modmqttd::RegisterType regType) const {
+MockedModbusContext::Slave::hasError(int regNum, modmqttd::RegisterType regType, int regCount) const {
     switch(regType) {
         case modmqttd::RegisterType::COIL:
-            return hasError(mCoil, regNum);
+            return hasError(mCoil, regNum, regCount);
         break;
         case modmqttd::RegisterType::HOLDING:
-            return hasError(mHolding, regNum);
+            return hasError(mHolding, regNum, regCount);
         break;
         case modmqttd::RegisterType::INPUT:
-            return hasError(mInput, regNum);
+            return hasError(mInput, regNum, regCount);
         break;
         case modmqttd::RegisterType::BIT:
-            return hasError(mBit, regNum);
+            return hasError(mBit, regNum, regCount);
         break;
         default:
             throw modmqttd::ModbusReadException(
@@ -142,11 +142,16 @@ MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::Slav
 }
 
 bool
-MockedModbusContext::Slave::hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num) const {
-    auto it = table.find(num);
-    if (it == table.end())
-        return false;
-    return it->second.mError;
+MockedModbusContext::Slave::hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) const {
+    bool ret = false;
+    for (int i = num; i < num + count; i++) {
+        auto it = table.find(i);
+        if (it == table.end())
+            continue;
+        if (it->second.mError)
+            return true;
+    }
+    return ret;
 }
 
 std::vector<uint16_t>

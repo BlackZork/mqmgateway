@@ -28,7 +28,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 void setError(int regNum, modmqttd::RegisterType regType, bool flag = true);
                 void clearError(int regNum, modmqttd::RegisterType regType)
                     { setError(regNum, regType, false); }
-                bool hasError(int regNum, modmqttd::RegisterType regType) const;
+                bool hasError(int regNum, modmqttd::RegisterType regType, int regCount) const;
                 int getReadCount() const { return mReadCount; }
                 int getWriteCount() const { return mWriteCount; }
 
@@ -42,7 +42,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 int mId;
 
             private:
-                bool hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num) const;
+                bool hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) const;
                 std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count);
                 uint16_t readRegister(std::map<int, RegData>& table, int num);
                 bool mDisconnected = false;
