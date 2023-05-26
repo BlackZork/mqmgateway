@@ -117,16 +117,20 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
     int retCode;
     switch(regData.mRegisterType) {
         //for COIL and BIT store bits in uint16_t array
-        case RegisterType::COIL:
+        case RegisterType::COIL: {
             arraySize = regData.getCount()/16 + 1;
-            values.reset((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
+            size_t bufSize = sizeof(uint16_t) * arraySize;
+            values.reset((uint16_t*)malloc(bufSize), free);
+            std::memset(values.get(), 0x0, bufSize);
             retCode = modbus_read_bits(mCtx, regData.mRegister, regData.getCount(), (uint8_t*)values.get());
-        break;
-        case RegisterType::BIT:
+        } break;
+        case RegisterType::BIT: {
             arraySize = regData.getCount()/16 + 1;
-            values.reset((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
+            size_t bufSize = sizeof(uint16_t) * arraySize;
+            values.reset((uint16_t*)malloc(bufSize), free);
+            std::memset(values.get(), 0x0, bufSize);
             retCode = modbus_read_input_bits(mCtx, regData.mRegister, regData.getCount(), (uint8_t*)values.get());
-        break;
+        } break;
         case RegisterType::HOLDING:
             arraySize = regData.getCount();
             values.reset((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
