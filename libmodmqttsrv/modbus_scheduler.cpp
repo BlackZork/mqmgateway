@@ -28,7 +28,7 @@ ModbusScheduler::getRegistersToPoll(
 
             if (time_passed >= reg.mRefresh) {
                 BOOST_LOG_SEV(log, Log::debug) << "Register " << slave->first << "." << reg.mRegister << " (0x" << std::hex << slave->first << ".0x" << std::hex << reg.mRegister << ")"
-                                << " added, last read " << std::chrono::duration_cast<std::chrono::milliseconds>(time_passed).count() << "ms ago";
+                                << " added, last read " << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(time_passed).count() << "ms ago";
                 ret[slave->first].push_back(*reg_it);
             } else {
                 time_to_poll = reg.mRefresh - time_passed;
