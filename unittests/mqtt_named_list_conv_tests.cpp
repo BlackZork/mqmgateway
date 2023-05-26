@@ -71,13 +71,13 @@ mqtt:
       state:
         name: some_name
         converter: std.int32()
-          register: tcptest.1.2
-          register_type: input
-          count: 2
+        register: tcptest.1.2
+        register_type: input
+        count: 2
 )";
 
 TEST_CASE ("Named state list should output converted value with single modbus read call") {
-    MockedModMqttServerThread server(config1);
+    MockedModMqttServerThread server(config2);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 2);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 1);
     server.start();

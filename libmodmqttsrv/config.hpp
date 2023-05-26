@@ -109,9 +109,9 @@ class ModbusNetworkConfig {
             }
         };
 
-        //RTU only
         Type mType;
         std::string mName = "";
+        //RTU only
         std::string mDevice = "";
         int mBaud = 0;
         char mParity = '\0';
@@ -120,7 +120,7 @@ class ModbusNetworkConfig {
         RtuSerialMode mRtuSerialMode = RtuSerialMode::UNSPECIFIED;
         RtuRtsMode mRtsMode = RtuRtsMode::NONE;
         int mRtsDelayUs = 0;
-        
+
         //TCP only
         std::string mAddress = "";
         int mPort = 0;

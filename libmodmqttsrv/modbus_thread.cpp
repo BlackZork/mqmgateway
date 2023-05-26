@@ -78,8 +78,12 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     for(std::vector<MsgRegisterPoll>::const_iterator it = spec.mRegisters.begin();
         it != spec.mRegisters.end(); it++)
     {
-        std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
-        mRegisters[it->mSlaveId].push_back(reg);
+        // do not poll a poll group declared in modbus config section
+        // that was not merged with any mqtt register declaration
+        if (it->mRefreshMsec != MsgRegisterPoll::INVALID_REFRESH) {
+            std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
+            mRegisters[it->mSlaveId].push_back(reg);
+        }
     }
     BOOST_LOG_SEV(log, Log::debug) << "Poll specification set, got " << mRegisters.size() << " slaves," << spec.mRegisters.size() << " registers to poll";
 

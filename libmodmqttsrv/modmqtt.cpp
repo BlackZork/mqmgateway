@@ -131,12 +131,27 @@ void
 ModMqtt::init(const YAML::Node& config) {
     initServer(config);
     initBroker(config);
-    std::vector<MsgRegisterPollSpecification> specs = initObjects(config);
+    std::vector<MsgRegisterPollSpecification> mqtt_specs = initObjects(config);
 
-    initModbusClients(config);
+    std::vector<MsgRegisterPollSpecification> modbus_specs = initModbusClients(config);
 
-    for(std::vector<MsgRegisterPollSpecification>::iterator sit = specs.begin(); sit != specs.end(); sit++) {
+    for(std::vector<MsgRegisterPollSpecification>::iterator sit = modbus_specs.begin(); sit != modbus_specs.end(); sit++) {
         const std::string& netname = sit->mNetworkName;
+
+        const auto& mqtt_spec = std::find_if(
+            mqtt_specs.begin(), mqtt_specs.end(),
+            [&netname](const auto& spec) -> bool { return spec.mNetworkName == netname; }
+        );
+
+        if (mqtt_spec == mqtt_specs.end()) {
+            BOOST_LOG_SEV(log, Log::error) << "No mqtt topics declared for [" << netname << "], ignoring poll group";
+            continue;
+        } else {
+            for(const auto& reg: mqtt_spec->mRegisters) {
+                sit->merge(reg);
+            }
+        }
+
         std::vector<std::shared_ptr<ModbusClient>>::iterator client = std::find_if(
             mModbusClients.begin(), mModbusClients.end(),
             [&netname](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mName == netname; }
@@ -248,7 +263,18 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     BOOST_LOG_SEV(log, Log::debug) << "Broker configuration initialized";
 }
 
-void ModMqtt::initModbusClients(const YAML::Node& config) {
+MsgRegisterPollSpecification
+ModMqtt::readModbusPollGroups(const std::string& modbus_network, const YAML::Node& groups) {
+    MsgRegisterPollSpecification spec(modbus_network);
+
+
+
+    return spec;
+}
+
+
+std::vector<MsgRegisterPollSpecification>
+ModMqtt::initModbusClients(const YAML::Node& config) {
     const YAML::Node& modbus = config["modbus"];
     if (!modbus.IsDefined())
         throw ConfigurationException(config.Mark(), "modbus section is missing");
@@ -262,15 +288,22 @@ void ModMqtt::initModbusClients(const YAML::Node& config) {
     if (networks.size() == 0)
         throw ConfigurationException(networks.Mark(), "No modbus networks defined");
 
+    std::vector<MsgRegisterPollSpecification> ret;
+
     for(std::size_t i = 0; i < networks.size(); i++) {
-        ModbusNetworkConfig modbus_config(networks[i]);
+        const YAML::Node& network(networks[i]);
+        ModbusNetworkConfig modbus_config(network);
 
         std::shared_ptr<ModbusClient> modbus(new ModbusClient());
         modbus->init(modbus_config);
         mModbusClients.push_back(modbus);
+
+        MsgRegisterPollSpecification spec(readModbusPollGroups(modbus_config.mName, network["poll_groups"]));
+        ret.push_back(spec);
     }
     mMqtt->setModbusClients(mModbusClients);
     BOOST_LOG_SEV(log, Log::debug) << "Modbus clients initialized";
+    return ret;
 }
 
 bool
