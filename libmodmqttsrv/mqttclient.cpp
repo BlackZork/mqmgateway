@@ -253,24 +253,13 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
             ModbusRegisters reg_values;
 
             if (command.hasConverter()) {
-                reg_values = command.getConverter().toModbus(tmpval, 1);
+                reg_values = command.getConverter().toModbus(tmpval, command.mCount);
             } else {
-                reg_values = mDefaultConverter.toModbus(tmpval, 1);
+                reg_values = mDefaultConverter.toModbus(tmpval, command.mCount);
             }
 
-            switch(command.mRegister.mRegisterType) {
-                case RegisterType::BIT:
-                case RegisterType::COIL:
-                    if (reg_values.getCount() > 1) {
-                        throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert ") + std::to_string(reg_values.getCount()) + " register values to single bit");
-                    } else {
-                        u_int16_t val = reg_values.getValue(0);
-                        if ((val != 0) && (val != 1)) {
-                            throw MqttPayloadConversionException(std::string("Conversion failed, cannot convert " + std::to_string(val) + " to single bit"));
-                        }
-                    }
-                break;
-            }
+            if (reg_values.getCount() != command.mCount)
+                throw MqttPayloadConversionException(std::string("Conversion failed, expecting ") + std::to_string(command.mCount) + " register values, got " + std::to_string(reg_values.getCount()));
 
             (*it)->sendCommand(command, reg_values);
         }

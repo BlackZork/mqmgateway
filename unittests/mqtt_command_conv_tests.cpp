@@ -91,6 +91,7 @@ TEST_CASE ("Holding register write multiple registers") {
 
     server.waitForPublish("test_switch/state");
     REQUIRE(server.mqttValue("test_switch/state") == "131073");
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getWriteCount(1) == 1);
 
     server.stop();
 }

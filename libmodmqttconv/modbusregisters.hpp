@@ -11,6 +11,7 @@ class ModbusRegisters {
         int getCount() const { return mRegisters.size(); }
         uint16_t getValue(int idx) const { return mRegisters[idx]; }
         void setValue(int idx, uint16_t val) { mRegisters[idx] = val; }
+        const std::vector<uint16_t>& values() const { return mRegisters; }
 
         [[deprecated]]
         void addValue(uint16_t val) { appendValue(val); }

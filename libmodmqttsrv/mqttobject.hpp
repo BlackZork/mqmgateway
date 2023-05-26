@@ -54,11 +54,12 @@ class MqttObjectCommand {
         enum PayloadType {
             STRING = 1
         };
-        MqttObjectCommand(const std::string& name, const MqttObjectRegisterIdent& ident, PayloadType ptype)
-            : mName(name), mRegister(ident), mPayloadType(ptype) {}
+        MqttObjectCommand(const std::string& name, const MqttObjectRegisterIdent& ident, PayloadType ptype, int register_count = 1)
+            : mName(name), mRegister(ident), mPayloadType(ptype), mCount(register_count) {}
         std::string mName;
         PayloadType mPayloadType;
         MqttObjectRegisterIdent mRegister;
+        int mCount;
 
         void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         bool hasConverter() const { return mConverter != nullptr; }

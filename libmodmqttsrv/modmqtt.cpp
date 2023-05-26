@@ -419,6 +419,8 @@ ModMqtt::readObjectCommand(const YAML::Node& node, const std::string& default_ne
     RegisterConfigName rname(node, default_network, default_slave);
     RegisterType rType = parseRegisterType(node);
     MqttObjectCommand::PayloadType pType = parsePayloadType(node);
+    int count = 1;
+    ConfigTools::readOptionalValue<int>(count, node, "count");
 
 
 
@@ -430,7 +432,8 @@ ModMqtt::readObjectCommand(const YAML::Node& node, const std::string& default_ne
             rType,
             rname.mRegisterNumber
             ),
-        pType
+        pType,
+        count
     );
 
     const YAML::Node& converter = node["converter"];
