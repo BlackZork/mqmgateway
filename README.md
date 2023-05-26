@@ -10,13 +10,18 @@ Main features:
   * multiple modbus registers as JSON object
   * multiple modubs registers as JSON list
   * registers from different slaves combined as single JSON list/object
+* Full control over modbus data polling
+  * read multiple register values once for multiple topics
+  * read multiple register values for a single topic one by one 
+  * read multiple register values for a single topic once
+  * registers used in multiple MQTT topics are polled only once
 * Data conversion:
   * single register value to MQTT converters
   * multiple registers values to single MQTT value converters
   * support for [exprtk](https://github.com/ArashPartow/exprtk) expressions language when converting data
   * support for custom conversion plugins
+  * support for converstion in both directions
 * Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
-* Optimized modbus pulling - registers used in multiple MQTT topics are polled only once
 
 MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosqutto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](link) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
 
@@ -150,6 +155,10 @@ Modbus network configuration parameters are listed below:
 
     TCP port of a device
 
+* **poll_groups**
+
+    An optional list of modbus register address ranges that will be polled with a single modbus_read_registers(3) call. 
+
 ## MQTT section
 
 The mqtt section contains broker definition and modbus register mappings. Mappings describe how modbus data should be published as mqtt topics.
@@ -229,11 +238,23 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   *  **register_type** (required)
 
-    Modbus register type: coil, input, holding
+     Modbus register type: coil, input, holding
 
   * **converter** (optional)
 
     The name of function that should be called to convert mqtt value to u_int16 value. Format of function name is `plugin name.function name`. See converters for details. 
+
+  Example of MQTT command topic declaration:
+
+     objects:
+    - topic: test_switch
+      commands:
+        - name: set
+          register: tcptest.1.2
+          register_type: holding
+          converter: std.divide(100)
+
+  Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
 
   Unless you provide a custom converter M2MGateway expects register value as UTF-8 string value. It is converted to u_int16 and written to modbus register.
 
@@ -249,6 +270,36 @@ A list of topics where modbus values are published to MQTT broker and subscribed
   | named list | JSON map with values as u_int16 register data as string |
 
   It is also possible to combine and output an unnamed list of registers as a single value using converter. See converters section for details.
+
+  Register list can be defined in two ways:
+
+  1. As starting register and count:
+  
+    state:
+      name: mqtt_combined_val
+      converter: std.int32
+      register: net.1.12
+      count: 2
+
+  This declaration creates a poll group. Poll group is read from modbus slave using a single
+  modbus_read_registers(3) call. Overlapping poll groups are merged with each other and with 
+  poll groups defined in modbus section.
+
+  2. as list of registers:
+
+    state:
+      - name: humidity
+        register: net.1.12
+        register_type: input
+        # optional
+        converter: std.divide(100,2)
+      - name:  temp1
+        register: net.1.300
+        register_type: input
+
+  This declaration do not create a poll group, but allows to construct MQTT topic data
+  from diffrent slaves, even on diffrent modbus networks. On exception is if there are poll groups defined in modbus section, that overlaps state register definitions. In this case 
+  data is polled using poll group.
 
   * **refresh**
 
@@ -266,7 +317,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   * **name** 
 
-    The last part of topic name where value should be published. Full topic name is created as `topic.name/state.name`
+    The last part of topic name where value should be published. Full topic name is created as `topic_name/state_name`
 
   * **register** (required)
 
@@ -276,9 +327,14 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Modbus register type: coil, input, holding
 
+  * **count**
+
+     If defined, then this describes register range to poll. Register range is always
+     polled with a single modbus_read_registers(3) call
+
   * **converter** (optional)
 
-    The name of function that should be called to convert register u_int16 value to MQTT UTF-8 value. Format of function name is `plugin name.function name`. See converters for details. 
+    The name of function that should be called to convert register u_int16 value to MQTT UTF-8 value. Format of function name is `plugin_name.function_name`. See converters for details. 
 
   The following examples show how to combine *name*, *register*, *register_type*, and *converter* to output different state values:
 
@@ -291,7 +347,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
       register_type: coil
     ```
 
-  2. unnamed list
+  2. unnamed list, each register is polled with a separate modbus_read_registers call
 
     ```
     state:
@@ -299,21 +355,18 @@ A list of topics where modbus values are published to MQTT broker and subscribed
       registers:
         - register: net.1.12
           register_type: input
-        - register: net.1.13
+        - register: net.1.100
           register_type: input
     ```
 
-  3. multiple registers converted to single MQTT value
+  3. multiple registers converted to single MQTT value, polled with single modbus_read_registers call
 
     ```
     state:
       name: mqtt_combined_val
       converter: std.int32
-      registers:
-        - register: net.1.12
-          register_type: input
-        - register: net.1.13
-          register_type: input
+      register: net.1.12
+      count: 2
     ```
 
   4. named list (map)
@@ -419,11 +472,9 @@ When state is combined from multiple modbus registers:
 ```
   state:
     converter: std.int32()
-    registers:
-    - register: device1.slave2.12
-      register_type: input
-    - register: device1.slave2.13
-      register_type: input
+    register: device1.slave2.12
+    register_type: input
+    count: 2
 ```
 
 When mqtt command payload should be converted to register value:

@@ -37,6 +37,13 @@ modbus:
       address: 192.168.31.10
       port: 502
 
+      # this will force a single modbus read call for
+      # isma_switch_1 and isma_switch_2 topics
+      poll_groups:
+        - register: 1.273
+          register_type: coil
+          count: 2
+
 mqtt:
   client_id: modbus
   refresh: 10s
@@ -78,7 +85,6 @@ mqtt:
         register: tcptest.1.274
         register_type: coil
           
-
     - topic: gtb_sensor/presence
       refresh: 1s
       state:
@@ -87,9 +93,20 @@ mqtt:
         response_data_timeout: 20ms
         register: rtutest.1.1
         register_type: input
+
     - topic: gtb_sensor/lightlevel
       state:
         register: rtutest.1.2
+        register_type: input
+        refresh: 1s
+
+    - topic: somesensor/value
+      state:
+        converter: std.int32
+        # if register list is declared as register and count
+        # then registers are polled with single modbus_read_registers call
+        register: rtutest.1.2
+        count: 2
         register_type: input
         refresh: 1s
 
