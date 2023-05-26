@@ -58,7 +58,7 @@ MockedMqttImpl::on_log(int level, const char* message) {}
 
 bool
 MockedMqttImpl::waitForPublish(const char* topic, std::chrono::milliseconds timeout) {
-    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting for publish on: [" << topic << "]";
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting " << timeout.count() << "ms for publish on: [" << topic << "]";
     std::unique_lock<std::mutex> lck(mMutex);
     bool published = mPublishedTopics.find(topic) != mPublishedTopics.end();
     if (!published) {

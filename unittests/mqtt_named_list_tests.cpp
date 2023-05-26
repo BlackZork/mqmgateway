@@ -39,6 +39,6 @@ TEST_CASE ("Named state list should output json array") {
     server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"test_name\": [1,7] }");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
     server.stop();
 }

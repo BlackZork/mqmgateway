@@ -22,7 +22,7 @@ MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
 
     BOOST_LOG_SEV(log, Log::debug) << "Extending register "
     << mRegister << "(" << mCount << ") to "
-    << first << "(" <<  last-first << ")";
+    << first << "(" <<  last-first+1 << ")";
 
     mRegister = first;
     mCount = last - mRegister + 1;

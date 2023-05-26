@@ -50,7 +50,7 @@ TEST_CASE ("Unnamed state list should output json array") {
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[1,7]");
     server.stop();
 }

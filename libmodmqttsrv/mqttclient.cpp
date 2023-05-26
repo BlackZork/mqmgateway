@@ -142,10 +142,12 @@ MqttClient::processRegisterValues(const std::string& modbusNetworkName, const Ms
 
     for(auto& obj_it: modified) {
         MqttObject& obj(*(obj_it.first));
-        publishState(obj);
-        AvailableFlag newAvail = obj.getAvailableFlag();
-        if (obj_it.second != newAvail)
-            publishAvailabilityChange(obj);
+        if (obj.mState.hasValues()) {
+            publishState(obj);
+            AvailableFlag newAvail = obj.getAvailableFlag();
+            if (obj_it.second != newAvail)
+                publishAvailabilityChange(obj);
+        }
     }
 }
 

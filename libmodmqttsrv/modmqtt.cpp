@@ -309,6 +309,8 @@ ModMqtt::readObjectState(
         return;
 
     bool is_unnamed = true;
+    std::vector<MsgRegisterPollSpecification> specs_in;
+
     if (state.IsMap()) {
         //a map can contain name, converter and one or more registers
         std::string name;
@@ -332,7 +334,6 @@ ModMqtt::readObjectState(
         }
     } else if (state.IsSequence()) {
         std::string name;
-        std::vector<MsgRegisterPollSpecification> specs_in;
         for(size_t i = 0; i < state.size(); i++) {
             const YAML::Node& regdata = state[i];
             if (ConfigTools::readOptionalValue<std::string>(name, regdata, "name"))
@@ -342,21 +343,19 @@ ModMqtt::readObjectState(
             const YAML::Node& converter = state["converter"];
             readObjectStateNode(object, default_network, default_slave, specs_in, currentRefresh, name, regdata);
         }
-        for(auto& sin: specs_in) {
-            //group reads
-            sin.group();
+    }
 
-            std::vector<MsgRegisterPollSpecification>::iterator spec_it = std::find_if(
-                specs_out.begin(), specs_out.end(),
-                [&sin](const MsgRegisterPollSpecification& s) -> bool { return s.mNetworkName == sin.mNetworkName; }
-                );
+    for(auto& sin: specs_in) {
+        std::vector<MsgRegisterPollSpecification>::iterator spec_it = std::find_if(
+            specs_out.begin(), specs_out.end(),
+            [&sin](const MsgRegisterPollSpecification& s) -> bool { return s.mNetworkName == sin.mNetworkName; }
+            );
 
-            if (spec_it == specs_out.end()) {
-                specs_out.insert(specs_out.begin(), sin);
-            } else {
-                //merge overlapping read grups
-                spec_it->merge(sin.mRegisters);
-            }
+        if (spec_it == specs_out.end()) {
+            specs_out.insert(specs_out.begin(), sin);
+        } else {
+            //merge overlapping read grups
+            spec_it->merge(sin.mRegisters);
         }
     }
 }
