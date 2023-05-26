@@ -115,6 +115,7 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
     std::shared_ptr<uint16_t> values;
     int arraySize = 0;
     int retCode;
+    int regIndex = regData.mRegister-1;
     switch(regData.mRegisterType) {
         //for COIL and BIT store bits in uint16_t array
         case RegisterType::COIL: {
@@ -162,6 +163,7 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
     u_int16_t value = msg.mRegisters.getValue(0);
 
     int retCode;
+    int regIndex = msg.mRegisterNumber-1;
     switch(msg.mRegisterType) {
         case RegisterType::COIL:
             retCode = modbus_write_bit(mCtx, msg.mRegisterNumber, value == 1 ? TRUE : FALSE);
