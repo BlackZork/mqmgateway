@@ -29,7 +29,7 @@ mqtt:
         register_type: holding
 )";
 
-TEST_CASE ("Holding register write converted value") {
+TEST_CASE ("Write converted value") {
     MockedModMqttServerThread server(config_converter);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
@@ -76,7 +76,7 @@ mqtt:
         converter: std.int32()
 )";
 
-TEST_CASE ("Holding register write multiple registers") {
+TEST_CASE ("Write multiple registers with converter") {
     MockedModMqttServerThread server(multiple_converter);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);

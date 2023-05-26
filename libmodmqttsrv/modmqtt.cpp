@@ -416,13 +416,15 @@ ModMqtt::readObjectState(
 MqttObjectCommand
 ModMqtt::readObjectCommand(const YAML::Node& node, const std::string& default_network, int default_slave) {
     std::string name = ConfigTools::readRequiredString(node, "name");
+    // TODO add "registers" section
+    // that will store multiple registers
+    // and allow to update modbus slaves register by register
+    // same as in state
     RegisterConfigName rname(node, default_network, default_slave);
     RegisterType rType = parseRegisterType(node);
     MqttObjectCommand::PayloadType pType = parsePayloadType(node);
     int count = 1;
     ConfigTools::readOptionalValue<int>(count, node, "count");
-
-
 
     MqttObjectCommand cmd(
         name,
