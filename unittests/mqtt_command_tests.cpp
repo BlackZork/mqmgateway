@@ -153,7 +153,7 @@ TEST_CASE ("Write multiple registers with default converter") {
     server.waitForPublish("test_switch/state");
     REQUIRE(server.mqttValue("test_switch/state") == "0");
 
-    server.publish("test_switch/set", "[1,1]");
+    server.publish("test_switch/set", "[2,1]");
 
     server.waitForPublish("test_switch/state");
     REQUIRE(server.mqttValue("test_switch/state") == "131073");
