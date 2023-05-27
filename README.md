@@ -240,6 +240,10 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
      Modbus register type: coil, input, holding
 
+  *  **count** (optional)
+
+     Number of registers to write. If set to > 1, then modbus_write_registers(3)/modbus_write_bits(3) is called.
+
   * **converter** (optional)
 
     The name of function that should be called to convert mqtt value to u_int16 value. Format of function name is `plugin name.function name`. See converters for details. 
@@ -256,7 +260,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
 
-  Unless you provide a custom converter M2MGateway expects register value as UTF-8 string value. It is converted to u_int16 and written to modbus register.
+  Unless you provide a custom converter M2MGateway expects register value as UTF-8 string value or json array with register values. You must provide exactly the same number of values as registers to write.
 
 ### The *state* section
 
