@@ -2,6 +2,7 @@
 #include "libmodmqttconv/modbusregisters.hpp"
 #include "libmodmqttconv/convexception.hpp"
 
+#include <rapidjson/document.h>
 
 namespace modmqttd {
 
@@ -31,7 +32,28 @@ DefaultCommandConverter::toModbus(const MqttValue& value, int registerCount) con
 
 void
 DefaultCommandConverter::parseAsJson(ModbusRegisters& ret, const std::string jsonData, int registerCount) {
-    throw ConvException("Not implemented yet");
+    rapidjson::Document doc;
+    doc.Parse(jsonData.c_str());
+
+    if (!doc.IsArray())
+        throw ConvException("Only json array is supported when converting to multiple registers");
+
+    if (doc.Size() != registerCount) {
+        throw ConvException(std::string("Wrong json array size (" + std::to_string(doc.Size()) + "), need " + std::to_string(registerCount)));
+    }
+
+    for(auto& jv: doc.GetArray()) {
+        ret.appendValue(to_uint16(jv.GetInt()));
+    }
+}
+
+uint16_t
+DefaultCommandConverter::to_uint16(int val) {
+    if (val <= static_cast<int>(UINT16_MAX) && val >=0) {
+        uint16_t regval = static_cast<uint16_t>(val);
+        return regval;
+    }
+    throw ConvException(std::string("Conversion failed, register value " + std::to_string(val) + " out of range"));
 }
 
 }

@@ -96,7 +96,7 @@ mqtt:
         register: tcptest.1.2
         register_type: holding
 )";
-TEST_CASE ("Holding register valid write to subpath topic") {
+TEST_CASE ("Valid write to subpath topic") {
     MockedModMqttServerThread server(config_subpath);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
@@ -113,7 +113,8 @@ TEST_CASE ("Holding register valid write to subpath topic") {
     server.stop();
 }
 
-static const std::string config_converter = R"(
+
+static const std::string config_multiple = R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -134,25 +135,29 @@ mqtt:
         - name: set
           register: tcptest.1.2
           register_type: holding
-          converter: std.divide(2,0)
+          count: 2
       state:
         register: tcptest.1.2
         register_type: holding
+        count: 2
+        converter: std.int32()
 )";
-
-TEST_CASE ("Holding register write converted value") {
-    MockedModMqttServerThread server(config_converter);
+TEST_CASE ("Write multiple registers with default converter") {
+    MockedModMqttServerThread server(config_multiple);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+    server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
     server.waitForPublish("test_switch/availability");
     REQUIRE(server.mqttValue("test_switch/availability") == "1");
     server.waitForPublish("test_switch/state");
+    REQUIRE(server.mqttValue("test_switch/state") == "0");
 
-    server.publish("test_switch/set", "32");
+    server.publish("test_switch/set", "[2,1]");
 
     server.waitForPublish("test_switch/state");
-    REQUIRE(server.mqttValue("test_switch/state") == "16");
+    REQUIRE(server.mqttValue("test_switch/state") == "131073");
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getWriteCount(1) == 1);
 
     server.stop();
 }

@@ -25,26 +25,30 @@ MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool i
         }
     }
 
-    u_int16_t value = msg.mRegisters.getValue(0);
 
-    switch(msg.mRegisterType) {
-        case modmqttd::RegisterType::COIL:
-            mCoil[msg.mRegisterNumber].mValue = value == 1;
-        break;
-        case modmqttd::RegisterType::BIT:
-            mBit[msg.mRegisterNumber].mValue = value == 1;
-        break;
-        case modmqttd::RegisterType::HOLDING:
-            mHolding[msg.mRegisterNumber].mValue = value;
-        break;
-        case modmqttd::RegisterType::INPUT:
-            mInput[msg.mRegisterNumber].mValue = value;
-        break;
-        default:
-            throw modmqttd::ModbusWriteException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
-    };
-    mWriteCount++;
+    for(int i = 0; i < msg.mCount; i++) {
+        int regNumber = msg.mRegisterNumber + i;
+        u_int16_t value = msg.mRegisters.getValue(i);
+        switch(msg.mRegisterType) {
+            case modmqttd::RegisterType::COIL:
+                mCoil[regNumber].mValue = value == 1;
+            break;
+            case modmqttd::RegisterType::BIT:
+                mBit[regNumber].mValue = value == 1;
+            break;
+            case modmqttd::RegisterType::HOLDING:
+                mHolding[regNumber].mValue = value;
+            break;
+            case modmqttd::RegisterType::INPUT:
+                mInput[regNumber].mValue = value;
+            break;
+            default:
+                throw modmqttd::ModbusWriteException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
+        };
+    }
 
+    if (!internalOperation)
+        mWriteCount++;
 }
 
 std::vector<uint16_t>
@@ -206,13 +210,10 @@ MockedModbusContext::writeModbusRegisters(const modmqttd::MsgRegisterValues& msg
     std::unique_lock<std::mutex> lck(mMutex);
     std::map<int, Slave>::iterator it = findOrCreateSlave(msg.mSlaveId);
 
-    //TODO write multiple registers at once
-    u_int16_t value = msg.mRegisters.getValue(0);
-
     if (mInternalOperation)
         BOOST_LOG_SEV(log, modmqttd::Log::info) << "MODBUS: " << mNetworkName
             << "." << it->second.mId << "." << msg.mRegisterNumber
-            << " WRITE: " << value;
+            << " WRITE: " << modmqttd::DebugTools::registersToStr(msg.mRegisters.values());
     it->second.write(msg, mInternalOperation);
     mInternalOperation = false;
 }
