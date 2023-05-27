@@ -232,13 +232,12 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   * **register** (required)
 
-    Modbus register address in the form of `<network_name>.<slave_id>.<register_address>`
-
-    Where `register_address` is a decimal, octal or hexadecimal string (formally everything `std::stoi(3)` with base=0 accepts).
+    Modbus register address in the form of `<network_name>.<slave_id>.<register_number>`
+    Where `register_number` is a decimal starting from 1.
 
   *  **register_type** (required)
 
-     Modbus register type: coil, input, holding
+     Modbus register type: coil, holding
 
   *  **count** (optional)
 
@@ -325,7 +324,8 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   * **register** (required)
 
-    Modbus register address in the form of <network_name>.<slave_id>.<address>
+    Modbus register address in the form of <network_name>.<slave_id>.<register_number>
+    Where `register_number` is a decimal starting from 1.
 
   * **register_type** (required)
 
