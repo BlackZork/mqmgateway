@@ -6,10 +6,15 @@
 class UInt32Converter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            uint32_t val = data.getValue(mHighByte);
+           int high = 0, low = 0;
+            if (data.getCount() > 1) {
+                high = mHighByte;
+                low = mLowByte;
+            }
+            uint32_t val = data.getValue(high);
             if (data.getCount() > 1) {
                 val = val << 16;
-                val += data.getValue(mLowByte);
+                val += data.getValue(low);
             }
             return MqttValue::fromInt64(val);
         }
