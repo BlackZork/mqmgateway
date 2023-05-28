@@ -33,6 +33,8 @@ class UInt32Converter : public DataConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
+            if (args.size() == 0)
+                return;
             std::string first_byte = ConverterTools::getArg(0, args);
             if (first_byte == "low_first") {
                 mLowByte = 0;
