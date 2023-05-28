@@ -115,14 +115,13 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
     std::vector<uint16_t> ret(regData.getCount(), 0);
     int arraySize = 0;
     int retCode;
-    int regIndex = regData.mRegister-1;
     switch(regData.mRegisterType) {
         //for COIL and BIT store bits in uint16_t array
         case RegisterType::COIL: {
             arraySize = regData.getCount();
             std::shared_ptr<uint8_t> values((uint8_t*)malloc(arraySize), free);
             std::memset(values.get(), 0x0, arraySize);
-            retCode = modbus_read_bits(mCtx, regIndex, regData.getCount(), (uint8_t*)values.get());
+            retCode = modbus_read_bits(mCtx, regData.mRegister, regData.getCount(), (uint8_t*)values.get());
             for(int i = 0; i < arraySize; i++)
                 ret[i] = values.get()[i];
         } break;
@@ -130,21 +129,21 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
             arraySize = regData.getCount();
             std::shared_ptr<uint8_t> values((uint8_t*)malloc(arraySize), free);
             std::memset(values.get(), 0x0, arraySize);
-            retCode = modbus_read_input_bits(mCtx, regIndex, regData.getCount(), (uint8_t*)values.get());
+            retCode = modbus_read_input_bits(mCtx, regData.mRegister, regData.getCount(), (uint8_t*)values.get());
             for(int i = 0; i < arraySize; i++)
                 ret[i] = values.get()[i];
         } break;
         case RegisterType::HOLDING: {
             arraySize = regData.getCount();
             std::shared_ptr<uint16_t> values((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
-            retCode = modbus_read_registers(mCtx, regIndex, regData.getCount(), values.get());
+            retCode = modbus_read_registers(mCtx, regData.mRegister, regData.getCount(), values.get());
             for(int i = 0; i < arraySize; i++)
                 ret[i] = values.get()[i];
         } break;
         case RegisterType::INPUT: {
             arraySize = regData.getCount();
             std::shared_ptr<uint16_t> values((uint16_t*)malloc(sizeof(uint16_t) * arraySize), free);
-            retCode = modbus_read_input_registers(mCtx, regIndex, regData.getCount(), values.get());
+            retCode = modbus_read_input_registers(mCtx, regData.mRegister, regData.getCount(), values.get());
             for(int i = 0; i < arraySize; i++)
                 ret[i] = values.get()[i];
         } break;
@@ -166,12 +165,11 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
 
 
     int retCode;
-    int regIndex = msg.mRegisterNumber-1;
     switch(msg.mRegisterType) {
         case RegisterType::COIL:
             if (msg.mRegisters.getCount() == 1) {
                 u_int16_t value = msg.mRegisters.getValue(0);
-                retCode = modbus_write_bit(mCtx, regIndex, value == 1 ? TRUE : FALSE);
+                retCode = modbus_write_bit(mCtx, msg.mRegisterNumber, value == 1 ? TRUE : FALSE);
             } else {
                 int arraySize = msg.mRegisters.getCount();
                 std::shared_ptr<uint8_t> values((uint8_t*)malloc(arraySize), free);
@@ -180,12 +178,12 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
                     u_int16_t value = msg.mRegisters.getValue(i);
                     values.get()[i] = value == 1 ? TRUE : FALSE;
                 }
-                retCode = modbus_write_bits(mCtx, regIndex, msg.mRegisters.getCount(), values.get());
+                retCode = modbus_write_bits(mCtx, msg.mRegisterNumber, msg.mRegisters.getCount(), values.get());
             }
         break;
         case RegisterType::HOLDING:
             if (msg.mRegisters.getCount() == 1) {
-                retCode = modbus_write_register(mCtx, regIndex, msg.mRegisters.getValue(0));
+                retCode = modbus_write_register(mCtx, msg.mRegisterNumber, msg.mRegisters.getValue(0));
             } else {
                 int elSize = sizeof(uint16_t);
                 int arraySize = msg.mRegisters.getCount()/16 + 1;
@@ -196,7 +194,7 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
                     int idx = i / 16;
                     values.get()[idx] = msg.mRegisters.getValue(i);
                 }
-                retCode = modbus_write_registers(mCtx, regIndex, msg.mRegisters.getCount(), values.get());
+                retCode = modbus_write_registers(mCtx, msg.mRegisterNumber, msg.mRegisters.getCount(), values.get());
             }
         break;
         default:

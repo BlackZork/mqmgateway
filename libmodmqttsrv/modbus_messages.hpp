@@ -64,7 +64,7 @@ class MsgRegisterPoll {
             : mRegister(registerNumber), mCount(count)
         {
 #ifndef NDEBUG
-            if (mRegister <= 0)
+            if (mRegister < 0)
                 throw DebugException("Invalid register number");
             if (mCount <= 0)
                 throw DebugException("Count cannot be 0 or negative");

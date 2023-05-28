@@ -233,7 +233,8 @@ A list of topics where modbus values are published to MQTT broker and subscribed
   * **register** (required)
 
     Modbus register address in the form of `<network_name>.<slave_id>.<register_number>`
-    Where `register_number` is a decimal starting from 1.
+    If `register_number` is a decimal, then first register address is 1.
+    If `register_number` is a hexadecimal, then first register address is 0.
 
   *  **register_type** (required)
 
@@ -325,11 +326,12 @@ A list of topics where modbus values are published to MQTT broker and subscribed
   * **register** (required)
 
     Modbus register address in the form of <network_name>.<slave_id>.<register_number>
-    Where `register_number` is a decimal starting from 1.
+    If `register_number` is a decimal, then first register address is 1.
+    If `register_number` is a hexadecimal, then first register address is 0.
 
   * **register_type** (required)
 
-    Modbus register type: coil, input, holding
+    Modbus register type: coil, bit, input, holding
 
   * **count**
 

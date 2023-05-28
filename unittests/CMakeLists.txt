@@ -32,6 +32,7 @@ add_executable(tests
     mqtt_unnamed_scalar_expr_tests.cpp
     mqtt_unnamed_scalar_tests.cpp
     real_server_tests.cpp
+    register_address_tests.cpp
     scheduler_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp

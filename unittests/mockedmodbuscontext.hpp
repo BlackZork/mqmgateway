@@ -88,6 +88,7 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
         };
 
         void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val);
+        uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
         void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
         MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
             auto it = mModbusNetworks.find(networkName);

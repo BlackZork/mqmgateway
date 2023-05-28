@@ -68,7 +68,12 @@ class RegisterConfigName {
                 throw ConfigurationException(data["register"].Mark(), "Unknown slave id in register specification");
             }
 
+            // for decimal use 1-based register number
+            // for hex use 0-based
             mRegisterNumber = std::stoi(matches[3], nullptr, 0);
+            std::string regNumMatch = matches[3].str();
+            if(!(regNumMatch.size() > 1 && (regNumMatch[1] == 'x' || regNumMatch[1] == 'X')))
+                mRegisterNumber--;
         };
         std::string mNetworkName;
         int mSlaveId = 0;

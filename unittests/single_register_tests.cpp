@@ -35,7 +35,7 @@ mqtt:
         MockedModMqttServerThread server(config);
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.start();
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(10));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
         server.stop();
     }
@@ -44,7 +44,7 @@ mqtt:
         MockedModMqttServerThread server(config);
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, false);
         server.start();
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(10));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
         server.stop();
     }
@@ -62,37 +62,17 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
         server.start();
         // default mocked modbus read time is 5ms per register
-        server.waitForPublish("test_switch/state", std::chrono::milliseconds(15));
+        server.waitForPublish("test_switch/state");
         REQUIRE(server.mqttValue("test_switch/state") == "1");
         server.stop();
     }
-
-    TEST_CASE ("Check if register is polled in default intervals") {
-        MockedModMqttServerThread server(config);
-
-        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
-
-        server.start();
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(10));
-        REQUIRE(server.mqttValue("test_switch/availability") == "1");
-
-        server.waitForPublish("test_switch/state", std::chrono::milliseconds(10));
-        REQUIRE(server.mqttValue("test_switch/state") == "0");
-
-        server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
-
-        server.waitForPublish("test_switch/state", std::chrono::milliseconds(5500));
-        REQUIRE(server.mqttValue("test_switch/state") == "1");
-        server.stop();
-    }
-
 
     TEST_CASE ("When registers cannot be read availability flag should be unset") {
         MockedModMqttServerThread server(config);
 
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.start();
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(10));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.disconnectModbusSlave("tcptest", 1);

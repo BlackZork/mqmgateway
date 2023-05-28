@@ -63,6 +63,7 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("register read fn ") + std::to_string(regData.mRegister) + " failed");
         }
+        mReadCount++;
     }
     switch(regData.mRegisterType) {
         case modmqttd::RegisterType::COIL:
@@ -127,7 +128,6 @@ MockedModbusContext::Slave::setError(int regNum, modmqttd::RegisterType regType,
 
 std::vector<uint16_t>
 MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) {
-    mReadCount++;
     std::vector<uint16_t> ret;
     ret.reserve(count);
     for (int i = num; i < num + count; i++) {
@@ -264,14 +264,29 @@ MockedModbusFactory::getOrCreateContext(const char* network) {
 
 void
 MockedModbusFactory::setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val) {
+    regNum--;
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
     modmqttd::MsgRegisterValues msg(slaveId, regtype, regNum, val);
     ctx->mInternalOperation = true;
     ctx->writeModbusRegisters(msg);
 }
 
+
+uint16_t
+MockedModbusFactory::getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+    regNum--;
+    std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
+    ctx->mInternalOperation = true;
+    modmqttd::RegisterPoll poll(regNum, regtype, 1, 0);
+
+    auto vals = ctx->readModbusRegisters(slaveId, poll);
+    return vals[0];
+}
+
+
 void
 MockedModbusFactory::setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType) {
+    regNum--;
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
     MockedModbusContext::Slave& s(ctx->getSlave(slaveId));
     s.setError(regNum, regType);
