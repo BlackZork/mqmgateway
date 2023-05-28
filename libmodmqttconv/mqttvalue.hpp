@@ -18,10 +18,15 @@ class MqttValue {
         typedef enum {
             INT = 0,
             DOUBLE = 1,
-            BINARY = 2
+            BINARY = 2,
+            INT64 = 3
         } SourceType;
 
-        static MqttValue fromInt(int val) {
+        static MqttValue fromInt(int32_t val) {
+            return MqttValue(val);
+        }
+
+        static MqttValue fromInt64(int64_t val) {
             return MqttValue(val);
         }
 
@@ -37,8 +42,12 @@ class MqttValue {
             setInt(0);
         }
 
-        MqttValue(int val) {
+        MqttValue(int32_t val) {
             setInt(val);
+        }
+
+        MqttValue(int64_t val) {
+            setInt64(val);
         }
 
         MqttValue(double val) {
@@ -69,6 +78,11 @@ class MqttValue {
             mType = SourceType::INT;
         }
 
+        void setInt64(int64_t val) {
+            mValue.v_int64 = val;
+            mType = SourceType::INT64;
+        }
+
         void setBinary(const void* ptr, size_t size) {
             mBinaryValue = std::shared_ptr<void>(malloc(size), free);
             memcpy(mBinaryValue.get(), ptr, size);
@@ -81,6 +95,8 @@ class MqttValue {
                     return std::string(static_cast<const char*>(mBinaryValue.get()), mBinarySize);
                 case SourceType::INT:
                     return std::to_string(mValue.v_int);
+                case SourceType::INT64:
+                    return std::to_string(mValue.v_int64);
                 case SourceType::DOUBLE:
                     return double_to_string(mValue.v_double);
             }
@@ -100,6 +116,8 @@ class MqttValue {
                 }
                 case SourceType::INT:
                     return mValue.v_int;
+                case SourceType::INT64:
+                    return mValue.v_int64;
                 case SourceType::DOUBLE:
                     return mValue.v_double;
             }
@@ -116,8 +134,32 @@ class MqttValue {
                         throw ConvException(std::string("Cannot convert") + strval + " to int");
                     }
                     return ret;
-                } case SourceType::INT:
+                }
+                case SourceType::INT:
                     return mValue.v_int;
+                case SourceType::INT64:
+                    return mValue.v_int64;
+                case SourceType::DOUBLE:
+                    return mValue.v_double;
+            }
+            return 0;
+        }
+
+        int64_t getInt64() const {
+            switch(mType) {
+                case SourceType::BINARY: {
+                    char* endptr;
+                    std::string strval(getString());
+                    int64_t ret = std::strtoll(strval.c_str(), &endptr, 10);
+                    if (endptr == nullptr || *endptr != '\0') {
+                        throw ConvException(std::string("Cannot convert") + strval + " to int64");
+                    }
+                    return ret;
+                }
+                case SourceType::INT:
+                    return mValue.v_int;
+                case SourceType::INT64:
+                    return mValue.v_int64;
                 case SourceType::DOUBLE:
                     return mValue.v_double;
             }
@@ -142,6 +184,8 @@ class MqttValue {
                     return sizeof(int32_t);
                 case SourceType::DOUBLE:
                     return sizeof(double);
+                case SourceType::INT64:
+                    return sizeof(int64_t);
             }
             return 0;
         }
@@ -153,6 +197,7 @@ class MqttValue {
          * Value holders
          * */
         typedef union {
+            int64_t v_int64;
             int32_t v_int;
             double v_double;
         } Variant;

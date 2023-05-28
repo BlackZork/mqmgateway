@@ -3,20 +3,20 @@
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
 
-class Int32Converter : public DataConverter {
+class UInt32Converter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            int32_t val = data.getValue(mHighByte);
+            uint32_t val = data.getValue(mHighByte);
             if (data.getCount() > 1) {
                 val = val << 16;
                 val += data.getValue(mLowByte);
             }
-            return MqttValue::fromInt(val);
+            return MqttValue::fromInt64(val);
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
             ModbusRegisters ret;
-            int32_t val = value.getInt();
+            uint32_t val = value.getInt64();
             ret.appendValue(val);
             if (registerCount == 2) {
                 if (mHighByte == 0)
@@ -35,7 +35,7 @@ class Int32Converter : public DataConverter {
             }
         }
 
-        virtual ~Int32Converter() {}
+        virtual ~UInt32Converter() {}
     private:
         int8_t mLowByte = 1;
         int8_t mHighByte = 0;

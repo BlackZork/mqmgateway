@@ -1,11 +1,12 @@
 
 #include "plugin.hpp"
 
-#include "divide.hpp"
-#include "int32.hpp"
 #include "bitmask.hpp"
-#include "scale.hpp"
+#include "divide.hpp"
 #include "int16.hpp"
+#include "int32.hpp"
+#include "scale.hpp"
+#include "uint32.hpp"
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
@@ -19,5 +20,7 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new ScaleConverter();
     else if (name == "int16")
         return new Int16Converter();
+    else if (name == "uint32")
+        return new UInt32Converter();
     return nullptr;
 }
