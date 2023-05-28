@@ -446,14 +446,28 @@ M2MGateway contains *std* library with basic converters ready to use:
 
     Usage: state, command
 
-    Arguments: none
+    Arguments:
+      - low_first (optional)
 
-    For unnamed list. Combines two modbus registers into one 32bit value or writes 23bit mqtt value to two modbus registers.
+    Combines two modbus registers into one 32bit value or writes 23bit mqtt value to two modbus registers.
     Without arguments the first modbus register holds higher byte, the second holds lower byte.
     With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
     
+
+  * **uint32**
+    
+    Usage: state, command
+
     Arguments:
       - low_first (optional)
+
+    Same as int32, but modbus registers are interpreted as unsingned int32.
+
+
+  * **uint16**
+    
+    Parses and writes modbus register data as unsinged int.
+
 
   * **bitmask**
 
