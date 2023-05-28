@@ -104,5 +104,22 @@ TEST_CASE("int32 tests") {
 
 }
 
+TEST_CASE ("read int16 value") {
+    std::string stdconv_path = "../stdconv/stdconv.so";
+
+    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+        stdconv_path,
+        "converter_plugin",
+        boost::dll::load_mode::append_decorations
+    );
+
+    std::shared_ptr<DataConverter> conv(plugin->getConverter("int16"));
+
+    ModbusRegisters data;
+    data.appendValue(0xFFFF);
+    MqttValue ret = conv->toMqtt(data);
+
+    REQUIRE(ret.getString() == "-1");
+}
 
 

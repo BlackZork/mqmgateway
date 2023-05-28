@@ -6,6 +6,7 @@ add_library(stdconv
     plugin.hpp
     plugin.cpp
     scale.hpp
+    int16.hpp
 )
 
 SET_TARGET_PROPERTIES(stdconv PROPERTIES PREFIX "")
