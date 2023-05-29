@@ -168,14 +168,14 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
     switch(msg.mRegisterType) {
         case RegisterType::COIL:
             if (msg.mRegisters.getCount() == 1) {
-                u_int16_t value = msg.mRegisters.getValue(0);
+                uint16_t value = msg.mRegisters.getValue(0);
                 retCode = modbus_write_bit(mCtx, msg.mRegisterNumber, value == 1 ? TRUE : FALSE);
             } else {
                 int arraySize = msg.mRegisters.getCount();
                 std::shared_ptr<uint8_t> values((uint8_t*)malloc(arraySize), free);
                 std::memset(values.get(), 0x0, arraySize);
                 for(int i = 0; i < arraySize; i++) {
-                    u_int16_t value = msg.mRegisters.getValue(i);
+                    uint16_t value = msg.mRegisters.getValue(i);
                     values.get()[i] = value == 1 ? TRUE : FALSE;
                 }
                 retCode = modbus_write_bits(mCtx, msg.mRegisterNumber, msg.mRegisters.getCount(), values.get());

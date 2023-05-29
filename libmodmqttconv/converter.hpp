@@ -56,7 +56,7 @@ class ConverterTools {
         }
 
         /**
-         * Returns nth converter argument as u_int16 mask
+         * Returns nth converter argument as uint16 mask
          * */
         static uint16_t getHex16Arg(int index, const std::vector<std::string>& args) {
             int ret = toInt(getArg(index, args), 16);

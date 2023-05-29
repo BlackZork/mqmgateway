@@ -45,7 +45,7 @@ target_link_libraries(tests
     mosquittopp 
     mosquitto 
     Catch2::Catch2
-    ${YAML_CPP_LIBRARIES} 
+    yaml-cpp
     ${Boost_LIBRARIES} 
     ${LIBMODBUS_LIBRARIES} 
     ${CMAKE_THREAD_LIBS_INIT}

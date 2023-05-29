@@ -28,7 +28,7 @@ MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool i
 
     for(int i = 0; i < msg.mCount; i++) {
         int regNumber = msg.mRegisterNumber + i;
-        u_int16_t value = msg.mRegisters.getValue(i);
+        uint16_t value = msg.mRegisters.getValue(i);
         switch(msg.mRegisterType) {
             case modmqttd::RegisterType::COIL:
                 mCoil[regNumber].mValue = value == 1;

@@ -416,7 +416,7 @@ Configuration values:
 
   * **available_value** (optional, default 1)
 
-    Expected u_int16 value readed from availablity register when availablity flag should be set to "1". If other value is readed then availability flag is set to "0".
+    Expected uint16 value readed from availablity register when availablity flag should be set to "1". If other value is readed then availability flag is set to "0".
 
 *register*, *register_type* and *available_value* can form a list when multiple registers should be readed.
 
