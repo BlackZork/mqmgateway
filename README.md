@@ -512,6 +512,34 @@ When mqtt command payload should be converted to register value:
       converter: std.divide(10)
 ```
 
+### Exprtk converter.
+
+Exprtk converter allows to use exprtk expression language to convert register data to mqtt value. 
+Register values are defined as R0..Rn variables.
+
+  * **evaluate**
+
+    Usage: state
+
+    Arguments:
+      - [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
+      - precision (optional)
+
+Here is an example dividing two registers with precision=3
+
+```
+  objects:
+    - topic: test_state
+      state:
+        converter: expr.evaluate("R0 / R1", 3)
+        registers:
+          - register: tcptest.1.2
+            register_type: input
+          - register: tcptest.1.3
+            register_type: input
+```
+
+
 ### Adding custom converters
 
 Custom converters can be added by creating a C++ dynamically loaded library with conversion classes. There is a header only libmodmqttconv that provide base classes for plugin and converter implementations.
