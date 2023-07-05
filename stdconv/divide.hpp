@@ -6,7 +6,18 @@
 class DivideConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            return MqttValue::fromDouble(doMath(data.getValue(0)));
+            int high = 0, low = 0;
+            if (data.getCount() > 1) {
+                high = mHighByte;
+                low = mLowByte;
+            }
+            int32_t val = data.getValue(high);
+            if (data.getCount() > 1) {
+                val = val << 16;
+                val += data.getValue(low);
+            }
+
+            return MqttValue::fromDouble(doMath(val));
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
@@ -21,14 +32,24 @@ class DivideConverter : public DataConverter {
 
         virtual void setArgs(const std::vector<std::string>& args) {
             divider = ConverterTools::getDoubleArg(0, args);
-            if (args.size() == 2)
+            if (args.size() > 1) {
                 precision = ConverterTools::getIntArg(1, args);
+            }
+            if (args.size() > 2) {
+                std::string first_byte = ConverterTools::getArg(2, args);
+                if (first_byte == "low_first") {
+                    mLowByte = 0;
+                    mHighByte = 1;
+                }
+            }
         }
 
         virtual ~DivideConverter() {}
     private:
         double divider;
         int precision = 0;
+        int8_t mLowByte = 1;
+        int8_t mHighByte = 0;
 
         static double round(double val, int decimal_digits) {
             double divider = pow(10, decimal_digits);
