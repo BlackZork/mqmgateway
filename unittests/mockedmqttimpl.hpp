@@ -22,9 +22,11 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
             }
             MqttValue(const MqttValue& from) {
                 copyData(from.val, from.len);
+                publishCount = from.publishCount;
             }
             MqttValue& operator=(const MqttValue& other) {
                 copyData(other.val, other.len);
+                publishCount = other.publishCount;
                 return *this;
             }
             ~MqttValue() {
@@ -33,6 +35,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
             }
             char* val = NULL;
             int len = 0;
+            int publishCount = 0;
         private:
             void copyData(const void* v, int l) {
                 if (val)
@@ -60,6 +63,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         //unit test tools
         bool waitForPublish(const char* topic, std::chrono::milliseconds timeout = std::chrono::seconds(1));
         std::string waitForFirstPublish(std::chrono::milliseconds timeout);
+        int getPublishCount(const char* topic);
         bool hasTopic(const char* topic);
         std::string mqttValue(const char* topic);
         //returns current value on timeout
@@ -72,6 +76,9 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         std::map<std::string, MqttValue> mTopics;
         std::set<std::string> mSubscriptions;
+
+        //contains all topics published before waitForPublish/waitForFirstPublish
+        //call. Map value defines order in which topics were published
         std::map<std::string, int> mPublishedTopics;
 
         std::mutex mMutex;

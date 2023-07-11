@@ -35,10 +35,20 @@ MockedMqttImpl::subscribe(const char* topic) {
 void
 MockedMqttImpl::publish(const char* topic, int len, const void* data) {
     std::unique_lock<std::mutex> lck(mMutex);
+
+    int publishCount = 0;
+    auto it = mTopics.find(topic);
+    if (it  != mTopics.end()) {
+        publishCount = it->second.publishCount + 1;
+    } else {
+        publishCount = 1;
+    }
+
     MqttValue v(data, len);
+    v.publishCount = publishCount;
     mTopics[topic] = v;
-    std::set<std::string>::const_iterator it = mSubscriptions.find(topic);
-    if (it != mSubscriptions.end()) {
+    std::set<std::string>::const_iterator sit = mSubscriptions.find(topic);
+    if (sit != mSubscriptions.end()) {
         mOwner->onMessage(topic, data, len);
     }
     BOOST_LOG_SEV(log, modmqttd::Log::info) << "PUBLISH " << topic << ": <" << v.val << ">";
@@ -76,6 +86,14 @@ MockedMqttImpl::waitForPublish(const char* topic, std::chrono::milliseconds time
     }
     mPublishedTopics.erase(topic);
     return published;
+}
+
+int
+MockedMqttImpl::getPublishCount(const char* topic) {
+    auto it = mTopics.find(topic);
+    if (it == mTopics.end())
+        return 0;
+    return it->second.publishCount;
 }
 
 std::string
