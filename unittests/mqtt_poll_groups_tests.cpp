@@ -109,7 +109,7 @@ mqtt:
 )";
 
 
-TEST_CASE ("unchanged state should not be published when pulled as a pull group") {
+TEST_CASE ("Unchanged state should not be published when pulled as a pull group") {
     MockedModMqttServerThread server(config2);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 2);

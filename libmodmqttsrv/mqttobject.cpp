@@ -44,8 +44,10 @@ MqttObjectRegisterHolder<T>::updateRegisterValue(const MqttObjectRegisterIdent& 
     auto reg = mRegisterValues.find(ident);
     if (reg != mRegisterValues.end()) {
         reg->second.setReadError(false);
-        reg->second.setValue(value);
-        return true;
+        if (reg->second.getRawValue() != value) {
+            reg->second.setValue(value);
+            return true;
+        }
     }
     return false;
 }
