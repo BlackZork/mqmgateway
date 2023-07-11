@@ -25,7 +25,10 @@ class DivideConverter : public DataConverter {
             int val = (int)doMath(value.getDouble());
             ret.appendValue(val);
             if (registerCount == 2) {
-                ret.prependValue(val >> 16);
+                if (mHighByte == 0)
+                    ret.prependValue(val >> 16);
+                else
+                    ret.appendValue(val >> 16);
             }
             return ret;
         }
@@ -47,7 +50,7 @@ class DivideConverter : public DataConverter {
         virtual ~DivideConverter() {}
     private:
         double divider;
-        int precision = 0;
+        int precision = -1;
         int8_t mLowByte = 1;
         int8_t mHighByte = 0;
 
@@ -59,7 +62,7 @@ class DivideConverter : public DataConverter {
 
         double doMath(double value) const {
             double ret = value / divider;
-            if (precision != 0)
+            if (precision != -1)
                 ret = round(ret, precision);
             return ret;
         }

@@ -36,6 +36,7 @@ add_executable(tests
     scheduler_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp
+    stdconv_divide_tests.cpp
     stdconv_tests.cpp
     two_slaves_tests.cpp
 )
