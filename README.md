@@ -278,7 +278,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
   Register list can be defined in two ways:
 
   1. As starting register and count:
-  
+
     state:
       name: mqtt_combined_val
       converter: std.int32
@@ -443,7 +443,7 @@ M2MGateway contains *std* library with basic converters ready to use:
       - low_first (optional)
 
 
-    Divides modbus value by divder and rounds to (precision) digits after the decimal.
+    Divides modbus value by divider and rounds to (precision) digits after the decimal.
     Supports int16 in single register and int32 value in two registers.
     For int32 mode the first modbus register holds higher byte, the second holds lower byte if 'low first' is not passed.
     With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
@@ -455,13 +455,13 @@ M2MGateway contains *std* library with basic converters ready to use:
     Arguments:
       - low_first (optional)
 
-    Combines two modbus registers into one 32bit value or writes 23bit mqtt value to two modbus registers.
+    Combines two modbus registers into one 32bit value or writes 32bit mqtt value to two modbus registers.
     Without arguments the first modbus register holds higher byte, the second holds lower byte.
     With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
-    
+
 
   * **uint32**
-    
+
     Usage: state, command
 
     Arguments:
@@ -471,8 +471,8 @@ M2MGateway contains *std* library with basic converters ready to use:
 
 
   * **uint16**
-    
-    Parses and writes modbus register data as unsinged int.
+
+    Parses and writes modbus register data as unsigned int.
 
 
   * **bitmask**
@@ -484,6 +484,18 @@ M2MGateway contains *std* library with basic converters ready to use:
 
 
     Applies a mask to value readed from modbus register.
+
+  * **string**
+
+    Usage: state, command
+
+    Arguments:
+      - encoding (optional, default: `ascii-le`)
+
+    Parses and writes modbus register data as string.
+    Supported encodings: `ascii-le` (little endian), `ascii-be` (big endian).
+    One modbus register contains two ascii characters.
+    The number of registers can be configured by the `count` setting.
 
 Converter can be added to modbus register in state and command section.
 
@@ -500,10 +512,10 @@ When state is combined from multiple modbus registers:
 
 ```
   state:
-    converter: std.int32()
     register: device1.slave2.12
     register_type: input
     count: 2
+    converter: std.int32()
 ```
 
 When mqtt command payload should be converted to register value:
