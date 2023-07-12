@@ -42,7 +42,7 @@ modbus:
       poll_groups:
         - register: 1.273
           register_type: coil
-          count: 2
+          count: 3
 
 mqtt:
   client_id: modbus
@@ -59,30 +59,30 @@ mqtt:
     # password: secret
   objects:
     - topic: isma_switch_1
+      # default values used in all register: 
+      # declarations for this topic
+      network: tcptest
+      slave: 1
       refresh: 1s
-      # override default network response timeouts
-      response_timeout: 10ms
-      response_data_timeout: 20ms
       commands:
         - name: set 
-          register: tcptest.1.273
+          register: 273
           register_type: coil
-          # string is default
-          payload_type: string
-      # multiple registers in payload will generate json data
       state:
-        register: tcptest.1.273
+        register: 273
         register_type: coil
       availability:
         refresh: 1s
         name: avail
-        register: tcptest.1.225
+        register: 225
         register_type: bit
         available_value: 0
     - topic: isma_switch_2
-      # multiple registers in payload will generate json data
+      # multiple registers in payload will generate json array as mqtt value
       state:
         register: tcptest.1.274
+        register_type: coil
+        register: tcptest.1.275
         register_type: coil
           
     - topic: gtb_sensor/presence
@@ -102,13 +102,21 @@ mqtt:
 
     - topic: somesensor/value
       state:
-        converter: std.int32
+        converter: std.int32()
         # if register list is declared as register and count
         # then registers are polled with single modbus_read_registers call
         register: rtutest.1.2
         count: 2
         register_type: input
         refresh: 1s
+
+    - topic: exprtk/value
+      state:
+        # math expression on two registers, result with precision=2
+        converter: expr.evaluate("(R1 + R2*100)/2", 2)
+        register: rtutest.1.2
+        count: 2
+        register_type: input
 
 
 

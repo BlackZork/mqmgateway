@@ -90,6 +90,11 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         REQUIRE(is_published == true);
     }
 
+    void requirePublishCount(const char* topic, int count) {
+        CAPTURE(topic);
+        REQUIRE(mMqtt->getPublishCount(topic) == count);
+    }
+
     std::string waitForFirstPublish(std::chrono::milliseconds timeout = defaultWaitTime()) {
         std::string topic = mMqtt->waitForFirstPublish(timeout);
         INFO("Getting first published topic");

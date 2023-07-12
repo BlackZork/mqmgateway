@@ -55,7 +55,7 @@ mqtt:
         available_value: 1
 )";
 
-TEST_CASE ("topic state data should be pulled as pull group") {
+TEST_CASE ("Topic state data should be pulled as pull group") {
     MockedModMqttServerThread server(config1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 1);
@@ -79,5 +79,52 @@ TEST_CASE ("topic state data should be pulled as pull group") {
 
     REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
     server.stop();
+}
+
+static const std::string config2 = R"(
+modmqttd:
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      poll_groups:
+        - register: 1.1
+          register_type: input
+          count: 2
+mqtt:
+  client_id: mqtt_test
+  refresh: 10ms
+  broker:
+    host: localhost
+  objects:
+    - topic: first_state
+      state:
+        register: tcptest.1.1
+        register_type: input
+    - topic: second_state
+      state:
+        register: tcptest.1.2
+        register_type: input
+)";
+
+
+TEST_CASE ("Unchanged state should not be published when pulled as a pull group") {
+    MockedModMqttServerThread server(config2);
+    server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 2);
+
+    server.start();
+
+    // initial publish
+    server.waitForPublish("first_state/state");
+
+    server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 10);
+
+    server.waitForPublish("first_state/state");
+
+    server.stop();
+
+    server.requirePublishCount("second_state/state", 1);
 }
 
