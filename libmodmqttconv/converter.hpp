@@ -64,6 +64,12 @@ class ConverterTools {
                 throw std::out_of_range("value out of range");
             return (uint16_t)ret;
         }
+
+        static void swapByteOrder(std::vector<uint16_t>& elements) {
+            for (size_t i = 0; i < elements.size(); i++) {
+                elements[i] = ((elements[i] & 0x00ff) << 8) | ((elements[i] & 0xff00) >> 8);
+            }
+        }
 };
 
 class DataConverter {

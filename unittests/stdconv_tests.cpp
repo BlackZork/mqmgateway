@@ -129,6 +129,7 @@ TEST_CASE("uint32 tests") {
     }
 
 }
+
 TEST_CASE("Values of type string should be converted") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
@@ -140,6 +141,10 @@ TEST_CASE("Values of type string should be converted") {
 
     SECTION("when byte-order is (high, low)") {
         std::shared_ptr<DataConverter> conv(plugin->getConverter("string"));
+        std::vector<std::string> args = {
+            "ascii-be"
+        };
+        conv->setArgs(args);
         const char chars[] = "ALD15";
         std::vector<uint16_t> registers({0x414C, 0x4431, 0x3500});
 
@@ -167,10 +172,6 @@ TEST_CASE("Values of type string should be converted") {
 
     SECTION("when byte-order is (low, high)") {
         std::shared_ptr<DataConverter> conv(plugin->getConverter("string"));
-        std::vector<std::string> args = {
-            "low_first"
-        };
-        conv->setArgs(args);
         const char chars[] = "ALD15";
         std::vector<uint16_t> registers({0x4C41, 0x3144, 0x0035});
 
