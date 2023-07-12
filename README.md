@@ -222,6 +222,14 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Overrides mqtt.refresh for all state and availability sections in this topic
 
+  * **network**
+
+    Sets default network name for all state, commands and availability sections in this topic
+
+  * **slave**
+
+    Sets default modbus slave address for all state, commands and availability sections in this topic
+
 ### A *commands* section.
 
   A single command is defined using following settings.
@@ -235,6 +243,8 @@ A list of topics where modbus values are published to MQTT broker and subscribed
     Modbus register address in the form of `<network_name>.<slave_id>.<register_number>`
     If `register_number` is a decimal, then first register address is 1.
     If `register_number` is a hexadecimal, then first register address is 0.
+
+    `network_name` and `slave_id` are optional if default values are set for a topic
 
   *  **register_type** (required)
 
@@ -329,6 +339,8 @@ A list of topics where modbus values are published to MQTT broker and subscribed
     If `register_number` is a decimal, then first register address is 1.
     If `register_number` is a hexadecimal, then first register address is 0.
 
+    `network_name` and `slave_id` are optional if default values are set for a topic
+
   * **register_type** (required)
 
     Modbus register type: coil, bit, input, holding
@@ -408,7 +420,11 @@ Configuration values:
 
   * **register** (required)
 
-    Modbus register address in the form of <network_name>.<slave_id>.<address>
+    Modbus register address in the form of <network_name>.<slave_id>.<register_number>
+    If `register_number` is a decimal, then first register address is 1.
+    If `register_number` is a hexadecimal, then first register address is 0.
+
+    `network_name` and `slave_id` are optional if default values are set for a topic
 
   * **register_type** (required)
 
