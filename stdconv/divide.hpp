@@ -2,35 +2,28 @@
 
 #include <cmath>
 #include "libmodmqttconv/converter.hpp"
+#include "stdconv/int32.hpp"
 
 class DivideConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            int high = 0, low = 0;
-            if (data.getCount() > 1) {
-                high = mHighByte;
-                low = mLowByte;
-            }
-            int32_t val = data.getValue(high);
-            if (data.getCount() > 1) {
-                val = val << 16;
-                val += data.getValue(low);
-            }
 
-            return MqttValue::fromDouble(doMath(val));
+            if (data.getCount() == 1) {
+                int16_t val = data.getValue(0);
+                return MqttValue::fromDouble(doMath(val));
+            }
+            else {
+                int32_t val = ConverterTools::registersToInt32(data, mLowFirst);
+                return MqttValue::fromDouble(doMath(val));
+            }
+            //TODO uint16, uint32, float as separate data_type arg
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
             ModbusRegisters ret;
-            int val = (int)doMath(value.getDouble());
-            ret.appendValue(val);
-            if (registerCount == 2) {
-                if (mHighByte == 0)
-                    ret.prependValue(val >> 16);
-                else
-                    ret.appendValue(val >> 16);
-            }
-            return ret;
+            //TODO uint16, uint32, float as separate data_type arg
+            int32_t val = doMath(value.getDouble());
+            return ConverterTools::int32ToRegisters(val, mLowFirst, registerCount);
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
@@ -40,10 +33,7 @@ class DivideConverter : public DataConverter {
             }
             if (args.size() > 2) {
                 std::string first_byte = ConverterTools::getArg(2, args);
-                if (first_byte == "low_first") {
-                    mLowByte = 0;
-                    mHighByte = 1;
-                }
+                mLowFirst = (first_byte == "low_first");
             }
         }
 
@@ -51,8 +41,7 @@ class DivideConverter : public DataConverter {
     private:
         double divider;
         int precision = -1;
-        int8_t mLowByte = 1;
-        int8_t mHighByte = 0;
+        bool mLowFirst = false;
 
         static double round(double val, int decimal_digits) {
             double divider = pow(10, decimal_digits);
