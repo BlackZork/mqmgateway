@@ -1,13 +1,22 @@
 #pragma once
 
 #include "libmodmqttconv/converter.hpp"
-#include <boost/algorithm/string/predicate.hpp>
+#include <map>
 
 class StringConverter : public DataConverter {
     public:
+
+        /**
+         * Supported encodings
+         */
+        typedef enum {
+            NONE       = 1,
+            ASCII16_BE = 2,
+        } Encoding;
+
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             std::vector<uint16_t> registers = data.values();
-            ensureByteOrder(registers);
+            applyEncoding(registers);
             return MqttValue::fromBinary(registers.data(), data.getCount() * sizeof(std::uint16_t));
         }
 
@@ -15,7 +24,7 @@ class StringConverter : public DataConverter {
             const uint16_t* source = static_cast<const uint16_t*>(value.getBinaryPtr());
             const int elementCount = value.getBinarySize() / sizeof(std::uint16_t);
             std::vector<uint16_t> registers(source, source + elementCount);
-            ensureByteOrder(registers);
+            applyEncoding(registers);
             registers.resize(std::min(elementCount, registerCount));
             return ModbusRegisters(registers);
         }
@@ -24,18 +33,24 @@ class StringConverter : public DataConverter {
             if (args.size() == 0) {
                 return;
             }
-            std::string encoding = ConverterTools::getArg(0, args);
-            if (boost::algorithm::ends_with(encoding, "-be")) {
-                mSwapByteOrder = 1;
+            std::string encodingName = ConverterTools::getArg(0, args);
+            if (mEncodings.count(encodingName) == 0) {
+                throw ConvException("Unsupported encoding: " + encodingName);
             }
+            mEncoding = mEncodings.at(encodingName);
         }
 
         virtual ~StringConverter() {}
-    private:
-        int8_t mSwapByteOrder = 0;
 
-        void ensureByteOrder(std::vector<uint16_t>& elements) const {
-            if (mSwapByteOrder == 1) {
+    private:
+        Encoding mEncoding = NONE;
+        const std::map<std::string, Encoding> mEncodings = {
+            {"none", NONE},
+            {"ascii16-be", ASCII16_BE},
+        };
+
+        void applyEncoding(std::vector<uint16_t>& elements) const {
+            if (mEncoding == ASCII16_BE) {
                 ConverterTools::swapByteOrder(elements);
             }
         }

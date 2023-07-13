@@ -506,12 +506,11 @@ M2MGateway contains *std* library with basic converters ready to use:
     Usage: state, command
 
     Arguments:
-      - encoding (optional, default: `ascii-le`)
+      - encoding (optional, default: `none`)
 
     Parses and writes modbus register data as string.
-    Supported encodings: `ascii-le` (little endian), `ascii-be` (big endian).
-    One modbus register contains two ascii characters.
-    The number of registers can be configured by the `count` setting.
+    Supported encodings: `none` (little-endian), `ascii16-be` (big-endian).
+    The string size is determined by the number of registers and can be configured using the `count` setting.
 
 Converter can be added to modbus register in state and command section.
 
