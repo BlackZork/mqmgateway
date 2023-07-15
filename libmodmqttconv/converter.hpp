@@ -66,6 +66,42 @@ class ConverterTools {
             return (uint16_t)ret;
         }
 
+        /**
+         * Converts single or two registers to int32_t
+         * */
+        static int32_t registersToInt32(const ModbusRegisters& data, bool lowFirst) {
+            int high = 0, low = 1;
+            if (lowFirst) {
+                high = 1;
+                low = 0;
+            }
+            int32_t val = data.getValue(high);
+            if (data.getCount() > 1) {
+                val = val << 16;
+                val += data.getValue(low);
+            }
+            return val;
+        }
+
+        /**
+         * Converts int32 to single or two registers
+         * */
+
+        static ModbusRegisters int32ToRegisters(int32_t val, bool lowFirst, int registerCount) {
+            ModbusRegisters ret;
+            ret.appendValue(val);
+            if (registerCount == 2) {
+                if (!lowFirst)
+                    ret.prependValue(val >> 16);
+                else
+                    ret.appendValue(val >> 16);
+            }
+            return ret;
+        }
+
+        /**
+         * Ensures that the bytes of each register are in host order.
+         * */
         static void adaptToHostByteOrder(std::vector<uint16_t>& registers) {
             std::transform(registers.begin(), registers.end(), registers.begin(), ntohs);
         }
