@@ -75,10 +75,10 @@ class DataConverter {
     public:
         virtual void setArgs(const std::vector<std::string>& args) {};
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            throw std::logic_error("Converstion to mqtt value is not implemented");
+            throw std::logic_error("Conversion to mqtt value is not implemented");
         };
         virtual ModbusRegisters toModbus(const MqttValue&, int registerCount) const {
-            throw std::logic_error("Converstion to modbus register values is not implemented");
+            throw std::logic_error("Conversion to modbus register values is not implemented");
         };
 };
 

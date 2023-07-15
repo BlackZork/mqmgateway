@@ -20,7 +20,7 @@ Main features:
   * multiple registers values to single MQTT value converters
   * support for [exprtk](https://github.com/ArashPartow/exprtk) expressions language when converting data
   * support for custom conversion plugins
-  * support for converstion in both directions
+  * support for conversion in both directions
 * Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
 
 MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosqutto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](link) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
@@ -270,7 +270,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
 
-  Unless you provide a custom converter M2MGateway expects register value as UTF-8 string value or json array with register values. You must provide exactly the same number of values as registers to write.
+  Unless you provide a custom converter MQMGateway expects register value as UTF-8 string value or json array with register values. You must provide exactly the same number of values as registers to write.
 
 ### The *state* section
 
@@ -438,7 +438,7 @@ Configuration values:
 
 ## Data conversion
 
-M2MGateway uses converstion plugins to convert state data readed from modbus registers to mqtt value and command mqtt payload to register value.
+MQMGateway uses conversion plugins to convert state data readed from modbus registers to mqtt value and command mqtt payload to register value.
 
 Data readed from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations a converter can be used.
 
@@ -447,7 +447,7 @@ Converter can also be used to convert mqtt command payload to register value.
 ### Standard converters
 
 Converter functions are defined in libraries dynamically loaded at startup.
-M2MGateway contains *std* library with basic converters ready to use:
+MQMGateway contains *std* library with basic converters ready to use:
 
   * **divide**
 
