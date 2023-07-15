@@ -509,7 +509,9 @@ MQMGateway contains *std* library with basic converters ready to use:
       - encoding (optional, default: `none`)
 
     Parses and writes modbus register data as string.
-    Supported encodings: `none` (little-endian), `ascii16-be` (big-endian).
+    Supported encodings:
+    `none` (no byte transformation),
+    `ascii16-be` (1 modbus register corresponds to 2 ASCII characters in reverse order, e.g. `0x4241` for `AB`).
     The string size is determined by the number of registers and can be configured using the `count` setting.
 
 Converter can be added to modbus register in state and command section.
