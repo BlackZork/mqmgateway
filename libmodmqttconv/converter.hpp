@@ -1,10 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
-
-#include <vector>
-#include <string>
+#include <netinet/in.h>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include "mqttvalue.hpp"
 #include "modbusregisters.hpp"
@@ -65,10 +66,8 @@ class ConverterTools {
             return (uint16_t)ret;
         }
 
-        static void swapByteOrder(std::vector<uint16_t>& elements) {
-            for (size_t i = 0; i < elements.size(); i++) {
-                elements[i] = ((elements[i] & 0x00ff) << 8) | ((elements[i] & 0xff00) >> 8);
-            }
+        static void adaptToHostByteOrder(std::vector<uint16_t>& registers) {
+            std::transform(registers.begin(), registers.end(), registers.begin(), ntohs);
         }
 };
 

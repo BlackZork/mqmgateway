@@ -51,7 +51,7 @@ class StringConverter : public DataConverter {
 
         void applyEncoding(std::vector<uint16_t>& elements) const {
             if (mEncoding == ASCII16_BE) {
-                ConverterTools::swapByteOrder(elements);
+                ConverterTools::adaptToHostByteOrder(elements);
             }
         }
 };
