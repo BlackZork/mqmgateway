@@ -1,10 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
-
-#include <vector>
-#include <string>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include "mqttvalue.hpp"
 #include "modbusregisters.hpp"
@@ -96,6 +96,46 @@ class ConverterTools {
                     ret.appendValue(val >> 16);
             }
             return ret;
+        }
+
+        /**
+         * Swaps the low and high byte of a register, disregarding host endianness.
+         *
+         * @param value A register containing bytes A and B in order AB
+         * @return A register containing bytes A and B in order BA
+         */
+        static uint16_t swapByteOrder(uint16_t value) {
+            return ((value & 0x00ff) << 8) | ((value & 0xff00) >> 8);
+        }
+
+        /**
+         * Swaps the low and high byte of each register, disregarding host endianness.
+         *
+         * @param value A list of registers
+         */
+        static void swapByteOrder(std::vector<uint16_t>& registers) {
+            uint16_t (*swapByteOrderFunction)(uint16_t) = &swapByteOrder;
+            std::transform(registers.begin(), registers.end(), registers.begin(), swapByteOrderFunction);
+        }
+
+        /**
+         * Converts two registers (0xAB and 0xCD) to a 32-bit number (0xABCD).
+         *
+         * @tparam T Type of the 32-bit number
+         * @param highRegister A register containing the most significant bytes A and B
+         * @param lowRegister  A register containing the least significant bytes C and D
+         * @param swapBytes    If set to true, the low and high byte of both registers are swapped
+         *                     (number == 0xBADC)
+         * @return A number containing the bytes of both registers
+         */
+        template <typename T>
+        static T toNumber(const uint16_t highRegister, const uint16_t lowRegister, const bool swapBytes = false) {
+            std::vector<uint16_t> registers({highRegister, lowRegister});
+            if (swapBytes) {
+                swapByteOrder(registers);
+            }
+            int32_t value = registersToInt32(ModbusRegisters(registers), false);
+            return *reinterpret_cast<T*>(&value);
         }
 };
 

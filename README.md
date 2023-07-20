@@ -545,7 +545,20 @@ Register values are defined as R0..Rn variables.
       - [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
       - precision (optional)
 
-Here is an example dividing two registers with precision=3
+    The following custom functions for 32-bit numbers are supported in the expression:
+      - `int32be()`:   signed integer in big-endian byte order
+      - `int32le()`:   signed integer in little-endian byte order
+      - `uint32be()`:  unsigned integer in big-endian byte order
+      - `uint32le()`:  unsigned integer in little-endian byte order
+      - `flt32be()`:   float in big-endian byte order
+      - `flt32le()`:   float in little-endian byte order
+      - `flt32abcd()`: float in byte order ABCD
+      - `flt32badc()`: float in byte order BADC
+      - `flt32cdab()`: float in byte order CDAB
+      - `flt32dcba()`: float in byte order DCBA
+
+#### Examples
+Division of two registers with precision 3:
 
 ```
   objects:
@@ -558,6 +571,20 @@ Here is an example dividing two registers with precision=3
           - register: tcptest.1.3
             register_type: input
 ```
+
+Reading the state of a 32-bit float value spanning two registers with precision 3:
+```
+  objects:
+    - topic: test_state
+      state:
+        converter: expr.evaluate("flt32be(R0, R1)", 3)
+        registers:
+          - register: tcptest.1.2
+            register_type: input
+          - register: tcptest.1.3
+            register_type: input
+```
+
 
 
 ### Adding custom converters
