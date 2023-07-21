@@ -119,13 +119,13 @@ class ConverterTools {
         }
 
         /**
-         * Converts two registers (0xAB and 0xCD) to a 32-bit number (0xABCD).
+         * Converts two registers (e.g. r1=0xA1B2 and r2=0xC3D4) to one 32-bit number (e.g. n=0xA1B2C3D4).
          *
          * @tparam T Type of the 32-bit number
-         * @param highRegister A register containing the most significant bytes A and B
-         * @param lowRegister  A register containing the least significant bytes C and D
-         * @param swapBytes    If set to true, the low and high byte of both registers are swapped
-         *                     (number == 0xBADC)
+         * @param highRegister A register containing the most significant bytes (e.g. 0xA1B2)
+         * @param lowRegister  A register containing the least significant bytes (e.g. 0xC3D4)
+         * @param swapBytes    If set to true, the high and low byte of both registers are swapped
+         *                     (e.g. n=0xB2A1D4C3).
          * @return A number containing the bytes of both registers
          */
         template <typename T>
