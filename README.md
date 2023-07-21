@@ -544,18 +544,27 @@ Register values are defined as R0..Rn variables.
     Arguments:
       - [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
       - precision (optional)
+    
+    &nbsp;
 
     The following custom functions for 32-bit numbers are supported in the expression.
     _ABCD_ means a number composed of the byte array `[A, B, C, D]`,
     where _A_ is the most significant byte (MSB) and _D_ is the least-significant byte (LSB).
-      - `int32(r1, r2)`:   Cast to signed integer _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
-      - `int32(r2, r1)`:   Cast to signed integer _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
-      - `uint32(r1, r2)`:  Cast to unsigned integer _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
-      - `uint32(r2, r1)`:  Cast to unsigned integer _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
-      - `flt32(r1, r2)`:   Cast to float _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
-      - `flt32(r2, r1)`:   Cast to float _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
-      - `flt32be(r1, r2)`: Cast to float _ABCD_ from `r1` == _BA_ and `r2` == _DC_.
-      - `flt32be(r2, r1)`: Cast to float _ABCD_ from `r1` == _DC_ and `r2` == _BA_.
+      - `int32(R0, R1)`:   Cast to signed integer _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
+      - `int32(R1, R0)`:   Cast to signed integer _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
+      - `uint32(R0, R1)`:  Cast to unsigned integer _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
+      - `uint32(R1, R0)`:  Cast to unsigned integer _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
+      - `flt32(R0, R1)`:   Cast to float _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
+      - `flt32(R1, R0)`:   Cast to float _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
+      - `flt32be(R0, R1)`: Cast to float _ABCD_ from `R0` == _BA_ and `R1` == _DC_.
+      - `flt32be(R1, R0)`: Cast to float _ABCD_ from `R0` == _DC_ and `R1` == _BA_.
+
+    &nbsp;
+
+
+    If modbus register contains signed integer data, you can use this cast in the expression:
+
+      - `int16(R0)`: Cast uint16 value from `R0' to int16
 
 #### Examples
 Division of two registers with precision 3:

@@ -119,4 +119,22 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
     }
 }
 
+TEST_CASE ("A uint16_t register data should be converted to exprtk value") {
+    std::string stdconv_path = "../exprconv/exprconv.so";
+    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+        stdconv_path,
+        "converter_plugin",
+        boost::dll::load_mode::append_decorations
+    );
+    std::shared_ptr<DataConverter> conv(plugin->getConverter("evaluate"));
+
+    conv->setArgs({"int16(R0)"});
+    const ModbusRegisters input(0xFFFF);
+
+    MqttValue output = conv->toMqtt(input);
+
+    REQUIRE(output.getString() == "-1");
+}
+
+
 #endif

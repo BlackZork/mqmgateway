@@ -34,6 +34,7 @@ class ExprtkConverter : public DataConverter {
             mSymbolTable.add_function("uint32",  uint32);
             mSymbolTable.add_function("flt32",   flt32);
             mSymbolTable.add_function("flt32be", flt32be);
+            mSymbolTable.add_function("int16", int16);
             mSymbolTable.add_constants();
 
             char buf[8];
@@ -77,5 +78,9 @@ class ExprtkConverter : public DataConverter {
 
         static double flt32be(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<float>(highRegister, lowRegister);
+        }
+
+        static double int16(const double regValue) {
+            return int16_t(regValue);
         }
 };
