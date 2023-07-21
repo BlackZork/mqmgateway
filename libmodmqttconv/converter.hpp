@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -114,8 +113,9 @@ class ConverterTools {
          * @param value A list of registers
          */
         static void swapByteOrder(std::vector<uint16_t>& registers) {
-            uint16_t (*swapByteOrderFunction)(uint16_t) = &swapByteOrder;
-            std::transform(registers.begin(), registers.end(), registers.begin(), swapByteOrderFunction);
+            for (size_t i = 0; i < registers.size(); i++) {
+                registers[i] = swapByteOrder(registers[i]);
+            }
         }
 
         /**

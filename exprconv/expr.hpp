@@ -30,16 +30,10 @@ class ExprtkConverter : public DataConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            mSymbolTable.add_function("int32be",   int32be);
-            mSymbolTable.add_function("int32le",   int32le);
-            mSymbolTable.add_function("uint32be",  uint32be);
-            mSymbolTable.add_function("uint32le",  uint32le);
-            mSymbolTable.add_function("flt32be",   flt32be);
-            mSymbolTable.add_function("flt32le",   flt32le);
-            mSymbolTable.add_function("flt32abcd", flt32abcd);
-            mSymbolTable.add_function("flt32badc", flt32badc);
-            mSymbolTable.add_function("flt32cdab", flt32cdab);
-            mSymbolTable.add_function("flt32dcba", flt32dcba);
+            mSymbolTable.add_function("int32",   int32);
+            mSymbolTable.add_function("uint32",  uint32);
+            mSymbolTable.add_function("flt32",   flt32);
+            mSymbolTable.add_function("flt32be", flt32be);
             mSymbolTable.add_constants();
 
             char buf[8];
@@ -69,43 +63,19 @@ class ExprtkConverter : public DataConverter {
             return dummy / divider;
         }
 
-        static double int32be(const double register1, const double register2) {
-            return ConverterTools::toNumber<int32_t>(register1, register2);
+        static double int32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
         }
 
-        static double int32le(const double register1, const double register2) {
-            return ConverterTools::toNumber<int32_t>(register1, register2, true);
+        static double uint32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, true);
         }
 
-        static double uint32be(const double register1, const double register2) {
-            return ConverterTools::toNumber<uint32_t>(register1, register2);
+        static double flt32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<float>(highRegister, lowRegister, true);
         }
 
-        static double uint32le(const double register1, const double register2) {
-            return ConverterTools::toNumber<uint32_t>(register1, register2, true);
-        }
-
-        static double flt32be(const double register1, const double register2) {
-            return ConverterTools::toNumber<float>(register1, register2);
-        }
-
-        static double flt32le(const double register1, const double register2) {
-            return ConverterTools::toNumber<float>(register1, register2, true);
-        }
-
-        static double flt32abcd(const double register1, const double register2) {
-            return ConverterTools::toNumber<float>(register1, register2);
-        }
-
-        static double flt32badc(const double register1, const double register2) {
-            return ConverterTools::toNumber<float>(register1, register2, true);
-        }
-
-        static double flt32cdab(const double register1, const double register2) {
-            return ConverterTools::toNumber<float>(register2, register1);
-        }
-
-        static double flt32dcba(const double register1, const double register2) {
-            return ConverterTools::toNumber<float>(register2, register1, true);
+        static double flt32be(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<float>(highRegister, lowRegister);
         }
 };

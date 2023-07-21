@@ -545,17 +545,17 @@ Register values are defined as R0..Rn variables.
       - [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
       - precision (optional)
 
-    The following custom functions for 32-bit numbers are supported in the expression:
-      - `int32be()`:   signed integer in big-endian byte order
-      - `int32le()`:   signed integer in little-endian byte order
-      - `uint32be()`:  unsigned integer in big-endian byte order
-      - `uint32le()`:  unsigned integer in little-endian byte order
-      - `flt32be()`:   float in big-endian byte order
-      - `flt32le()`:   float in little-endian byte order
-      - `flt32abcd()`: float in byte order ABCD
-      - `flt32badc()`: float in byte order BADC
-      - `flt32cdab()`: float in byte order CDAB
-      - `flt32dcba()`: float in byte order DCBA
+    The following custom functions for 32-bit numbers are supported in the expression.
+    _ABCD_ means a number composed of the byte array `[A, B, C, D]`,
+    where _A_ is the most significant byte (MSB) and _D_ is the least-significant byte (LSB).
+      - `int32(r1, r2)`:   Cast to signed integer _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
+      - `int32(r2, r1)`:   Cast to signed integer _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
+      - `uint32(r1, r2)`:  Cast to unsigned integer _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
+      - `uint32(r2, r1)`:  Cast to unsigned integer _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
+      - `flt32(r1, r2)`:   Cast to float _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
+      - `flt32(r2, r1)`:   Cast to float _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
+      - `flt32be(r1, r2)`: Cast to float _ABCD_ from `r1` == _BA_ and `r2` == _DC_.
+      - `flt32be(r2, r1)`: Cast to float _ABCD_ from `r1` == _DC_ and `r2` == _BA_.
 
 #### Examples
 Division of two registers with precision 3:
@@ -572,7 +572,7 @@ Division of two registers with precision 3:
             register_type: input
 ```
 
-Reading the state of a 32-bit float value spanning two registers with precision 3:
+Reading the state of a 32-bit float value (byte order `ABCD`) spanning two registers (R0 = `BA`, R1 = `DC`) with precision 3:
 ```
   objects:
     - topic: test_state
