@@ -545,7 +545,20 @@ Register values are defined as R0..Rn variables.
       - [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
       - precision (optional)
 
-Here is an example dividing two registers with precision=3
+    The following custom functions for 32-bit numbers are supported in the expression.
+    _ABCD_ means a number composed of the byte array `[A, B, C, D]`,
+    where _A_ is the most significant byte (MSB) and _D_ is the least-significant byte (LSB).
+      - `int32(r1, r2)`:   Cast to signed integer _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
+      - `int32(r2, r1)`:   Cast to signed integer _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
+      - `uint32(r1, r2)`:  Cast to unsigned integer _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
+      - `uint32(r2, r1)`:  Cast to unsigned integer _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
+      - `flt32(r1, r2)`:   Cast to float _ABCD_ from `r1` == _AB_ and `r2` == _CD_.
+      - `flt32(r2, r1)`:   Cast to float _ABCD_ from `r1` == _CD_ and `r2` == _AB_.
+      - `flt32be(r1, r2)`: Cast to float _ABCD_ from `r1` == _BA_ and `r2` == _DC_.
+      - `flt32be(r2, r1)`: Cast to float _ABCD_ from `r1` == _DC_ and `r2` == _BA_.
+
+#### Examples
+Division of two registers with precision 3:
 
 ```
   objects:
@@ -558,6 +571,20 @@ Here is an example dividing two registers with precision=3
           - register: tcptest.1.3
             register_type: input
 ```
+
+Reading the state of a 32-bit float value (byte order `ABCD`) spanning two registers (R0 = `BA`, R1 = `DC`) with precision 3:
+```
+  objects:
+    - topic: test_state
+      state:
+        converter: expr.evaluate("flt32be(R0, R1)", 3)
+        registers:
+          - register: tcptest.1.2
+            register_type: input
+          - register: tcptest.1.3
+            register_type: input
+```
+
 
 
 ### Adding custom converters

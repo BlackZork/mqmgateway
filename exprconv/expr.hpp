@@ -30,6 +30,10 @@ class ExprtkConverter : public DataConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
+            mSymbolTable.add_function("int32",   int32);
+            mSymbolTable.add_function("uint32",  uint32);
+            mSymbolTable.add_function("flt32",   flt32);
+            mSymbolTable.add_function("flt32be", flt32be);
             mSymbolTable.add_constants();
 
             char buf[8];
@@ -57,5 +61,21 @@ class ExprtkConverter : public DataConverter {
             double divider = pow(10, decimal_digits);
             int dummy = (int)(val * divider);
             return dummy / divider;
+        }
+
+        static double int32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
+        }
+
+        static double uint32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, true);
+        }
+
+        static double flt32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<float>(highRegister, lowRegister, true);
+        }
+
+        static double flt32be(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<float>(highRegister, lowRegister);
         }
 };
