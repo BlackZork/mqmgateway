@@ -506,13 +506,12 @@ MQMGateway contains *std* library with basic converters ready to use:
     Usage: state, command
 
     Arguments:
-      - encoding (optional, default: `none`)
+      - max size in bytes (optional)
 
     Parses and writes modbus register data as string.
-    Supported encodings:
-    `none` (no byte transformation),
-    `ascii16-be` (1 modbus register corresponds to 2 ASCII characters in reverse order, e.g. `0x4241` for `AB`).
-    The string size is determined by the number of registers and can be configured using the `count` setting.
+    Register data is expected in UTF-8 (or ASCII) encoding, e.g. `0x4142` for the string _AB_.
+    The default string size is determined by the number of registers, configured using the `count` setting.
+    When the `size` argument is given, the string wil be truncated after `size` bytes.
 
 Converter can be added to modbus register in state and command section.
 
