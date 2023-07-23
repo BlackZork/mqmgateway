@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -100,10 +99,12 @@ class ConverterTools {
         }
 
         /**
-         * Ensures that the bytes of each register are in host order.
+         * Ensures that the bytes of each register are in network order.
          * */
-        static void adaptToHostByteOrder(std::vector<uint16_t>& registers) {
-            std::transform(registers.begin(), registers.end(), registers.begin(), ntohs);
+        static void adaptToNetworkByteOrder(std::vector<uint16_t>& registers) {
+            for (size_t i = 0; i < registers.size(); i++) {
+                registers[i] = htons(registers[i]);
+            }
         }
 
         /**
