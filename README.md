@@ -3,7 +3,7 @@ A multithreaded C++ service that exposes data from multiple [Modbus](http://www.
 
 Main features:
 * Connects to multiple TCP and RTU modbus networks
-* Handles state and availablity for each configured MQTT object
+* Handles state and availability for each configured MQTT object
 * Allows to read and write to MODBUS registers from MQTT side with custom data conversion
 * Flexible MQTT state topic configuration:
   * single modbus register published as string value
@@ -12,7 +12,7 @@ Main features:
   * registers from different slaves combined as single JSON list/object
 * Full control over modbus data polling
   * read multiple register values once for multiple topics
-  * read multiple register values for a single topic one by one 
+  * read multiple register values for a single topic one by one
   * read multiple register values for a single topic once
   * registers used in multiple MQTT topics are polled only once
 * Data conversion:
@@ -23,18 +23,18 @@ Main features:
   * support for conversion in both directions
 * Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
 
-MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosqutto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](link) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
+MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosquitto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](CMakeLists.txt) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
 
 # License
 This software is dual-licensed:
   * under the terms of [AGPL-3.0 license](https://www.gnu.org/licenses/agpl-3.0.html) as Open Source project.
   * under commercial license.
 
-For a commercial-friendly license and support please see http://mqmgateway.zork.pl. 
+For a commercial-friendly license and support please see http://mqmgateway.zork.pl.
 
 # Third-party licenses
 
-This software includes "A single-producer, single-consumer lock-free queue for C++" written by 
+This software includes "A single-producer, single-consumer lock-free queue for C++" written by
 Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.md)
 
 # Installation
@@ -52,7 +52,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
     ```
     cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -S (project dir) -B (build dir)
-    make 
+    make
     make install
     ```
 
@@ -157,7 +157,7 @@ Modbus network configuration parameters are listed below:
 
 * **poll_groups**
 
-    An optional list of modbus register address ranges that will be polled with a single modbus_read_registers(3) call. 
+    An optional list of modbus register address ranges that will be polled with a single modbus_read_registers(3) call.
 
 ## MQTT section
 
@@ -165,7 +165,7 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
 * **client_id** (required)
 
-  name used to connect to mqtt broker. 
+  name used to connect to mqtt broker.
 
 * **refresh** (timespan, optional, default 5s)
 
@@ -182,7 +182,7 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
   * **port** (optional, default 1883)
 
-    MQTT broker TCP port 
+    MQTT broker TCP port
 
   * **keepalive** (optional, default 60s)
 
@@ -198,11 +198,11 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
 * **objects** (required)
 
-A list of topics where modbus values are published to MQTT broker and subscribed for writing data received from MQTT broker to modbus registers.  
+A list of topics where modbus values are published to MQTT broker and subscribed for writing data received from MQTT broker to modbus registers.
 
 * **topic** (required)
 
-  The base name for modbus register mapping. A mapping must contain at least one of following sections: 
+  The base name for modbus register mapping. A mapping must contain at least one of following sections:
 
     - *commands* - for writing to modbus registers
     - *state* - for reading modbus registers
@@ -256,7 +256,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   * **converter** (optional)
 
-    The name of function that should be called to convert mqtt value to u_int16 value. Format of function name is `plugin name.function name`. See converters for details. 
+    The name of function that should be called to convert mqtt value to u_int16 value. Format of function name is `plugin name.function name`. See converters for details.
 
   Example of MQTT command topic declaration:
 
@@ -296,7 +296,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
       count: 2
 
   This declaration creates a poll group. Poll group is read from modbus slave using a single
-  modbus_read_registers(3) call. Overlapping poll groups are merged with each other and with 
+  modbus_read_registers(3) call. Overlapping poll groups are merged with each other and with
   poll groups defined in modbus section.
 
   2. as list of registers:
@@ -312,7 +312,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
         register_type: input
 
   This declaration do not create a poll group, but allows to construct MQTT topic data
-  from diffrent slaves, even on diffrent modbus networks. On exception is if there are poll groups defined in modbus section, that overlaps state register definitions. In this case 
+  from different slaves, even on different modbus networks. On exception is if there are poll groups defined in modbus section, that overlaps state register definitions. In this case
   data is polled using poll group.
 
   * **refresh**
@@ -329,7 +329,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   When state is a single modbus register value:
 
-  * **name** 
+  * **name**
 
     The last part of topic name where value should be published. Full topic name is created as `topic_name/state_name`
 
@@ -341,7 +341,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     `network_name` and `slave_id` are optional if default values are set for a topic
 
-  * **register_type** (required)
+  * **register_type** (optional, default: `holding`)
 
     Modbus register type: coil, bit, input, holding
 
@@ -352,11 +352,11 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   * **converter** (optional)
 
-    The name of function that should be called to convert register u_int16 value to MQTT UTF-8 value. Format of function name is `plugin_name.function_name`. See converters for details. 
+    The name of function that should be called to convert register u_int16 value to MQTT UTF-8 value. Format of function name is `plugin_name.function_name`. See converters for details.
 
   The following examples show how to combine *name*, *register*, *register_type*, and *converter* to output different state values:
 
-  1. single value 
+  1. single value
 
     ```
     state:
@@ -401,19 +401,19 @@ A list of topics where modbus values are published to MQTT broker and subscribed
         register_type: input
     ```
 
-  In all of above examples *refresh*, *response_timeout* and *response_data_timeout* can be added at any level to set different values to 
+  In all of above examples *refresh*, *response_timeout* and *response_data_timeout* can be added at any level to set different values to
   whole list or a single register.
 
 ### The *availability* section
 
 For every *state* topic there is another *availability* topic defined by default. If all data from modbus registers needed for *state* is read without errors then by default value "1" is published. If there is any network or device error when polling register data value "0" is published. This is the default behavoiur if *availability* section is not defined.
 
-Availablity flag is always published before state value. 
+Availablity flag is always published before state value.
 
-*Availability* section extends this default behaviour by defining a single or list of modbus registers that should be readed to check if state data is valid. This could be i.e. some fault indicator or hardware switch state.
+*Availability* section extends this default behaviour by defining a single or list of modbus registers that should be read to check if state data is valid. This could be i.e. some fault indicator or hardware switch state.
 
 Configuration values:
- 
+
   * **name** (required)
 
     The last part of topic name where availability flag should be published. Full topic name is created as `topic.name/availability.name`
@@ -432,15 +432,15 @@ Configuration values:
 
   * **available_value** (optional, default 1)
 
-    Expected uint16 value readed from availablity register when availablity flag should be set to "1". If other value is readed then availability flag is set to "0".
+    Expected uint16 value read from availability register when availability flag should be set to "1". If other value is read then availability flag is set to "0".
 
-*register*, *register_type* and *available_value* can form a list when multiple registers should be readed.
+*register*, *register_type* and *available_value* can form a list when multiple registers should be read.
 
 ## Data conversion
 
-MQMGateway uses conversion plugins to convert state data readed from modbus registers to mqtt value and command mqtt payload to register value.
+MQMGateway uses conversion plugins to convert state data read from modbus registers to mqtt value and command mqtt payload to register value.
 
-Data readed from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations a converter can be used.
+Data read from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations a converter can be used.
 
 Converter can also be used to convert mqtt command payload to register value.
 
@@ -499,7 +499,7 @@ MQMGateway contains *std* library with basic converters ready to use:
       - bitmask in hex (default "0xffff")
 
 
-    Applies a mask to value readed from modbus register.
+    Applies a mask to value read from modbus register.
 
   * **string**
 
@@ -511,7 +511,7 @@ MQMGateway contains *std* library with basic converters ready to use:
     Parses and writes modbus register data as string.
     Register data is expected in UTF-8 (or ASCII) encoding, e.g. `0x4142` for the string _AB_.
     The default string size is determined by the number of registers, configured using the `count` setting.
-    When the `size` argument is given, the string wil be truncated after `size` bytes.
+    When the `size` argument is given, the string will be truncated after `size` bytes.
 
 Converter can be added to modbus register in state and command section.
 
@@ -546,7 +546,7 @@ When mqtt command payload should be converted to register value:
 
 ### Exprtk converter.
 
-Exprtk converter allows to use exprtk expression language to convert register data to mqtt value. 
+Exprtk converter allows to use exprtk expression language to convert register data to mqtt value.
 Register values are defined as R0..Rn variables.
 
   * **evaluate**
@@ -556,7 +556,7 @@ Register values are defined as R0..Rn variables.
     Arguments:
       - [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
       - precision (optional)
-    
+
     &nbsp;
 
     The following custom functions for 32-bit numbers are supported in the expression.
@@ -658,7 +658,7 @@ class MyPlugin : ConverterPlugin {
         // name used in configuration as plugin prefix.
         virtual std::string getName() const { return "myplugin"; }
         virtual IStateConverter* getStateConverter(const std::string& name) {
-            if (name == "myconverter") 
+            if (name == "myconverter")
                 return new MyConverter();
             return nullptr;
         }
