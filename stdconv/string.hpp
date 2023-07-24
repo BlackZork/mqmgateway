@@ -8,7 +8,7 @@ class StringConverter : public DataConverter {
             std::vector<uint16_t> registers = data.values();
             ConverterTools::adaptToNetworkByteOrder(registers);
             const size_t size = findActualSize(registers);
-            return MqttValue::fromBinary(registers.data(), size);
+            return MqttValue(registers.data(), size);
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
