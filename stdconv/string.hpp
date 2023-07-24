@@ -7,28 +7,28 @@ class StringConverter : public DataConverter {
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             std::vector<uint16_t> registers = data.values();
             ConverterTools::adaptToNetworkByteOrder(registers);
-            size_t size = std::min(mMaxSize, data.getCount() * sizeof(uint16_t));
+            const size_t size = findActualSize(registers);
             return MqttValue::fromBinary(registers.data(), size);
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
-            const uint16_t* source = static_cast<const uint16_t*>(value.getBinaryPtr());
-            const int valueCount = value.getBinarySize() / sizeof(uint16_t);
-            std::vector<uint16_t> registers(source, source + valueCount);
+            std::vector<uint16_t> registers(registerCount, 0);
+            std::memcpy(registers.data(), value.getBinaryPtr(), value.getBinarySize());
             ConverterTools::adaptToNetworkByteOrder(registers);
-            registers.resize(std::min(valueCount, registerCount));
             return ModbusRegisters(registers);
-        }
-
-        virtual void setArgs(const std::vector<std::string>& args) {
-            if (args.size() == 0) {
-                return;
-            }
-            mMaxSize = ConverterTools::getIntArg(0, args);
         }
 
         virtual ~StringConverter() {}
 
     private:
-        size_t mMaxSize = std::numeric_limits<size_t>::max();
+        size_t findActualSize(const std::vector<uint16_t> registers) const {
+            const size_t byteCount = registers.size() * sizeof(uint16_t);
+            const uint8_t* firstByte = reinterpret_cast<const uint8_t*>(registers.data());
+            for (size_t offset = 0; offset < byteCount; offset++) {
+              if (*(firstByte + offset) == 0) {
+                return offset;
+              }
+            }
+            return byteCount;
+        }
 };
