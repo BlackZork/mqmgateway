@@ -38,45 +38,49 @@ TEST_CASE("When a string") {
 
         SECTION("and the registers contain null bytes, then it is truncated at the first null byte") {
             ModbusRegisters input(registersWithNullBytes);
+            const char expected[] = "AB";
             MqttValue output = conv->toMqtt(input);
 
-            REQUIRE(output.getString() == "AB");
-            REQUIRE(output.getBinarySize() == 2);
+            REQUIRE(output.getString() == expected);
+            REQUIRE(output.getBinarySize() == strlen(expected));
         }
     }
 
     SECTION("is written to registers") {
         SECTION("and the character count is even, then the registers contain exactly the characters from the string") {
             MqttValue input = MqttValue::fromBinary(charsEven, sizeof(charsEven));
-            ModbusRegisters output = conv->toModbus(input, 2);
+            ModbusRegisters output = conv->toModbus(input, registersEven.size());
 
             REQUIRE(output.values() == registersEven);
         }
 
         SECTION("and the character count is odd, then the registers contain the characters from the string and a trailing null byte") {
             MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
-            ModbusRegisters output = conv->toModbus(input, 2);
+            ModbusRegisters output = conv->toModbus(input, registersOdd.size());
 
             REQUIRE(output.values() == registersOdd);
         }
 
         SECTION("and the character count is shorter than the registers, then the registers are filled with null bytes") {
             MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
-            ModbusRegisters output = conv->toModbus(input, 3);
+            std::vector<uint16_t> expected = registersOdd;
+            expected.push_back(0);
+            ModbusRegisters output = conv->toModbus(input, expected.size());
 
-            REQUIRE(output.values() == std::vector<uint16_t>({0x4142, 0x4300, 0x0000}));
+            REQUIRE(output.values() == expected);
         }
 
         SECTION("and the character count is longer than the registers, then the registers contain the truncated string") {
             MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
-            ModbusRegisters output = conv->toModbus(input, 1);
+            std::vector<uint16_t> expected = std::vector<uint16_t>({registersOdd.front()});
+            ModbusRegisters output = conv->toModbus(input, expected.size());
 
-            REQUIRE(output.values() == std::vector<uint16_t>({0x4142}));
+            REQUIRE(output.values() == expected);
         }
 
         SECTION("and contains null bytes, then the registers contain exactly the characters from the string") {
             MqttValue input = MqttValue::fromBinary(charsWithNullBytes, sizeof(charsWithNullBytes));
-            ModbusRegisters output = conv->toModbus(input, 3);
+            ModbusRegisters output = conv->toModbus(input, registersWithNullBytes.size());
 
             REQUIRE(output.values() == registersWithNullBytes);
         }
