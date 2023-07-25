@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <netinet/in.h>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -98,6 +99,15 @@ class ConverterTools {
         }
 
         /**
+         * Ensures that the bytes of each register are in network order.
+         * */
+        static void adaptToNetworkByteOrder(std::vector<uint16_t>& registers) {
+            for (size_t i = 0; i < registers.size(); i++) {
+                registers[i] = htons(registers[i]);
+            }
+        }
+
+        /**
          * Swaps the low and high byte of a register, disregarding host endianness.
          *
          * @param value A register containing bytes A and B in order AB
@@ -143,10 +153,9 @@ class DataConverter {
     public:
         virtual void setArgs(const std::vector<std::string>& args) {};
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            throw std::logic_error("Converstion to mqtt value is not implemented");
+            throw std::logic_error("Conversion to mqtt value is not implemented");
         };
         virtual ModbusRegisters toModbus(const MqttValue&, int registerCount) const {
-            throw std::logic_error("Converstion to modbus register values is not implemented");
+            throw std::logic_error("Conversion to modbus register values is not implemented");
         };
 };
-

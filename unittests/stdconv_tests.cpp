@@ -123,6 +123,7 @@ TEST_CASE("uint32 tests") {
     SECTION("write uint32 value") {
         MqttValue input(2452925389);
         ModbusRegisters output = conv->toModbus(input, 2);
+
         REQUIRE(output.getValue(0) == 0x9234);
         REQUIRE(output.getValue(1) == 0xABCD);
     }

@@ -35,7 +35,7 @@ class MsgRegisterValues : public MsgRegisterMessageBase {
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers)
             : MsgRegisterMessageBase(slaveId, regType, registerNumber, registers.getCount()),
               mRegisters(registers) {}
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<u_int16_t>& registers)
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers)
             : MsgRegisterMessageBase(slaveId, regType, registerNumber, registers.size()),
               mRegisters(registers) {}
 

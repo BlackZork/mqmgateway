@@ -37,18 +37,19 @@ add_executable(tests
     single_register_noavail_tests.cpp
     single_register_tests.cpp
     stdconv_divide_tests.cpp
+    stdconv_string_tests.cpp
     stdconv_tests.cpp
     two_slaves_tests.cpp
 )
 
-target_link_libraries(tests 
+target_link_libraries(tests
     modmqttsrv
-    mosquittopp 
-    mosquitto 
+    mosquittopp
+    mosquitto
     Catch2::Catch2
     yaml-cpp
-    ${Boost_LIBRARIES} 
-    ${LIBMODBUS_LIBRARIES} 
+    ${Boost_LIBRARIES}
+    ${LIBMODBUS_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    ${CMAKE_DL_LIBS}    
+    ${CMAKE_DL_LIBS}
 )
