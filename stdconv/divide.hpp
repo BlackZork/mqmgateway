@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include "libmodmqttconv/converter.hpp"
 #include "stdconv/int32.hpp"
 
@@ -13,7 +12,7 @@ class DivideConverter : public DataConverter {
                 return MqttValue::fromDouble(doMath(val));
             }
             else {
-                int32_t val = ConverterTools::registersToInt32(data, mLowFirst);
+                int32_t val = ConverterTools::registersToInt32(data.values(), mLowFirst);
                 return MqttValue::fromDouble(doMath(val));
             }
             //TODO uint16, uint32, float as separate data_type arg
@@ -43,16 +42,9 @@ class DivideConverter : public DataConverter {
         int precision = -1;
         bool mLowFirst = false;
 
-        static double round(double val, int decimal_digits) {
-            double divider = pow(10, decimal_digits);
-            int dummy = (int)(val * divider);
-            return dummy / divider;
-        }
-
         double doMath(double value) const {
             double ret = value / divider;
-            if (precision != -1)
-                ret = round(ret, precision);
+            ret = ConverterTools::round(ret, precision);
             return ret;
         }
 };
