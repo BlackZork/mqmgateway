@@ -438,9 +438,9 @@ Configuration values:
 
 ## Data conversion
 
-MQMGateway uses conversion plugins to convert state data read from modbus registers to mqtt value and command mqtt payload to register value.
+Data read from modbus registers is by default converted to string and published to MQTT broker.
 
-Data read from modbus registers is by default converted to string and published to MQTT broker. To combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations a converter can be used.
+MQMGateway uses conversion plugins to convert state data read from modbus registers to mqtt value and command mqtt payload to register value, for example to combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations.
 
 Converter can also be used to convert mqtt command payload to register value.
 
@@ -488,6 +488,8 @@ MQMGateway contains *std* library with basic converters ready to use:
 
   * **uint16**
 
+    Usage: state, command
+
     Parses and writes modbus register data as unsigned int.
 
 
@@ -506,8 +508,10 @@ MQMGateway contains *std* library with basic converters ready to use:
     Usage: state, command
 
     Parses and writes modbus register data as string.
-    Register data is expected in UTF-8 (or ASCII) encoding, e.g. `0x4142` for the string _AB_.
-    The string size is determined by the number of registers, configured using the `count` setting.
+    Register data is expected as C-Style string in UTF-8 (or ASCII) encoding, e.g. `0x4142` for the string _AB_.
+    If there not Nul 0x0 byte at the end, then string size is determined by the number of registers, configured using the `count` setting.
+
+    When writing, converters puts all bytes from Mqtt payload into register bytes. If payload is shorter, then remaining bytes are zeroed.
 
 Converter can be added to modbus register in state and command section.
 

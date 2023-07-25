@@ -15,9 +15,9 @@ TEST_CASE("When a string") {
     const char charsEven[] = "ABCD";
     const char charsOdd[]  = "ABC";
     const char charsWithNullBytes[] = "AB\u0000C\u0000D";
-    const std::vector<uint16_t> registersEven({0x4142, 0x4344});
-    const std::vector<uint16_t> registersOdd({0x4142, 0x4300});
-    const std::vector<uint16_t> registersWithNullBytes({0x4142, 0x0043, 0x0044});
+    std::vector<uint16_t> registersEven({0x4142, 0x4344});
+    std::vector<uint16_t> registersOdd({0x4142, 0x4300});
+    std::vector<uint16_t> registersWithNullBytes({0x4142, 0x0043, 0x0044});
 
     SECTION("is read from registers") {
         SECTION("and the character count is even, then it contains exactly the characters from the registers") {
@@ -51,6 +51,7 @@ TEST_CASE("When a string") {
             MqttValue input = MqttValue::fromBinary(charsEven, sizeof(charsEven));
             ModbusRegisters output = conv->toModbus(input, registersEven.size());
 
+            ConverterTools::adaptToNetworkByteOrder(registersEven);
             REQUIRE(output.values() == registersEven);
         }
 
@@ -58,30 +59,41 @@ TEST_CASE("When a string") {
             MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
             ModbusRegisters output = conv->toModbus(input, registersOdd.size());
 
+            ConverterTools::adaptToNetworkByteOrder(registersOdd);
             REQUIRE(output.values() == registersOdd);
         }
 
         SECTION("and the character count is shorter than the registers, then the registers are filled with null bytes") {
             MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
-            std::vector<uint16_t> expected = registersOdd;
-            expected.push_back(0);
-            ModbusRegisters output = conv->toModbus(input, expected.size());
+            registersOdd.push_back(0);
+            ConverterTools::adaptToNetworkByteOrder(registersOdd);
+            ModbusRegisters output = conv->toModbus(input, registersOdd.size());
 
-            REQUIRE(output.values() == expected);
+            REQUIRE(output.values() == registersOdd);
         }
 
         SECTION("and the character count is longer than the registers, then the registers contain the truncated string") {
-            MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
-            std::vector<uint16_t> expected = std::vector<uint16_t>({registersOdd.front()});
-            ModbusRegisters output = conv->toModbus(input, expected.size());
+            std::string test;
+            // create a really big string to test out-of bound write
+            for (int i = 0; i < 10000; i++) {
+                char c = '0';
+                int val = c + (i % 64);
+                char ret = (char)val;
+                test += ret;
+            }
+            MqttValue input = MqttValue::fromBinary(test.c_str(), test.length());
+            std::vector<uint16_t> expected = std::vector<uint16_t>();
+            ModbusRegisters output = conv->toModbus(input, 2);
 
-            REQUIRE(output.values() == expected);
+            // a '0123' should be written, rest is dropped.
+            REQUIRE(output.values() == std::vector<uint16_t>({0x3130, 0x3332}));
         }
 
         SECTION("and contains null bytes, then the registers contain exactly the characters from the string") {
             MqttValue input = MqttValue::fromBinary(charsWithNullBytes, sizeof(charsWithNullBytes));
             ModbusRegisters output = conv->toModbus(input, registersWithNullBytes.size());
 
+            ConverterTools::adaptToNetworkByteOrder(registersWithNullBytes);
             REQUIRE(output.values() == registersWithNullBytes);
         }
     }
