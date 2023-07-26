@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -68,16 +69,16 @@ class ConverterTools {
         /**
          * Converts single or two registers to int32_t
          * */
-        static int32_t registersToInt32(const ModbusRegisters& data, bool lowFirst) {
+        static int32_t registersToInt32(const std::vector<uint16_t>& data, bool lowFirst) {
             int high = 0, low = 1;
             if (lowFirst) {
                 high = 1;
                 low = 0;
             }
-            int32_t val = data.getValue(high);
-            if (data.getCount() > 1) {
+            int32_t val = data[high];
+            if (data.size() > 1) {
                 val = val << 16;
-                val += data.getValue(low);
+                val += data[low];
             }
             return val;
         }
@@ -86,14 +87,14 @@ class ConverterTools {
          * Converts int32 to single or two registers
          * */
 
-        static ModbusRegisters int32ToRegisters(int32_t val, bool lowFirst, int registerCount) {
-            ModbusRegisters ret;
-            ret.appendValue(val);
+        static std::vector<uint16_t> int32ToRegisters(int32_t val, bool lowFirst, int registerCount) {
+            std::vector<uint16_t> ret;
+            ret.push_back(val);
             if (registerCount == 2) {
                 if (!lowFirst)
-                    ret.prependValue(val >> 16);
+                    ret.insert(ret.begin(), val >> 16);
                 else
-                    ret.appendValue(val >> 16);
+                    ret.push_back(val >> 16);
             }
             return ret;
         }
@@ -144,8 +145,20 @@ class ConverterTools {
             if (swapBytes) {
                 swapByteOrder(registers);
             }
-            int32_t value = registersToInt32(ModbusRegisters(registers), false);
+            int32_t value = registersToInt32(registers, false);
             return *reinterpret_cast<T*>(&value);
+        }
+
+        /**
+         * round double value to decimal_digits for
+         * string formatting
+         */
+        static double round(double val, int decimal_digits) {
+            if (decimal_digits == -1)
+                return val;
+            double divider = pow(10, decimal_digits);
+            int dummy = (int)(val * divider);
+            return dummy / divider;
         }
 };
 

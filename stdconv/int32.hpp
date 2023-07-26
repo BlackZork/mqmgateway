@@ -6,7 +6,7 @@
 class Int32Converter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            int32_t val = ConverterTools::registersToInt32(data, mLowFirst);
+            int32_t val = ConverterTools::registersToInt32(data.values(), mLowFirst);
             return MqttValue::fromInt(val);
         }
 

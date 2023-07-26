@@ -8,6 +8,7 @@
 #include "scale.hpp"
 #include "string.hpp"
 #include "uint32.hpp"
+#include "float32.hpp"
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
@@ -25,5 +26,7 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new Int16Converter();
     else if (name == "uint32")
         return new UInt32Converter();
+    else if (name == "float32")
+        return new FloatConverter();
     return nullptr;
 }
