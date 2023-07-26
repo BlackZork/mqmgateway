@@ -21,8 +21,10 @@ class FloatConverter : public DataConverter {
             if (registerCount < 2)
                 throw ConvException("Cannot store float in single register");
 
+            float val = value.getDouble();
+
             std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(value.getInt(), mLowFirst, registerCount)
+                ConverterTools::int32ToRegisters(*reinterpret_cast<int*>(&val), mLowFirst, registerCount)
             );
 
             if (mSwapBytes)

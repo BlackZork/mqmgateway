@@ -88,7 +88,7 @@ class ConverterTools {
          * */
 
         static std::vector<uint16_t> int32ToRegisters(int32_t val, bool lowFirst, int registerCount) {
-            std::vector<uint16_t> ret(2);
+            std::vector<uint16_t> ret;
             ret.push_back(val);
             if (registerCount == 2) {
                 if (!lowFirst)
