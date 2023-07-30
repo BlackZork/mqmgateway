@@ -159,6 +159,9 @@ createConvertedValue(
         case MqttValue::SourceType::BINARY:
             writer.String(static_cast<const char*>(value.getBinaryPtr()), value.getBinarySize());
             break;
+        case MqttValue::SourceType::INT64:
+            writer.Int64(value.getInt64());
+            break;
     }
 }
 
