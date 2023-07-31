@@ -4,7 +4,6 @@
 
 static const std::string config = R"(
 modmqttd:
-  loglevel: 5
   converter_search_path:
     - build/exprconv
   converter_plugins:
