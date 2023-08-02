@@ -157,7 +157,7 @@ class ConverterTools {
             if (decimal_digits == -1)
                 return val;
             double divider = pow(10, decimal_digits);
-            int dummy = (int)(val * divider);
+            double dummy = val * divider;
             return dummy / divider;
         }
 };

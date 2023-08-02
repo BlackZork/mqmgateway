@@ -25,7 +25,7 @@ class ExprtkConverter : public DataConverter {
                 return MqttValue::fromInt(ret);
 
             if (precision != -1)
-                ret = round(ret, precision);
+                ret = ConverterTools::round(ret, precision);
             return MqttValue::fromDouble(ret);
         }
 
@@ -57,12 +57,6 @@ class ExprtkConverter : public DataConverter {
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
         int precision = -1;
-
-        static double round(double val, int decimal_digits) {
-            double divider = pow(10, decimal_digits);
-            int dummy = (int)(val * divider);
-            return dummy / divider;
-        }
 
         static double int32(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
