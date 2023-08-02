@@ -81,6 +81,6 @@ class ExprtkConverter : public DataConverter {
         }
 
         static double int16(const double regValue) {
-            return int16_t(regValue);
+            return ConverterTools::toNumber<int16_t>(0, regValue);
         }
 };
