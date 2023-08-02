@@ -66,7 +66,7 @@ TEST_CASE("A float32 value should be read") {
         MqttValue output = conv->toMqtt(input);
 
 
-        REQUIRE(output.getString() == "-123.45");
+        REQUIRE(output.getString() == "-123.46");
     }
 
 }

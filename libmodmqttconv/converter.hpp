@@ -156,9 +156,9 @@ class ConverterTools {
         static double round(double val, int decimal_digits) {
             if (decimal_digits == -1)
                 return val;
-            double divider = pow(10, decimal_digits);
-            double dummy = val * divider;
-            return dummy / divider;
+            char out[64];
+            sprintf(out, "%.*f", decimal_digits, val);
+            return strtod(out, NULL);
         }
 };
 
