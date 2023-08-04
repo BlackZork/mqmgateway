@@ -5,6 +5,7 @@
 #include <variant>
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <limits>
 #include <memory>
 
@@ -22,6 +23,9 @@ class MqttValue {
             INT64 = 3
         } SourceType;
 
+        static const int DEFAULT_DOUBLE_PRECISION = 6;
+        static const int MAX_DOUBLE_PRECISION = std::numeric_limits<double>::digits10;
+
         static MqttValue fromInt(int32_t val) {
             return MqttValue(val);
         }
@@ -30,8 +34,8 @@ class MqttValue {
             return MqttValue(val);
         }
 
-        static MqttValue fromDouble(double val) {
-            return MqttValue(val);
+        static MqttValue fromDouble(double val, int precision) {
+            return MqttValue(val, precision);
         }
 
         static MqttValue fromBinary(const void* ptr, size_t size) {
@@ -50,9 +54,10 @@ class MqttValue {
             setInt64(val);
         }
 
-        MqttValue(double val) {
-            setDouble(val);
+        MqttValue(double val, int precision) {
+            setDouble(val, precision);
         }
+
 
         MqttValue(const void* ptr, size_t size){
             mBinaryValue = std::shared_ptr<void>(malloc(size), free);
@@ -68,8 +73,8 @@ class MqttValue {
             mBinarySize = len;
         }
 
-        void setDouble(double val) {
-            mValue.v_double = val;
+        void setDouble(double val, int precision) {
+            mValue.v_double = round(val, precision);
             mType = SourceType::DOUBLE;
         }
 
@@ -98,7 +103,7 @@ class MqttValue {
                 case SourceType::INT64:
                     return std::to_string(mValue.v_int64);
                 case SourceType::DOUBLE:
-                    return double_to_string(mValue.v_double);
+                    return format(mValue.v_double);
             }
             return std::string();
         }
@@ -207,21 +212,32 @@ class MqttValue {
         size_t mBinarySize;
         SourceType mType;
 
+        static double round(double input, int precision) {
+            double output;
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(precision < 0 ? DEFAULT_DOUBLE_PRECISION : precision) << input;
+            ss >> output;
+            return output;
+        }
+
         //https://codereview.stackexchange.com/questions/90565/converting-a-double-to-a-stdstring-without-scientific-notation
-        static std::string double_to_string(double d)
-        {
-            std::string str = std::to_string(d);
+        static std::string format(double value) {
+            std::string str = std::to_string(value);
 
             // Remove padding
             // This must be done in two steps because of numbers like 700.00
-            std::size_t pos1 = str.find_last_not_of("0");
-            if(pos1 != std::string::npos)
-                str.erase(pos1+1);
-
-            std::size_t pos2 = str.find_last_not_of(".");
-            if(pos2 != std::string::npos)
-                str.erase(pos2+1);
-
+            if (str.find('.') != std::string::npos) {
+                removeTrailing('0', str);
+                removeTrailing('.', str);
+            }
             return str;
         }
+
+       static void removeTrailing(char c, std::string& str) {
+            size_t pos = str.find_last_not_of(c);
+            if (pos != std::string::npos) {
+                str.erase(pos + 1);
+            }
+       }
+
 };

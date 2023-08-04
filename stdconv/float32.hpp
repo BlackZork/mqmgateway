@@ -14,7 +14,7 @@ class FloatConverter : public DataConverter {
                 ConverterTools::swapByteOrder(converted);
             int32_t int_val = ConverterTools::registersToInt32(converted, mLowFirst);
             double val = *reinterpret_cast<float*>(&int_val);
-            return MqttValue::fromDouble(ConverterTools::round(val, mPrecision));
+            return MqttValue::fromDouble(val, mPrecision);
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
@@ -52,5 +52,5 @@ class FloatConverter : public DataConverter {
     private:
         bool mLowFirst = false;
         bool mSwapBytes = false;
-        int mPrecision = -1;
+        int mPrecision = MqttValue::DEFAULT_DOUBLE_PRECISION;
 };

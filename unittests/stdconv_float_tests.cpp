@@ -24,7 +24,7 @@ TEST_CASE("A float32 value should be read") {
         MqttValue output = conv->toMqtt(input);
 
 
-        REQUIRE(output.getDouble() == expected);
+        REQUIRE(static_cast<float>(output.getDouble()) == expected);
         REQUIRE(output.getString() == expectedString);
     }
 
@@ -34,7 +34,7 @@ TEST_CASE("A float32 value should be read") {
         conv->setArgs(std::vector<std::string>({"-1", "low_first"}));
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getDouble() == expected);
+        REQUIRE(static_cast<float>(output.getDouble()) == expected);
         REQUIRE(output.getString() == expectedString);
     }
 
@@ -44,7 +44,7 @@ TEST_CASE("A float32 value should be read") {
         conv->setArgs(std::vector<std::string>({"-1", "high_first", "swap_bytes"}));
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getDouble() == expected);
+        REQUIRE(static_cast<float>(output.getDouble()) == expected);
         REQUIRE(output.getString() == expectedString);
     }
 
@@ -55,7 +55,7 @@ TEST_CASE("A float32 value should be read") {
         conv->setArgs(std::vector<std::string>({"-1", "low_first", "swap_bytes"}));
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getDouble() == expected);
+        REQUIRE(static_cast<float>(output.getDouble()) == expected);
         REQUIRE(output.getString() == expectedString);
     }
 

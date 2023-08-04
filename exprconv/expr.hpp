@@ -21,12 +21,10 @@ class ExprtkConverter : public DataConverter {
 
             double ret = mExpression.value();
 
-            if (precision == 0)
+            if (mPrecision == 0)
                 return MqttValue::fromInt(ret);
 
-            if (precision != -1)
-                ret = ConverterTools::round(ret, precision);
-            return MqttValue::fromDouble(ret);
+            return MqttValue::fromDouble(ret, mPrecision);
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
@@ -47,7 +45,7 @@ class ExprtkConverter : public DataConverter {
             mParser.compile(ConverterTools::getArg(0, args), mExpression);
 
             if (args.size() == 2)
-                precision = ConverterTools::getIntArg(1, args);
+                mPrecision = ConverterTools::getIntArg(1, args);
         }
 
         virtual ~ExprtkConverter() {}
@@ -56,7 +54,7 @@ class ExprtkConverter : public DataConverter {
         exprtk::parser<double> mParser;
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
-        int precision = -1;
+        int mPrecision = MqttValue::DEFAULT_DOUBLE_PRECISION;
 
         static double int32(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);

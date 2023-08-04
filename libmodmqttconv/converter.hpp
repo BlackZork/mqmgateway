@@ -148,18 +148,6 @@ class ConverterTools {
             int32_t value = registersToInt32(registers, false);
             return *reinterpret_cast<T*>(&value);
         }
-
-        /**
-         * round double value to decimal_digits for
-         * string formatting
-         */
-        static double round(double val, int decimal_digits) {
-            if (decimal_digits == -1)
-                return val;
-            char out[64];
-            sprintf(out, "%.*f", decimal_digits, val);
-            return strtod(out, NULL);
-        }
 };
 
 class DataConverter {

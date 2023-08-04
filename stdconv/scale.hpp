@@ -11,10 +11,7 @@ class ScaleConverter : public DataConverter {
                 * (sourceValue - sourceScaleFrom)/(sourceScaleTo - sourceScaleFrom)
                 + targetScaleFrom;
 
-            if (precision != 0)
-                targetValue = ConverterTools::round(targetValue, precision);
-
-            return MqttValue::fromDouble(targetValue);
+            return MqttValue::fromDouble(targetValue, precision);
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
