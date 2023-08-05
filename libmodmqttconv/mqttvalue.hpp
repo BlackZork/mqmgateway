@@ -48,7 +48,6 @@ class MqttValue {
             setDouble(val, precision);
         }
 
-
         MqttValue(const void* ptr, size_t size){
             mBinaryValue = std::shared_ptr<void>(malloc(size), free);
             memcpy(mBinaryValue.get(), ptr, size);
