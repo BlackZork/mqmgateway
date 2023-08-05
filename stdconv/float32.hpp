@@ -52,5 +52,5 @@ class FloatConverter : public DataConverter {
     private:
         bool mLowFirst = false;
         bool mSwapBytes = false;
-        int mPrecision = MqttValue::DEFAULT_DOUBLE_PRECISION;
+        int mPrecision = -1;
 };

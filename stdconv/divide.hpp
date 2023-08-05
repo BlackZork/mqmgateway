@@ -25,7 +25,7 @@ class DivideConverter : public DataConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            mDivider = ConverterTools::getDoubleArg(0, args);
+            mDivisor = ConverterTools::getDoubleArg(0, args);
             if (args.size() > 1) {
                 mPrecision = ConverterTools::getIntArg(1, args);
             }
@@ -37,12 +37,11 @@ class DivideConverter : public DataConverter {
 
         virtual ~DivideConverter() {}
     private:
-        double mDivider;
-        int mPrecision = MqttValue::DEFAULT_DOUBLE_PRECISION;
+        double mDivisor;
+        int mPrecision = -1;
         bool mLowFirst = false;
 
         double doMath(double value) const {
-            double ret = value / mDivider;
-            return ret;
+            return value / mDivisor;
         }
 };

@@ -115,6 +115,4 @@ TEST_CASE("A float32 value should be written") {
 
         REQUIRE(converted.values() == expected.values());
     }
-
-
 }

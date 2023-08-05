@@ -54,7 +54,7 @@ class ExprtkConverter : public DataConverter {
         exprtk::parser<double> mParser;
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
-        int mPrecision = MqttValue::DEFAULT_DOUBLE_PRECISION;
+        int mPrecision = -1;
 
         static double int32(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);

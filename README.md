@@ -454,12 +454,12 @@ MQMGateway contains *std* library with basic converters ready to use:
     Usage: state, command
 
     Arguments:
-      - divider (required)
+      - divisor (required)
       - precision (optional)
       - low_first (optional)
 
 
-    Divides modbus value by divider and rounds to (precision) digits after the decimal.
+    Divides modbus value by divisor and rounds to (precision) digits after the decimal.
     Supports int16 in single register and int32 value in two registers.
     For int32 mode the first modbus register holds higher byte, the second holds lower byte if 'low first' is not passed.
     With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.

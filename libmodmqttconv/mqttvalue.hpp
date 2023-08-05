@@ -5,7 +5,6 @@
 #include <variant>
 #include <string>
 #include <sstream>
-#include <iomanip>
 #include <limits>
 #include <memory>
 
@@ -22,9 +21,6 @@ class MqttValue {
             BINARY = 2,
             INT64 = 3
         } SourceType;
-
-        static const int DEFAULT_DOUBLE_PRECISION = 6;
-        static const int MAX_DOUBLE_PRECISION = std::numeric_limits<double>::digits10;
 
         static MqttValue fromInt(int32_t val) {
             return MqttValue(val);
@@ -74,7 +70,7 @@ class MqttValue {
         }
 
         void setDouble(double val, int precision) {
-            mValue.v_double = round(val, precision);
+            mValue.v_double = precision < 0 ? val : round(val, precision);
             mType = SourceType::DOUBLE;
         }
 
@@ -212,12 +208,13 @@ class MqttValue {
         size_t mBinarySize;
         SourceType mType;
 
+        /**
+         * round double value to decimal_digits for
+         * string formatting
+         */
         static double round(double input, int precision) {
-            double output;
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(precision < 0 ? DEFAULT_DOUBLE_PRECISION : precision) << input;
-            ss >> output;
-            return output;
+            double divisor = pow(10, precision);
+            return std::round(input * divisor) / divisor;
         }
 
         //https://codereview.stackexchange.com/questions/90565/converting-a-double-to-a-stdstring-without-scientific-notation
