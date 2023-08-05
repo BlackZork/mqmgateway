@@ -206,9 +206,9 @@ class MqttValue {
          * round double value to decimal_digits for
          * string formatting
          */
-        static double round(double input, int precision) {
+        static double round(double value, int precision) {
             double divisor = pow(10, precision);
-            return std::round(input * divisor) / divisor;
+            return std::round(value * divisor) / divisor;
         }
 
         //https://codereview.stackexchange.com/questions/90565/converting-a-double-to-a-stdstring-without-scientific-notation
