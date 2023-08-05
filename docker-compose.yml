@@ -1,0 +1,11 @@
+---
+services:
+  mqmgateway:
+    image: "ghcr.io/BlackZork/mqmgateway:feature-ci"
+    container_name: mqmgateway
+    init: true
+    restart: unless-stopped
+    volumes:
+      - "./config.yaml:/etc/modmqttd/config.yaml:ro"
+    devices:
+      - /dev/ttyUSB0
