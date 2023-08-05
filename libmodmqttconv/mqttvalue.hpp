@@ -1,13 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <cstring>
-#include <variant>
-#include <string>
-#include <sstream>
-#include <limits>
 #include <memory>
-
 #include "convexception.hpp"
 
 class MqttValue {
