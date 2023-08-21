@@ -21,12 +21,10 @@ class ExprtkConverter : public DataConverter {
 
             double ret = mExpression.value();
 
-            if (precision == 0)
+            if (mPrecision == 0)
                 return MqttValue::fromInt(ret);
 
-            if (precision != -1)
-                ret = round(ret, precision);
-            return MqttValue::fromDouble(ret);
+            return MqttValue::fromDouble(ret, mPrecision);
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
@@ -47,7 +45,7 @@ class ExprtkConverter : public DataConverter {
             mParser.compile(ConverterTools::getArg(0, args), mExpression);
 
             if (args.size() == 2)
-                precision = ConverterTools::getIntArg(1, args);
+                mPrecision = ConverterTools::getIntArg(1, args);
         }
 
         virtual ~ExprtkConverter() {}
@@ -56,13 +54,7 @@ class ExprtkConverter : public DataConverter {
         exprtk::parser<double> mParser;
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
-        int precision = -1;
-
-        static double round(double val, int decimal_digits) {
-            double divider = pow(10, decimal_digits);
-            int dummy = (int)(val * divider);
-            return dummy / divider;
-        }
+        int mPrecision = -1;
 
         static double int32(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
@@ -81,6 +73,6 @@ class ExprtkConverter : public DataConverter {
         }
 
         static double int16(const double regValue) {
-            return int16_t(regValue);
+            return ConverterTools::toNumber<int16_t>(0, regValue);
         }
 };

@@ -74,7 +74,7 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
 
             MqttValue output = conv->toMqtt(input);
 
-            REQUIRE(output.getDouble() == expected);
+            REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
             REQUIRE(output.getString() == expectedString);
         }
 
@@ -84,7 +84,7 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
 
             MqttValue output = conv->toMqtt(input);
 
-            REQUIRE(output.getDouble() == expected);
+            REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
             REQUIRE(output.getString() == expectedString);
         }
 
@@ -94,7 +94,7 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
 
             MqttValue output = conv->toMqtt(input);
 
-            REQUIRE(output.getDouble() == expected);
+            REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
             REQUIRE(output.getString() == expectedString);
         }
 
@@ -104,7 +104,7 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
 
             MqttValue output = conv->toMqtt(input);
 
-            REQUIRE(output.getDouble() == expected);
+            REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
             REQUIRE(output.getString() == expectedString);
         }
 
