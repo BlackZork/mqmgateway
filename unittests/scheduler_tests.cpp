@@ -40,7 +40,6 @@ TEST_CASE( "Modbus scheduler single register tests" ) {
 
         CHECK(duration == std::chrono::milliseconds(800));
         REQUIRE(poll.size() == 0);
-        std::cerr << "dur: " << std::chrono::duration_cast<std::chrono::milliseconds>(duration).count() << std::endl;
     }
 
 }

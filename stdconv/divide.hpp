@@ -7,14 +7,13 @@ class DivideConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
 
+            double val;
             if (data.getCount() == 1) {
-                int16_t val = data.getValue(0);
-                return MqttValue::fromDouble(doMath(val));
+                val = data.getValue(0);
+            } else {
+                val = ConverterTools::registersToInt32(data.values(), mLowFirst);
             }
-            else {
-                int32_t val = ConverterTools::registersToInt32(data.values(), mLowFirst);
-                return MqttValue::fromDouble(doMath(val));
-            }
+            return MqttValue::fromDouble(doMath(val), mPrecision);
             //TODO uint16, uint32, float as separate data_type arg
         }
 
@@ -26,9 +25,9 @@ class DivideConverter : public DataConverter {
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
-            divider = ConverterTools::getDoubleArg(0, args);
+            mDivisor = ConverterTools::getDoubleArg(0, args);
             if (args.size() > 1) {
-                precision = ConverterTools::getIntArg(1, args);
+                mPrecision = ConverterTools::getIntArg(1, args);
             }
             if (args.size() > 2) {
                 std::string first_byte = ConverterTools::getArg(2, args);
@@ -38,13 +37,11 @@ class DivideConverter : public DataConverter {
 
         virtual ~DivideConverter() {}
     private:
-        double divider;
-        int precision = -1;
+        double mDivisor;
+        int mPrecision = -1;
         bool mLowFirst = false;
 
         double doMath(double value) const {
-            double ret = value / divider;
-            ret = ConverterTools::round(ret, precision);
-            return ret;
+            return value / mDivisor;
         }
 };
