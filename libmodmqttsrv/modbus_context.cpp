@@ -186,13 +186,12 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
                 retCode = modbus_write_register(mCtx, msg.mRegisterNumber, msg.mRegisters.getValue(0));
             } else {
                 int elSize = sizeof(uint16_t);
-                int arraySize = msg.mRegisters.getCount()/16 + 1;
+                int arraySize = msg.mRegisters.getCount();
                 size_t bufSize = elSize * arraySize;
                 std::shared_ptr<uint16_t> values((uint16_t*)malloc(bufSize), free);
                 std::memset(values.get(), 0x0, bufSize);
                 for(int i = 0; i < msg.mRegisters.getCount(); i++) {
-                    int idx = i / 16;
-                    values.get()[idx] = msg.mRegisters.getValue(i);
+                    values.get()[i] = msg.mRegisters.getValue(i);
                 }
                 retCode = modbus_write_registers(mCtx, msg.mRegisterNumber, msg.mRegisters.getCount(), values.get());
             }
