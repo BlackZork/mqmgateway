@@ -85,7 +85,18 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             mRegisters[it->mSlaveId].push_back(reg);
         }
     }
-    BOOST_LOG_SEV(log, Log::debug) << "Poll specification set, got " << mRegisters.size() << " slaves," << spec.mRegisters.size() << " registers to poll";
+    BOOST_LOG_SEV(log, Log::debug) << "Poll specification set, got " << mRegisters.size() << " slaves," << spec.mRegisters.size() << " registers to poll:";
+    for (auto sit = mRegisters.begin(); sit != mRegisters.end(); sit++) {
+        for (auto it = sit->second.begin(); it != sit->second.end(); it++) {
+
+            BOOST_LOG_SEV(log, Log::debug)
+            << mNetworkName
+            << ", slave " << sit->first
+            << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
+            << ", count " << (*it)->getCount()
+            << ", poll every " <<  std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms";
+        }
+    }
 
     //now wait for MqttNetworkState(up)
 }
