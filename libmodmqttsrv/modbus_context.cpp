@@ -5,7 +5,8 @@ namespace modmqttd {
 void
 ModbusContext::init(const ModbusNetworkConfig& config)
 {
-    if (config.mType == ModbusNetworkConfig::TCPIP) {
+    mNetworkType = config.mType;
+    if (mNetworkType == ModbusNetworkConfig::TCPIP) {
         BOOST_LOG_SEV(log, Log::info) << "Connecting to " << config.mAddress << ":" << config.mPort;
         mCtx = modbus_new_tcp(config.mAddress.c_str(), config.mPort);
         modbus_set_error_recovery(mCtx,

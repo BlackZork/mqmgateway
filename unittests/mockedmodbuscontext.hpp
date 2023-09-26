@@ -8,6 +8,8 @@
 #include "libmodmqttsrv/imodbuscontext.hpp"
 #include "libmodmqttsrv/modbus_types.hpp"
 #include "libmodmqttsrv/logging.hpp"
+#include "libmodmqttsrv/config.hpp"
+
 
 class MockedModbusContext : public modmqttd::IModbusContext {
     public:
@@ -56,6 +58,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual void disconnect() { mIsConnected = false; }
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(const modmqttd::MsgRegisterValues& msg);
+        virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
 
