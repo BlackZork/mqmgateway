@@ -1,38 +1,8 @@
 #include "config.hpp"
 #include "common.hpp"
-
-template<>
-struct YAML::convert<modmqttd::ModbusNetworkConfig::RtuSerialMode> {
-    static bool decode(const YAML::Node& node, modmqttd::ModbusNetworkConfig::RtuSerialMode& rhs) {
-        auto str = node.as<std::string>();
-        if (str == "rs232") {
-            rhs = modmqttd::ModbusNetworkConfig::RtuSerialMode::RS232;
-        } else if (str == "rs485") {
-            rhs = modmqttd::ModbusNetworkConfig::RtuSerialMode::RS485;
-        } else {
-            return false;
-        }
-        return true;
-    }
-};
-
-template<>
-struct YAML::convert<modmqttd::ModbusNetworkConfig::RtuRtsMode> {
-    static bool decode(const YAML::Node& node, modmqttd::ModbusNetworkConfig::RtuRtsMode& rhs) {
-        auto str = node.as<std::string>();
-        if (str == "down") {
-            rhs = modmqttd::ModbusNetworkConfig::RtuRtsMode::DOWN;
-        } else if (str == "up") {
-            rhs = modmqttd::ModbusNetworkConfig::RtuRtsMode::UP;
-        } else {
-            return false;
-        }
-        return true;
-    }
-};
+#include "yaml_converters.hpp"
 
 namespace modmqttd {
-
 
 ConfigurationException::ConfigurationException(const YAML::Mark& mark, const char* what) {
     mWhat = "config error";

@@ -1,8 +1,12 @@
 #pragma once
 #include <cstdint>
+#include <chrono>
+#include <regex>
+
 #include <yaml-cpp/yaml.h>
-#include "exceptions.hpp"
 #include <boost/version.hpp>
+
+#include "libmodmqttsrv/exceptions.hpp"
 
 namespace modmqttd {
 

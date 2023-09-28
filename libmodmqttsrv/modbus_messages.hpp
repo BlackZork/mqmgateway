@@ -59,7 +59,7 @@ class MsgRegisterWriteFailed : public MsgRegisterMessageBase {
 
 class MsgRegisterPoll {
     public:
-        static constexpr int INVALID_REFRESH = -1;
+        static constexpr std::chrono::milliseconds INVALID_REFRESH = std::chrono::milliseconds(-1);
         MsgRegisterPoll(int registerNumber, int count=1)
             : mRegister(registerNumber), mCount(count)
         {
@@ -77,7 +77,7 @@ class MsgRegisterPoll {
         int mRegister;
         int mCount;
         RegisterType mRegisterType;
-        int mRefreshMsec = INVALID_REFRESH;
+        std::chrono::milliseconds mRefreshMsec = INVALID_REFRESH;
 
         void merge(const MsgRegisterPoll& other);
         bool overlaps(const MsgRegisterPoll& poll) const;

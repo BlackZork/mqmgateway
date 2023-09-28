@@ -13,6 +13,7 @@
 #include "modbus_messages.hpp"
 #include "modbus_context.hpp"
 #include "conv_name_parser.hpp"
+#include "yaml_converters.hpp"
 
 #include <csignal>
 #include <iostream>
@@ -331,25 +332,12 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
 }
 
 bool
-ModMqtt::parseAndAddRefresh(std::stack<int>& values, const YAML::Node& data) {
-    std::string str;
-    if (!ConfigTools::readOptionalValue<std::string>(str, data, "refresh"))
+ModMqtt::parseAndAddRefresh(std::stack<std::chrono::milliseconds>& values, const YAML::Node& parent) {
+    std::chrono::milliseconds ts;
+    if (!ConfigTools::readOptionalValue<std::chrono::milliseconds>(ts, parent, "refresh"))
         return false;
 
-    std::regex re("([0-9]+)(ms|s|min)");
-    std::cmatch matches;
-
-    if (!std::regex_match(str.c_str(), matches, re))
-        throw ConfigurationException(data["refresh"].Mark(), "Invalid refresh time");
-
-    int value = std::stoi(matches[1]);
-    std::string unit = matches[2];
-    if (unit == "s")
-        value *= 1000;
-    else if (unit == "min")
-        value *= 1000 * 60;
-
-    values.push(value);
+    values.push(ts);
     return true;
 }
 
@@ -359,7 +347,7 @@ ModMqtt::readObjectState(
     const std::string& default_network,
     int default_slave,
     std::vector<MsgRegisterPollSpecification>& specs_out,
-    std::stack<int>& currentRefresh,
+    std::stack<std::chrono::milliseconds>& currentRefresh,
     const YAML::Node& state)
 {
     if (!state.IsDefined())
@@ -500,7 +488,7 @@ ModMqtt::readObjectStateNode(
     const std::string& default_network,
     int default_slave,
     std::vector<MsgRegisterPollSpecification>& specs_out,
-    std::stack<int>& currentRefresh,
+    std::stack<std::chrono::milliseconds>& currentRefresh,
     const std::string& stateName,
     const YAML::Node& node,
     bool isListMember
@@ -533,7 +521,7 @@ ModMqtt::readObjectAvailability(
     const std::string& default_network,
     int default_slave,
     std::vector<MsgRegisterPollSpecification>& specs_out,
-    std::stack<int>& currentRefresh,
+    std::stack<std::chrono::milliseconds>& currentRefresh,
     const YAML::Node& availability)
 {
     if (!availability.IsDefined())
@@ -579,8 +567,8 @@ ModMqtt::initObjects(const YAML::Node& config)
     std::vector<MqttObjectCommand> commands;
     std::vector<MqttObject> objects;
 
-    int defaultRefresh = 5000;
-    std::stack<int> currentRefresh;
+    auto defaultRefresh = std::chrono::milliseconds(5000);
+    std::stack<std::chrono::milliseconds> currentRefresh;
     currentRefresh.push(defaultRefresh);
 
     const YAML::Node& mqtt = config["mqtt"];
@@ -629,7 +617,7 @@ ModMqtt::initObjects(const YAML::Node& config)
 
 MqttObjectRegisterIdent
 ModMqtt::updateSpecification(
-    std::stack<int>& currentRefresh,
+    std::stack<std::chrono::milliseconds>& currentRefresh,
     const std::string& default_network,
     int default_slave,
     std::vector<MsgRegisterPollSpecification>& specs,

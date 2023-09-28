@@ -43,6 +43,7 @@ add_executable(tests
     stdconv_string_tests.cpp
     stdconv_tests.cpp
     two_slaves_tests.cpp
+    yaml_converters_tests.cpp
 )
 
 target_link_libraries(tests
