@@ -2,7 +2,7 @@
 #include "plugin.hpp"
 
 #include "bitmask.hpp"
-#include "divide.hpp"
+#include "single_arg_ops.hpp"
 #include "int16.hpp"
 #include "int32.hpp"
 #include "scale.hpp"
@@ -14,6 +14,8 @@ DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
     if (name == "divide")
         return new DivideConverter();
+    else if (name == "multiply")
+        return new MultiplyConverter();
     else if (name == "int32")
         return new Int32Converter();
     else if (name == "bitmask")

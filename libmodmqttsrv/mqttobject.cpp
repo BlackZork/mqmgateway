@@ -153,9 +153,13 @@ createConvertedValue(
         case MqttValue::SourceType::INT:
             writer.Int(value.getInt());
             break;
-        case MqttValue::SourceType::DOUBLE:
+        case MqttValue::SourceType::DOUBLE: {
+            int prec = value.getDoublePrecision();
+            if (prec != MqttValue::NO_PRECISION)
+                writer.SetMaxDecimalPlaces(prec);
             writer.Double(value.getDouble());
             break;
+        }
         case MqttValue::SourceType::BINARY:
             writer.String(static_cast<const char*>(value.getBinaryPtr()), value.getBinarySize());
             break;

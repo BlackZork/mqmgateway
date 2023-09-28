@@ -31,12 +31,14 @@ add_executable(tests
     mqtt_unnamed_scalar_conv_tests.cpp
     mqtt_unnamed_scalar_expr_tests.cpp
     mqtt_unnamed_scalar_tests.cpp
+    mqtt_value_tests.cpp
     real_server_tests.cpp
     register_address_tests.cpp
     scheduler_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp
     stdconv_divide_tests.cpp
+    stdconv_multiply_tests.cpp
     stdconv_float_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp
