@@ -19,6 +19,9 @@ ConfigurationException::ConfigurationException(const YAML::Mark& mark, const cha
 ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
     mName = ConfigTools::readRequiredString(source, "name");
 
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mResponseTimeout, source, "response_timeout");
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mResponseDataTimeout, source, "response_data_timeout");
+
     if (source["device"]) {
         mType = Type::RTU;
         mDevice = ConfigTools::readRequiredString(source, "device");

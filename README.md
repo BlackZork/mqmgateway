@@ -104,11 +104,11 @@ Modbus network configuration parameters are listed below:
 
 * **response_timeout** (optional, default ?)
 
-  A timeout interval used to wait for modbus response. This setting is propagated down mqtt object and register definitions. See modbus_set_response_timeout(3)
+  A default timeout interval used to wait for modbus response. See modbus_set_response_timeout(3) for details.
 
 * **response_data_timeout** (optional, default ?)
 
-  A timeout interval used to wait for data when reading response from modbus device. See modbus_set_byte_timeout(3).
+  A dafault timeout interval used to wait for data when reading response from modbus device. See modbus_set_byte_timeout(3) for details.
 
 * RTU device settings
   For details, see modbus_new_rtu(3)

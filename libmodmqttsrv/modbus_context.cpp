@@ -41,10 +41,10 @@ ModbusContext::init(const ModbusNetworkConfig& config)
                 break;
         }
         if (serialMode >= 0) {
-            BOOST_LOG_SEV(log, Log::info) << "Set RTU serial mode to " << serialModeStr;
             if (modbus_rtu_set_serial_mode(mCtx, serialMode)) {
                 throw ModbusContextException("Unable to set RTU serial mode");
             }
+            BOOST_LOG_SEV(log, Log::info) << "RTU serial mode set to " << serialModeStr;
         }
 
         int rtsMode;
@@ -64,22 +64,32 @@ ModbusContext::init(const ModbusNetworkConfig& config)
                 break;
         }
         if (rtsMode >= 0) {
-            BOOST_LOG_SEV(log, Log::info) << "Set RTU RTS mode to " << rtsModeStr;
             if (modbus_rtu_set_rts(mCtx, rtsMode)) {
                 throw ModbusContextException("Unable to set RTS mode");
             }
+            BOOST_LOG_SEV(log, Log::info) << "RTU RTS mode set to " << rtsModeStr;
         }
 
         if (config.mRtsDelayUs > 0) {
-            BOOST_LOG_SEV(log, Log::info) << "Set RTU delay to " << config.mRtsDelayUs << "us";
             if (modbus_rtu_set_rts_delay(mCtx, config.mRtsDelayUs)) {
                 throw ModbusContextException("Unable to set RTS delay");
             }
+            BOOST_LOG_SEV(log, Log::info) << "RTU delay set to " << config.mRtsDelayUs << "us";
         }
 
-        BOOST_LOG_SEV(log, Log::info) << "Set RTU response timeout to 1s";
-        if (modbus_set_response_timeout(mCtx, 1, 0)) {
+
+        uint32_t us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseTimeout).count();
+        if (modbus_set_response_timeout(mCtx, 0, us)) {
             throw ModbusContextException("Unable to set response timeout");
+        }
+        BOOST_LOG_SEV(log, Log::info) << "Response timeout set to " << config.mResponseTimeout.count() << "ms";
+
+        if (config.mResponseDataTimeout.count() > 0) {
+            us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseDataTimeout).count();
+            if (modbus_set_byte_timeout(mCtx, 0, us)) {
+                throw ModbusContextException("Unable to set response timeout");
+            }
+            BOOST_LOG_SEV(log, Log::info) << "Data response timeout set to " << config.mResponseDataTimeout.count() << "ms";
         }
     }
 
