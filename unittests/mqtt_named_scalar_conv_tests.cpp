@@ -27,10 +27,6 @@ mqtt:
         register: tcptest.1.2
         register_type: input
         converter: std.divide(10,3)
-      availability:
-        register: tcptest.1.3
-        register_type: bit
-        available_value: 1
 )";
 
 TEST_CASE ("Named scalar should output converted value") {

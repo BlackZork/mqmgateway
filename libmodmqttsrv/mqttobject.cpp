@@ -232,7 +232,7 @@ MqttObjectState::createMessage() const {
     // processing
     if (mValues.size() == 1) {
         const MqttObjectStateValue& single(mValues[0]);
-        if (single.isUnnamed() && single.isScalar()) {
+        if (single.isUnnamed() && (single.isScalar() || mConverter != nullptr)) {
             if (mConverter != nullptr) {
                 MqttValue v = mConverter->toMqtt(single.getRawArray());
                 return v.getString();
@@ -250,10 +250,7 @@ MqttObjectState::createMessage() const {
         if (mValues.size() == 1) {
             if (first.isUnnamed()) {
                 //unnamed array, single value is handled above
-                if (mConverter != nullptr)
-                    createConvertedValue(writer, first.getRawArray(), *mConverter);
-                else
-                    createRegisterValuesArray(writer, first.getValues());
+                createRegisterValuesArray(writer, first.getValues());
             } else {
                 writer.StartObject();
                 writer.Key(first.mName.c_str());
