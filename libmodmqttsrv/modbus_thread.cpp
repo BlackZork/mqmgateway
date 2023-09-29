@@ -21,11 +21,9 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mModbus = ModMqtt::getModbusFactory().getContext(config.mName);
     mModbus->init(config);
     // if you experience read timeouts on RTU then increase
-    // delay_between_polls config value
-    // TODO add config variable 'delay_between_polls' in modbus section
-    if (mModbus->getNetworkType() == ModbusNetworkConfig::Type::RTU)
-        mDelayBetweenPolls = std::chrono::milliseconds(15);
-    BOOST_LOG_SEV(log, Log::info) << "Minimum delay between polls " << std::chrono::duration_cast<std::chrono::milliseconds>(mDelayBetweenPolls).count() << "ms";
+    // min_delay_before_poll config value
+    mMinDelayBeforePoll = config.mMinDelayBeforePoll;
+    BOOST_LOG_SEV(log, Log::info) << "Minimum delay before poll set to " << std::chrono::duration_cast<std::chrono::milliseconds>(mMinDelayBeforePoll).count() << "ms";
 }
 
 void
@@ -242,8 +240,8 @@ ModbusThread::run() {
                             //this may call processCommands
                             pollRegisters(slave->first, slave->second);
 
-                            if (slave != toRefresh.end() && mDelayBetweenPolls != std::chrono::milliseconds(0))
-                                std::this_thread::sleep_for(mDelayBetweenPolls);
+                            if (slave != toRefresh.end() && mMinDelayBeforePoll != std::chrono::milliseconds(0))
+                                std::this_thread::sleep_for(mMinDelayBeforePoll);
                         }
                         //decrease time to next poll by last poll time
                         if (toRefresh.size() != 0) {
@@ -272,8 +270,8 @@ ModbusThread::run() {
             //for next poll if we are exiting
             if (mShouldRun) {
                 QueueItem item;
-                if (waitDuration <= std::chrono::steady_clock::duration::zero() && mDelayBetweenPolls != std::chrono::milliseconds(0)) {
-                    waitDuration = mDelayBetweenPolls;
+                if (waitDuration <= std::chrono::steady_clock::duration::zero() && mMinDelayBeforePoll != std::chrono::milliseconds(0)) {
+                    waitDuration = mMinDelayBeforePoll;
                 }
                 BOOST_LOG_SEV(log, Log::debug) << "Waiting " <<  std::chrono::duration_cast<std::chrono::milliseconds>(waitDuration).count() << "ms for messages";
                 if (!mToModbusQueue.wait_dequeue_timed(item, waitDuration))

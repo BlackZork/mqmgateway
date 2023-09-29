@@ -96,6 +96,7 @@ class ModbusNetworkConfig {
         std::string mName = "";
         std::chrono::milliseconds mResponseTimeout = std::chrono::seconds(1);
         std::chrono::milliseconds mResponseDataTimeout = std::chrono::seconds(0);
+        std::chrono::milliseconds mMinDelayBeforePoll = std::chrono::seconds(0);
 
         //RTU only
         std::string mDevice = "";

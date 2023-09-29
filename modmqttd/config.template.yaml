@@ -31,6 +31,8 @@ modbus:
       #rtu_rts_mode: down
 
       #rtu_rts_delay: 100   in microseconds
+      # set minimum delay between polls      
+      min_delay_before_poll: 15ms
 
     - name: tcptest
       # if address is defined then this is a ModbusTCP network

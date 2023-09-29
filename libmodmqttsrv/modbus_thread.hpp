@@ -32,7 +32,7 @@ class ModbusThread {
         bool mShouldPoll = false;
 
         std::shared_ptr<IModbusContext> mModbus;
-        std::chrono::steady_clock::duration mDelayBetweenPolls = std::chrono::steady_clock::duration::zero();
+        std::chrono::steady_clock::duration mMinDelayBeforePoll = std::chrono::steady_clock::duration::zero();
         ModbusScheduler mScheduler;
 
         void configure(const ModbusNetworkConfig& config);

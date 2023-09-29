@@ -21,6 +21,7 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
 
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mResponseTimeout, source, "response_timeout");
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mResponseDataTimeout, source, "response_data_timeout");
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mMinDelayBeforePoll, source, "min_delay_before_poll");
 
     if (source["device"]) {
         mType = Type::RTU;
