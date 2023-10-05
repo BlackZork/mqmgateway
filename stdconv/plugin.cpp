@@ -9,6 +9,7 @@
 #include "string.hpp"
 #include "uint32.hpp"
 #include "float32.hpp"
+#include "int8.hpp"
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
@@ -30,5 +31,9 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new UInt32Converter();
     else if (name == "float32")
         return new FloatConverter();
+    else if (name == "int8")
+        return new Int8Converter();
+    else if (name == "uint8")
+        return new UInt8Converter();
     return nullptr;
 }

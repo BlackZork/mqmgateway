@@ -130,22 +130,3 @@ TEST_CASE("uint32 tests") {
 
 }
 
-
-std::string format(double value, int mDoublePrecision = -1) {
-    double intpart;
-    modf(value, &intpart);
-
-    if (intpart == value && mDoublePrecision == -1)
-        return std::to_string(int(intpart));
-
-    std::stringstream sstream;
-    sstream.setf(std::ios::fixed);
-
-    if (mDoublePrecision != -1)
-        sstream.precision(mDoublePrecision);
-
-    sstream << value;
-    return sstream.str();
-}
-
-

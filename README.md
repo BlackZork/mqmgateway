@@ -480,6 +480,33 @@ MQMGateway contains *std* library with basic converters ready to use:
 
     Multiples value. See 'divide' for description of 'precision' and 'low_first' arguments.
 
+  * **int8**
+
+    Usage: state
+
+    Arguments:
+     - first (optional)
+
+    Parses and writes modbus register data as signed int8. Second byte is parsed by default, pass `first` as argument to read first byte.
+
+
+  * **uint8**
+
+    Usage: state
+
+    Arguments:
+     - first (optional)
+
+    Parses and writes modbus register data as unsigned int8. Second byte is parsed by default, pass `first` as argument to read first byte.
+
+
+  * **int16**
+
+    Usage: state, command
+
+    Parses and writes modbus register data as signed int16.
+
+
   * **int32**
 
     Usage: state, command
@@ -501,13 +528,24 @@ MQMGateway contains *std* library with basic converters ready to use:
 
     Same as int32, but modbus registers are interpreted as unsingned int32.
 
-
-  * **uint16**
+  * **float**
 
     Usage: state, command
+    Arguments:
+      - precision (optional)
+      - low_first, high_first (optional)
+      - swap_bytes (optional)
 
-    Parses and writes modbus register data as unsigned int.
+    Combines two modbus registers into one 32bit float or writes mqtt value to two modbus registers as float.
+    Without arguments the first modbus register holds higher byte, the second holds lower byte.
+    With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
 
+    If 'swap_bytes' is defined, then bytes in both registers are swapped before reading and writing. Float value stored on four bytes _ABCD_ will be written to modbus registers R0, R1 as:
+
+    - no arguments or high_first: R0=_AB_, R1=_CD_
+    - low_first: R0=_CD_, R1=_AB_
+    - high_first, swap_bytes: R0=_BA_, R1=_DC_
+    - low_first, swap_bytes: R0=_DC_, R1=_BA_
 
   * **bitmask**
 
