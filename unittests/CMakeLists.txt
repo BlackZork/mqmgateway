@@ -1,5 +1,4 @@
 if(WITHOUT_TESTS)
-  # standalone build
   return()
 endif()
 
