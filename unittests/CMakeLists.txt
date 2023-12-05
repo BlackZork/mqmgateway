@@ -1,3 +1,8 @@
+if(WITHOUT_TESTS)
+  # standalone build
+  return()
+endif()
+
 find_package(Catch2 REQUIRED)
 
 add_executable(tests
