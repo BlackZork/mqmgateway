@@ -4,6 +4,10 @@
 
 namespace modmqttd {
 
+#if __cplusplus < 201703L
+    constexpr std::chrono::milliseconds MsgRegisterPoll::INVALID_REFRESH;
+#endif
+
 bool
 MsgRegisterPoll::overlaps(const MsgRegisterPoll& poll) const {
     if (mRegisterType != poll.mRegisterType
