@@ -3,7 +3,7 @@
 #include "libmodmqttsrv/modbus_messages.hpp"
 #include "libmodmqttsrv/modbus_context.hpp"
 #include "libmodmqttsrv/debugtools.hpp"
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 #include <thread>
 #include <iostream>

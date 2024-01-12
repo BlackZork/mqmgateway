@@ -1,5 +1,5 @@
 #include "defaults.hpp"
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
 #include "defaults.hpp"

@@ -1,5 +1,5 @@
 #include <boost/dll/import.hpp>
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttsrv/config.hpp"
 
