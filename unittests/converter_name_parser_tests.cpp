@@ -1,6 +1,6 @@
 #include <regex>
 
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "libmodmqttsrv/conv_name_parser.hpp"
 
 TEST_CASE("Convert name parser tests") {

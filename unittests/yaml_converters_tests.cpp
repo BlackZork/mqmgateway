@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include <yaml-cpp/yaml.h>
 
 #include "libmodmqttsrv/yaml_converters.hpp"
