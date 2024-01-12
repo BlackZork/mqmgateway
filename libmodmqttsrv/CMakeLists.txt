@@ -21,6 +21,8 @@ add_library(modmqttsrv
     modbus_messages.hpp
     modbus_scheduler.cpp
     modbus_scheduler.hpp
+    modbus_slave.cpp
+    modbus_slave.hpp
     modbus_thread.cpp
     modbus_thread.hpp
     modbus_types.hpp

@@ -14,13 +14,15 @@ modbus:
     - name: tcptest
       address: localhost
       port: 501
-      poll_groups:
-        - register: 1.1
-          register_type: input
-          count: 10
-        - register: 1.20
-          register_type: input
-          count: 5
+      slaves:
+        - address: 1
+          poll_groups:
+            - register: 1
+              register_type: input
+              count: 10
+            - register: 20
+              register_type: input
+              count: 5
 mqtt:
   client_id: mqtt_test
   refresh: 1s
@@ -88,10 +90,12 @@ modbus:
     - name: tcptest
       address: localhost
       port: 501
-      poll_groups:
-        - register: 1.1
-          register_type: input
-          count: 2
+      slaves:
+        - address: 1
+          poll_groups:
+            - register: 1
+              register_type: input
+              count: 2
 mqtt:
   client_id: mqtt_test
   refresh: 10ms
