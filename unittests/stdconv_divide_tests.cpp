@@ -1,5 +1,5 @@
 #include <libmodmqttsrv/config.hpp>
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include <boost/dll/import.hpp>
 
 #include "libmodmqttconv/converterplugin.hpp"
@@ -53,7 +53,7 @@ TEST_CASE("A number value should be divided") {
     SECTION("when two modbus registers are converted into a string, low byte first") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{0x02, 0x1});
 
-        args.push_back("1");
+        args.push_back("0");
         args.push_back("low_first");
         conv->setArgs(args);
         MqttValue output = conv->toMqtt(input);

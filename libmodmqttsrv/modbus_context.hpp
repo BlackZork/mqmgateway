@@ -2,7 +2,6 @@
 
 #include <modbus/modbus.h>
 
-#include "config.hpp"
 #include "modbus_messages.hpp"
 #include "logging.hpp"
 #include "register_poll.hpp"
@@ -21,6 +20,7 @@ class ModbusContext : public IModbusContext {
         virtual void disconnect();
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const RegisterPoll& regData);
         virtual void writeModbusRegisters(const MsgRegisterValues& msg);
+        virtual ModbusNetworkConfig::Type getNetworkType() const { return mNetworkType; }
         virtual ~ModbusContext() {
             modbus_free(mCtx);
         };
@@ -28,6 +28,7 @@ class ModbusContext : public IModbusContext {
         boost::log::sources::severity_logger<Log::severity> log;
         void handleError(const std::string& desc);
         bool mIsConnected = false;
+        ModbusNetworkConfig::Type mNetworkType;
         modbus_t* mCtx = NULL;
 };
 

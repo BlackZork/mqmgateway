@@ -44,7 +44,7 @@ MqttObjectRegisterHolder<T>::updateRegisterValue(const MqttObjectRegisterIdent& 
     auto reg = mRegisterValues.find(ident);
     if (reg != mRegisterValues.end()) {
         reg->second.setReadError(false);
-        if (reg->second.getRawValue() != value) {
+        if (!reg->second.hasValue() || reg->second.getRawValue() != value) {
             reg->second.setValue(value);
             return true;
         }
@@ -153,9 +153,13 @@ createConvertedValue(
         case MqttValue::SourceType::INT:
             writer.Int(value.getInt());
             break;
-        case MqttValue::SourceType::DOUBLE:
+        case MqttValue::SourceType::DOUBLE: {
+            int prec = value.getDoublePrecision();
+            if (prec != MqttValue::NO_PRECISION)
+                writer.SetMaxDecimalPlaces(prec);
             writer.Double(value.getDouble());
             break;
+        }
         case MqttValue::SourceType::BINARY:
             writer.String(static_cast<const char*>(value.getBinaryPtr()), value.getBinarySize());
             break;
@@ -228,7 +232,7 @@ MqttObjectState::createMessage() const {
     // processing
     if (mValues.size() == 1) {
         const MqttObjectStateValue& single(mValues[0]);
-        if (single.isUnnamed() && single.isScalar()) {
+        if (single.isUnnamed() && (single.isScalar() || mConverter != nullptr)) {
             if (mConverter != nullptr) {
                 MqttValue v = mConverter->toMqtt(single.getRawArray());
                 return v.getString();
@@ -246,10 +250,7 @@ MqttObjectState::createMessage() const {
         if (mValues.size() == 1) {
             if (first.isUnnamed()) {
                 //unnamed array, single value is handled above
-                if (mConverter != nullptr)
-                    createConvertedValue(writer, first.getRawArray(), *mConverter);
-                else
-                    createRegisterValuesArray(writer, first.getValues());
+                createRegisterValuesArray(writer, first.getValues());
             } else {
                 writer.StartObject();
                 writer.Key(first.mName.c_str());

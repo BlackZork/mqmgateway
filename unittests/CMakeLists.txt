@@ -1,3 +1,7 @@
+if(WITHOUT_TESTS)
+  return()
+endif()
+
 find_package(Catch2 REQUIRED)
 
 add_executable(tests
@@ -31,16 +35,20 @@ add_executable(tests
     mqtt_unnamed_scalar_conv_tests.cpp
     mqtt_unnamed_scalar_expr_tests.cpp
     mqtt_unnamed_scalar_tests.cpp
+    mqtt_value_tests.cpp
     real_server_tests.cpp
     register_address_tests.cpp
     scheduler_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp
     stdconv_divide_tests.cpp
+    stdconv_int8_tests.cpp
+    stdconv_multiply_tests.cpp
     stdconv_float_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp
     two_slaves_tests.cpp
+    yaml_converters_tests.cpp
 )
 
 target_link_libraries(tests

@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
 #include "defaults.hpp"
@@ -128,3 +128,29 @@ TEST_CASE ("Unchanged state should not be published when pulled as a pull group"
     server.requirePublishCount("second_state/state", 1);
 }
 
+
+TEST_CASE ("Availablity should be changed for all registers in poll group") {
+    MockedModMqttServerThread server(config2);
+    server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 2);
+
+    server.start();
+
+    // initial publish
+    server.waitForPublish("first_state/availability");
+    REQUIRE(server.mqttValue("first_state/availability") == "1");
+    server.waitForPublish("second_state/availability");
+    REQUIRE(server.mqttValue("first_state/availability") == "1");
+
+    server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 10);
+    server.setModbusRegisterReadError("tcptest", 1, 1, modmqttd::RegisterType::INPUT);
+
+    //wait for 4sec for three read attempts
+    server.waitForPublish("first_state/availability", defaultWaitTime(std::chrono::milliseconds(4000)));
+    REQUIRE(server.mqttValue("first_state/availability") == "0");
+
+    server.waitForPublish("second_state/availability", defaultWaitTime(std::chrono::milliseconds(4000)));
+    REQUIRE(server.mqttValue("second_state/availability") == "0");
+
+    server.stop();
+}

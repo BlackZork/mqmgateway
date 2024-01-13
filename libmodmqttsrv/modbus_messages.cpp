@@ -4,6 +4,10 @@
 
 namespace modmqttd {
 
+#if __cplusplus < 201703L
+    constexpr std::chrono::milliseconds MsgRegisterPoll::INVALID_REFRESH;
+#endif
+
 bool
 MsgRegisterPoll::overlaps(const MsgRegisterPoll& poll) const {
     if (mRegisterType != poll.mRegisterType
@@ -32,7 +36,7 @@ MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
         mRefreshMsec = other.mRefreshMsec;
     } else if (other.mRefreshMsec != INVALID_REFRESH && mRefreshMsec > other.mRefreshMsec) {
         mRefreshMsec = other.mRefreshMsec;
-        BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << mRefreshMsec << " on existing register " << mRegister;
+        BOOST_LOG_SEV(log, Log::debug) << "Setting refresh " << mRefreshMsec.count() << "ms on existing register " << mRegister;
     }
 }
 
@@ -121,7 +125,7 @@ MsgRegisterPollSpecification::merge(const MsgRegisterPoll& poll) {
     if (overlaped.empty()) {
         BOOST_LOG_SEV(log, Log::debug) << "Adding new register " << poll.mRegister <<
         " (" << poll.mCount << ")" << " type=" << poll.mRegisterType << " refresh=" <<
-        poll.mRefreshMsec << " slaveId=" << poll.mSlaveId << " on network " << mNetworkName;
+        poll.mRefreshMsec.count() << "ms slaveId=" << poll.mSlaveId << " on network " << mNetworkName;
         mRegisters.push_back(poll);
     } else {
         mRegisters.push_back(poll);

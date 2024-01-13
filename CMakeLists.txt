@@ -41,15 +41,19 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 add_subdirectory(stdconv)
 add_dependencies(modmqttd stdconv)
+if (!WITHOUT_TESTS)
 add_dependencies(tests stdconv)
+endif()
 
 if (EXPRTK_INCLUDE_DIR)
     include_directories(${EXPRTK_INCLUDE_DIR})
     add_subdirectory(exprconv)    
-    target_compile_definitions(tests PRIVATE HAVE_EXPRTK)
-
     add_dependencies(modmqttd exprconv)
-    add_dependencies(tests exprconv)
+
+    if (!WITHOUT_TESTS)
+        target_compile_definitions(tests PRIVATE HAVE_EXPRTK)
+        add_dependencies(tests exprconv)
+    endif()
 
     install(TARGETS exprconv DESTINATION lib/modmqttd)
 endif()

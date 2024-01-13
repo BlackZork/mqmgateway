@@ -1,8 +1,12 @@
 #pragma once
 #include <cstdint>
+#include <chrono>
+#include <regex>
+
 #include <yaml-cpp/yaml.h>
-#include "exceptions.hpp"
 #include <boost/version.hpp>
+
+#include "libmodmqttsrv/exceptions.hpp"
 
 namespace modmqttd {
 
@@ -87,30 +91,13 @@ class ModbusNetworkConfig {
 
         ModbusNetworkConfig() {}
         ModbusNetworkConfig(const YAML::Node& source);
-        bool isSameAs(const ModbusNetworkConfig& other) {
-            if (mName != other.mName || mType != other.mType)
-                throw ModMqttProgramException("Cannot compare config change for diffrent modbus networks");
-            switch(mType) {
-                case RTU:
-                    return mDevice == other.mDevice &&
-                            mBaud == other.mBaud &&
-                            mParity == other.mParity &&
-                            mDataBit == other.mDataBit &&
-                            mStopBit == other.mStopBit &&
-                            mRtuSerialMode == other.mRtuSerialMode &&
-                            mRtsMode == other.mRtsMode &&
-                            mRtsDelayUs == other.mRtsDelayUs;
-                break;
-                case TCPIP:
-                    return mAddress == other.mAddress && mPort == other.mPort;
-                break;
-                default:
-                    throw ModMqttProgramException("Unknown config type");
-            }
-        };
 
         Type mType;
         std::string mName = "";
+        std::chrono::milliseconds mResponseTimeout = std::chrono::seconds(1);
+        std::chrono::milliseconds mResponseDataTimeout = std::chrono::seconds(0);
+        std::chrono::milliseconds mMinDelayBeforePoll = std::chrono::seconds(0);
+
         //RTU only
         std::string mDevice = "";
         int mBaud = 0;

@@ -32,8 +32,10 @@ add_library(modmqttsrv
     mqttclient.hpp
     mqttobject.cpp
     mqttobject.hpp
+    queue_item.hpp
     register_poll.cpp
     register_poll.hpp
+    yaml_converters.hpp
 )
 
 target_include_directories (modmqttsrv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

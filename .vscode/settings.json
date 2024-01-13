@@ -81,7 +81,9 @@
         "numbers": "cpp",
         "semaphore": "cpp",
         "span": "cpp",
-        "stdfloat": "cpp"
+        "stdfloat": "cpp",
+        "any": "cpp",
+        "forward_list": "cpp"
     },
     "cmake.configureOnOpen": true,
     "testMate.cpp.debug.configTemplate": {
@@ -105,7 +107,7 @@
         "environment": "${envObjArray}",
         "sourceFileMap": "${sourceFileMapObj}",
         "testMate.cpp.debug.setEnv": {
-            "MQM_TEST_DEFAULT_WAIT_MS": "100000"
+            "MQM_TEST_DEFAULT_WAIT_MS": "300000" //5 min
           }        
       }    
 }

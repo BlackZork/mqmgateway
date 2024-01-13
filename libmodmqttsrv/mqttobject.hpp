@@ -93,6 +93,7 @@ class MqttObjectAvailabilityValue : public MqttObjectRegisterValue {
         MqttObjectAvailabilityValue(uint16_t availValue = 1) : mAvailableValue(availValue), MqttObjectRegisterValue() {};
         AvailableFlag getAvailabilityFlag() const;
     private:
+        // expected register value if register is available
         uint16_t mAvailableValue;
 };
 

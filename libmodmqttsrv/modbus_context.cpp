@@ -5,7 +5,8 @@ namespace modmqttd {
 void
 ModbusContext::init(const ModbusNetworkConfig& config)
 {
-    if (config.mType == ModbusNetworkConfig::TCPIP) {
+    mNetworkType = config.mType;
+    if (mNetworkType == ModbusNetworkConfig::TCPIP) {
         BOOST_LOG_SEV(log, Log::info) << "Connecting to " << config.mAddress << ":" << config.mPort;
         mCtx = modbus_new_tcp(config.mAddress.c_str(), config.mPort);
         modbus_set_error_recovery(mCtx,
@@ -40,10 +41,10 @@ ModbusContext::init(const ModbusNetworkConfig& config)
                 break;
         }
         if (serialMode >= 0) {
-            BOOST_LOG_SEV(log, Log::info) << "Set RTU serial mode to " << serialModeStr;
             if (modbus_rtu_set_serial_mode(mCtx, serialMode)) {
                 throw ModbusContextException("Unable to set RTU serial mode");
             }
+            BOOST_LOG_SEV(log, Log::info) << "RTU serial mode set to " << serialModeStr;
         }
 
         int rtsMode;
@@ -63,22 +64,32 @@ ModbusContext::init(const ModbusNetworkConfig& config)
                 break;
         }
         if (rtsMode >= 0) {
-            BOOST_LOG_SEV(log, Log::info) << "Set RTU RTS mode to " << rtsModeStr;
             if (modbus_rtu_set_rts(mCtx, rtsMode)) {
                 throw ModbusContextException("Unable to set RTS mode");
             }
+            BOOST_LOG_SEV(log, Log::info) << "RTU RTS mode set to " << rtsModeStr;
         }
 
         if (config.mRtsDelayUs > 0) {
-            BOOST_LOG_SEV(log, Log::info) << "Set RTU delay to " << config.mRtsDelayUs << "us";
             if (modbus_rtu_set_rts_delay(mCtx, config.mRtsDelayUs)) {
                 throw ModbusContextException("Unable to set RTS delay");
             }
+            BOOST_LOG_SEV(log, Log::info) << "RTU delay set to " << config.mRtsDelayUs << "us";
         }
 
-        BOOST_LOG_SEV(log, Log::info) << "Set RTU response timeout to 1s";
-        if (modbus_set_response_timeout(mCtx, 1, 0)) {
+
+        uint32_t us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseTimeout).count();
+        if (modbus_set_response_timeout(mCtx, 0, us)) {
             throw ModbusContextException("Unable to set response timeout");
+        }
+        BOOST_LOG_SEV(log, Log::info) << "Response timeout set to " << config.mResponseTimeout.count() << "ms";
+
+        if (config.mResponseDataTimeout.count() > 0) {
+            us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseDataTimeout).count();
+            if (modbus_set_byte_timeout(mCtx, 0, us)) {
+                throw ModbusContextException("Unable to set response timeout");
+            }
+            BOOST_LOG_SEV(log, Log::info) << "Data response timeout set to " << config.mResponseDataTimeout.count() << "ms";
         }
     }
 
@@ -186,13 +197,12 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
                 retCode = modbus_write_register(mCtx, msg.mRegisterNumber, msg.mRegisters.getValue(0));
             } else {
                 int elSize = sizeof(uint16_t);
-                int arraySize = msg.mRegisters.getCount()/16 + 1;
+                int arraySize = msg.mRegisters.getCount();
                 size_t bufSize = elSize * arraySize;
                 std::shared_ptr<uint16_t> values((uint16_t*)malloc(bufSize), free);
                 std::memset(values.get(), 0x0, bufSize);
                 for(int i = 0; i < msg.mRegisters.getCount(); i++) {
-                    int idx = i / 16;
-                    values.get()[idx] = msg.mRegisters.getValue(i);
+                    values.get()[i] = msg.mRegisters.getValue(i);
                 }
                 retCode = modbus_write_registers(mCtx, msg.mRegisterNumber, msg.mRegisters.getCount(), values.get());
             }

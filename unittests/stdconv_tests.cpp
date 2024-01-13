@@ -1,5 +1,5 @@
 #include <libmodmqttsrv/config.hpp>
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include <boost/dll/import.hpp>
 
 #include "libmodmqttconv/converterplugin.hpp"
@@ -129,3 +129,4 @@ TEST_CASE("uint32 tests") {
     }
 
 }
+

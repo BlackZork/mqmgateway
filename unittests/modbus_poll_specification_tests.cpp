@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 
 #include "libmodmqttsrv/modbus_messages.hpp"
 
@@ -8,7 +8,7 @@ createPoll(int firstRegister, int lastRegister, int refresh = 1) {
     ret.mCount = lastRegister - firstRegister + 1;
     ret.mSlaveId = 1;
     ret.mRegisterType = modmqttd::RegisterType::INPUT;
-    ret.mRefreshMsec = refresh;
+    ret.mRefreshMsec = std::chrono::milliseconds(refresh);
 
     return ret;
 }
@@ -60,7 +60,7 @@ TEST_CASE("MsgRegisterPollSpecification group tests") {
 
         REQUIRE(specs.mRegisters.size() == 1);
         REQUIRE(specs.mRegisters.front().isSameAs(createPoll(1,8)));
-        REQUIRE(specs.mRegisters.front().mRefreshMsec == 10);
+        REQUIRE(specs.mRegisters.front().mRefreshMsec == std::chrono::milliseconds(10));
     }
 }
 
