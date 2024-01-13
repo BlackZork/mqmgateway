@@ -1,7 +1,7 @@
 ARG ALPINE_VERSION=latest
 FROM alpine:${ALPINE_VERSION} AS builder
 RUN apk update && apk add --no-cache \
-      git build-base cmake pkgconf boost-dev libmodbus-dev mosquitto-dev yaml-cpp-dev rapidjson-dev catch2
+      git build-base cmake pkgconf boost-dev libmodbus-dev mosquitto-dev yaml-cpp-dev rapidjson-dev catch2-3
 
 ARG EXPRTK_URL=https://github.com/ArashPartow/exprtk/raw/master/exprtk.hpp
 RUN if [ "${EXPRTK_URL-}" ]; then \
