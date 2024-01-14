@@ -14,7 +14,10 @@
 
 class ModMqttServerThread {
     public:
-        ModMqttServerThread(const std::string& config) : mConfig(config) {};
+        ModMqttServerThread(const std::string& config, bool check_init=true)
+        : mConfig(config),
+          mCheckInit(check_init)
+        {};
 
         void RequireNoThrow() {
             CHECK(mException.get() == nullptr);
@@ -32,7 +35,8 @@ class ModMqttServerThread {
                 mServer.stop();
             mServerThread->join();
             mServerThread.reset();
-            RequireNoThrow();
+            if (mCheckInit)
+                RequireNoThrow();
         }
 
         bool initOk() const {
@@ -67,12 +71,13 @@ class ModMqttServerThread {
         std::shared_ptr<std::thread> mServerThread;
         std::shared_ptr<std::exception> mException;
         bool mInitError;
+        bool mCheckInit;
 
 };
 
 class MockedModMqttServerThread : public ModMqttServerThread {
     public:
-        MockedModMqttServerThread(const std::string& config) : ModMqttServerThread(config) {
+        MockedModMqttServerThread(const std::string& config, bool check_init=true) : ModMqttServerThread(config, check_init) {
             mMqtt.reset(new MockedMqttImpl());
             mModbusFactory.reset(new MockedModbusFactory());
 

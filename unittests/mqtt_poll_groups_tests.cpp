@@ -158,3 +158,78 @@ TEST_CASE ("Availablity should be changed for all registers in poll group") {
 
     server.stop();
 }
+
+
+static const std::string old_valid_pg_config = R"(
+modmqttd:
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      poll_groups:
+        - register: 1.1
+          register_type: input
+          count: 2
+mqtt:
+  client_id: mqtt_test
+  refresh: 10ms
+  broker:
+    host: localhost
+  objects:
+    - topic: first_state
+      state:
+        register: tcptest.1.1
+        register_type: input
+)";
+
+TEST_CASE ("Old style poll groups should work as usual") {
+    MockedModMqttServerThread server(old_valid_pg_config);
+    server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
+
+    server.start();
+
+    // initial publish
+    server.waitForPublish("first_state/state");
+    REQUIRE(server.mqttValue("first_state/state") == "1");
+
+    server.stop();
+}
+
+
+static const std::string old_invalid_pg_config = R"(
+modmqttd:
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      poll_groups:
+        - register: 1.1
+          register_type: input
+          count: 2
+      slaves:
+        - address: 1
+          poll_groups:
+            - register: 1
+              register_type: input
+              count: 2
+mqtt:
+  client_id: mqtt_test
+  refresh: 10ms
+  broker:
+    host: localhost
+  objects:
+    - topic: first_state
+      state:
+        register: tcptest.1.1
+        register_type: input
+)";
+
+TEST_CASE ("Old style poll groups cannot be mixed with new style per-slave poll groups") {
+    MockedModMqttServerThread server(old_invalid_pg_config, false);
+    server.start();
+    server.stop();
+
+    REQUIRE(typeid(server.getException()) == typeid(modmqttd::ConfigurationException));
+}
