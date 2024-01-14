@@ -270,12 +270,12 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     BOOST_LOG_SEV(log, Log::debug) << "Broker configuration initialized";
 }
 
-MsgRegisterPollSpecification
+std::vector<modmqttd::MsgRegisterPoll>
 ModMqtt::readModbusPollGroups(const std::string& modbus_network, int default_slave, const YAML::Node& groups) {
-    MsgRegisterPollSpecification spec(modbus_network);
+    std::vector<modmqttd::MsgRegisterPoll> ret;
 
     if (!groups.IsDefined())
-        return spec;
+        return ret;
 
     if (!groups.IsSequence())
         throw ConfigurationException(groups.Mark(), "modbus network poll_groups must be a list");
@@ -292,10 +292,10 @@ ModMqtt::readModbusPollGroups(const std::string& modbus_network, int default_sla
         // we do not set mRefreshMsec here, it should be merged
         // from mqtt overlapping groups
         // if no mqtt groups overlap, then modbus client will drop this poll group
-        spec.mRegisters.push_back(poll);
+        ret.push_back(poll);
     }
 
-    return spec;
+    return ret;
 }
 
 
@@ -325,6 +325,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
         modbus->init(modbus_config);
         mModbusClients.push_back(modbus);
 
+        MsgRegisterPollSpecification spec(modbus_config.mName);
         // send modbus slave configurations
         // for defined slaves
         const YAML::Node& slaves = network["slaves"];
@@ -338,7 +339,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
                 ModbusSlaveConfig slave_config(slave);
                 modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
 
-                MsgRegisterPollSpecification spec(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, slave["poll_groups"]));
+                spec.mRegisters = readModbusPollGroups(modbus_config.mName, slave_config.mAddress, slave["poll_groups"]);
                 ret.push_back(spec);
             }
         }
@@ -346,10 +347,11 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
         const YAML::Node& old_groups(network["poll_groups"]);
         if (old_groups.IsDefined()) {
             BOOST_LOG_SEV(log, Log::warn) << "'network.pull_groups' are depreciated and will be removed in future releases. Please use 'slaves' section and define per-slave poll_groups instead";
-            MsgRegisterPollSpecification spec(readModbusPollGroups(modbus_config.mName, -1, old_groups));
-            ret.push_back(spec);
+            if (spec.mRegisters.size())
+                throw ConfigurationException(old_groups.Mark(), "Cannot use depreciated register_groups with new 'slaves' configuration");
+            spec.mRegisters = readModbusPollGroups(modbus_config.mName, -1, old_groups);
         }
-
+        ret.push_back(spec);
     }
     mMqtt->setModbusClients(mModbusClients);
     BOOST_LOG_SEV(log, Log::debug) << mModbusClients.size() << " modbus client(s) initialized";
