@@ -160,9 +160,44 @@ Modbus network configuration parameters are listed below:
 
     TCP port of a device
 
-* **poll_groups**
+* **slaves** (optional)
+  An optional slave list with modbus specific configuration like register groups to poll (see poll groups below) and timing constraints
 
-    An optional list of modbus register address ranges that will be polled with a single modbus_read_registers(3) call.
+  * **address** (required)
+
+      Modbus slave address 
+
+  * **poll_groups** (optional)
+
+      An optional list of modbus register address ranges that will be polled with a single modbus_read_registers(3) call.
+
+      An example poll group definition to poll 20 INPUT registers at once:
+
+        poll_groups:
+          - register: 1
+            register_type: input
+            count: 20
+
+      This definition allows to use single modbus read call to read all data that is needed 
+      for multiple topics declared in MQTT section. If there are no topics that use modbus data from 
+      a poll group then that poll group is ignored.
+
+      If MQTT topic uses its own register range and this range overlaps a poll group like this:
+
+        slaves:
+          - address: 1
+            poll_groups:
+              - register: 1
+                register_type: input
+                count: 20
+        [...]           
+        state:
+          - name: humidity
+            register: 1.18
+            register_type: input
+            count 5
+      
+      then poll group will be extended to count=23 to issue a single call for reading all data needed for `humidity` topic in single modus read call.
 
 ## MQTT section
 
