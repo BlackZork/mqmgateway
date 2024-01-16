@@ -339,17 +339,14 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
                 ModbusSlaveConfig slave_config(slave);
                 modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
 
-                spec.mRegisters = readModbusPollGroups(modbus_config.mName, slave_config.mAddress, slave["poll_groups"]);
-                ret.push_back(spec);
+                spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, slave["poll_groups"]));
             }
         }
 
         const YAML::Node& old_groups(network["poll_groups"]);
         if (old_groups.IsDefined()) {
             BOOST_LOG_SEV(log, Log::warn) << "'network.pull_groups' are depreciated and will be removed in future releases. Please use 'slaves' section and define per-slave poll_groups instead";
-            if (spec.mRegisters.size())
-                throw ConfigurationException(old_groups.Mark(), "Cannot use depreciated register_groups with new 'slaves' configuration");
-            spec.mRegisters = readModbusPollGroups(modbus_config.mName, -1, old_groups);
+            spec.merge(readModbusPollGroups(modbus_config.mName, -1, old_groups));
         }
         ret.push_back(spec);
     }
