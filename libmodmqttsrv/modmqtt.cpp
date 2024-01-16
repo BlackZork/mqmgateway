@@ -800,10 +800,8 @@ ModMqtt::waitForSignal() {
 void
 ModMqtt::waitForQueues() {
     std::unique_lock<std::mutex> lock(gQueueMutex);
-    while(!gHasMessages)
-        gHasMessagesCondition.wait(lock);
+    gHasMessagesCondition.wait(lock, []{ return gHasMessages;});
     gHasMessages = false;
-    lock.unlock();
 }
 
 void
