@@ -12,6 +12,7 @@
 #include "mqttclient.hpp"
 #include "modbus_messages.hpp"
 #include "modbus_context.hpp"
+#include "modbus_slave.hpp"
 #include "conv_name_parser.hpp"
 #include "yaml_converters.hpp"
 
@@ -269,19 +270,19 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     BOOST_LOG_SEV(log, Log::debug) << "Broker configuration initialized";
 }
 
-MsgRegisterPollSpecification
-ModMqtt::readModbusPollGroups(const std::string& modbus_network, const YAML::Node& groups) {
-    MsgRegisterPollSpecification spec(modbus_network);
+std::vector<modmqttd::MsgRegisterPoll>
+ModMqtt::readModbusPollGroups(const std::string& modbus_network, int default_slave, const YAML::Node& groups) {
+    std::vector<modmqttd::MsgRegisterPoll> ret;
 
     if (!groups.IsDefined())
-        return spec;
+        return ret;
 
     if (!groups.IsSequence())
         throw ConfigurationException(groups.Mark(), "modbus network poll_groups must be a list");
 
     for(std::size_t i = 0; i < groups.size(); i++) {
         const YAML::Node& group(groups[i]);
-        RegisterConfigName reg(group, modbus_network, -1);
+        RegisterConfigName reg(group, modbus_network, default_slave);
         int count = ConfigTools::readRequiredValue<int>(group, "count");
 
         MsgRegisterPoll poll(reg.mRegisterNumber, count);
@@ -291,10 +292,10 @@ ModMqtt::readModbusPollGroups(const std::string& modbus_network, const YAML::Nod
         // we do not set mRefreshMsec here, it should be merged
         // from mqtt overlapping groups
         // if no mqtt groups overlap, then modbus client will drop this poll group
-        spec.mRegisters.push_back(poll);
+        ret.push_back(poll);
     }
 
-    return spec;
+    return ret;
 }
 
 
@@ -319,15 +320,38 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
         const YAML::Node& network(networks[i]);
         ModbusNetworkConfig modbus_config(network);
 
+        //initialize modbus thread
         std::shared_ptr<ModbusClient> modbus(new ModbusClient());
         modbus->init(modbus_config);
         mModbusClients.push_back(modbus);
 
-        MsgRegisterPollSpecification spec(readModbusPollGroups(modbus_config.mName, network["poll_groups"]));
+        MsgRegisterPollSpecification spec(modbus_config.mName);
+        // send modbus slave configurations
+        // for defined slaves
+        const YAML::Node& slaves = network["slaves"];
+        if (slaves.IsDefined()) {
+
+            if (!slaves.IsSequence())
+                throw new ConfigurationException(slaves.Mark(), "slaves content should be a list");
+
+            for(std::size_t i = 0; i < slaves.size(); i++) {
+                const YAML::Node& slave(slaves[i]);
+                ModbusSlaveConfig slave_config(slave);
+                modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
+
+                spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, slave["poll_groups"]));
+            }
+        }
+
+        const YAML::Node& old_groups(network["poll_groups"]);
+        if (old_groups.IsDefined()) {
+            BOOST_LOG_SEV(log, Log::warn) << "'network.pull_groups' are depreciated and will be removed in future releases. Please use 'slaves' section and define per-slave poll_groups instead";
+            spec.merge(readModbusPollGroups(modbus_config.mName, -1, old_groups));
+        }
         ret.push_back(spec);
     }
     mMqtt->setModbusClients(mModbusClients);
-    BOOST_LOG_SEV(log, Log::debug) << "Modbus clients initialized";
+    BOOST_LOG_SEV(log, Log::debug) << mModbusClients.size() << " modbus client(s) initialized";
     return ret;
 }
 

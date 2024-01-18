@@ -41,10 +41,12 @@ modbus:
 
       # this will force a single modbus read call for
       # isma_switch_1 and isma_switch_2 topics
-      poll_groups:
-        - register: 1.273
-          register_type: coil
-          count: 3
+      slaves:
+        - address: 1
+          poll_groups:
+            - register: 273
+              register_type: coil
+              count: 3
 
 mqtt:
   client_id: modbus

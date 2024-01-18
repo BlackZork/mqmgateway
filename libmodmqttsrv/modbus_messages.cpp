@@ -123,9 +123,9 @@ MsgRegisterPollSpecification::merge(const MsgRegisterPoll& poll) {
     }
 
     if (overlaped.empty()) {
-        BOOST_LOG_SEV(log, Log::debug) << "Adding new register " << poll.mRegister <<
+        BOOST_LOG_SEV(log, Log::debug) << "Adding new register " << poll.mSlaveId << "." << poll.mRegister <<
         " (" << poll.mCount << ")" << " type=" << poll.mRegisterType << " refresh=" <<
-        poll.mRefreshMsec.count() << "ms slaveId=" << poll.mSlaveId << " on network " << mNetworkName;
+        poll.mRefreshMsec.count() << " on network " << mNetworkName;
         mRegisters.push_back(poll);
     } else {
         mRegisters.push_back(poll);
