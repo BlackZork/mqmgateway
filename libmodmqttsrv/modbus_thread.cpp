@@ -176,6 +176,8 @@ ModbusThread::dispatchMessages(const QueueItem& readed) {
         } else if (item.isSameAs(typeid(MsgMqttNetworkState))) {
             std::unique_ptr<MsgMqttNetworkState> netstate(item.getData<MsgMqttNetworkState>());
             mShouldPoll = netstate->mIsUp;
+        } else if (item.isSameAs(typeid(ModbusSlaveConfig))) {
+            //no per-slave config attributes defined yet
         } else {
             BOOST_LOG_SEV(log, Log::error) << "Unknown messsage received, ignoring";
         }
