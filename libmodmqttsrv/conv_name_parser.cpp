@@ -12,7 +12,7 @@ ConverterNameParser::parse(const std::string& spec) {
 
     std::cmatch matches;
     if (!std::regex_match(spec.c_str(), matches, re))
-        throw ConvNameParserException("Supply converter spec in form: plugin.converter(arg1, arg2,...)");
+        throw ConvNameParserException("Supply converter spec in form: plugin.converter(arg1, arg2, …)");
 
     ConverterSpecification ret;
 

@@ -157,8 +157,8 @@ ModbusThread::processWrite(const MsgRegisterValues& msg) {
 }
 
 void
-ModbusThread::dispatchMessages(const QueueItem& readed) {
-    QueueItem item(readed);
+ModbusThread::dispatchMessages(const QueueItem& read) {
+    QueueItem item(read);
     bool gotItem = true;
     // WARNING: dispatch loop can be run from inside pollRegisters loop
     // when processing commands
@@ -177,7 +177,7 @@ ModbusThread::dispatchMessages(const QueueItem& readed) {
             std::unique_ptr<MsgMqttNetworkState> netstate(item.getData<MsgMqttNetworkState>());
             mShouldPoll = netstate->mIsUp;
         } else {
-            BOOST_LOG_SEV(log, Log::error) << "Unknown messsage received, ignoring";
+            BOOST_LOG_SEV(log, Log::error) << "Unknown message received, ignoring";
         }
         gotItem = mToModbusQueue.try_dequeue(item);
     } while(gotItem);
