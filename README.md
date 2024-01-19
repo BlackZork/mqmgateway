@@ -190,7 +190,7 @@ Modbus network configuration parameters are listed below:
               - register: 1
                 register_type: input
                 count: 20
-        [...]           
+        […]
         state:
           - name: humidity
             register: 1.18
@@ -246,7 +246,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     - *commands* - for writing to modbus registers
     - *state* - for reading modbus registers
-    - *avaiability* - for checking if modbus data is available.
+    - *availability* - for checking if modbus data is available.
 
 ### Topic default values:
 

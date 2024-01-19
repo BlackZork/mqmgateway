@@ -24,7 +24,7 @@ class MqttClient {
         void setClientId(const std::string& clientId);
         void setBrokerConfig(const MqttBrokerConfig& config);
         void setModbusClients(const std::vector<std::shared_ptr<ModbusClient>>& clients) { mModbusClients = clients; }
-        void start() ;//TODO throw(MosquittoException) - depreciated?;
+        void start() ;//TODO throw(MosquittoException) - deprecated?;
         bool isStarted() { return mIsStarted; }
         void shutdown();
         bool isConnected() const { return mConnectionState == State::CONNECTED; }

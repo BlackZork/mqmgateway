@@ -13,7 +13,7 @@ DebugTools::registersToStr(const std::vector<uint16_t>& data) {
         ret << "[" << std::hex << val << "]";
         counter--;
         if (counter == 0) {
-            ret << " (... and " << data.size()-maxVals << " more)";
+            ret << " (… and " << data.size()-maxVals << " more)";
             break;
         }
     }

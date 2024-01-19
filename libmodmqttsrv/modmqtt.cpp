@@ -164,7 +164,7 @@ ModMqtt::init(const YAML::Node& config) {
             [&netname](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mName == netname; }
         );
         if (client == mModbusClients.end()) {
-            BOOST_LOG_SEV(log, Log::error) << "Modbus client for network [" << netname << "] not initailized, ignoring specification";
+            BOOST_LOG_SEV(log, Log::error) << "Modbus client for network [" << netname << "] not initialized, ignoring specification";
         } else {
             BOOST_LOG_SEV(log, Log::debug) << "Sending register specification to modbus thread for network " << netname;
             (*client)->mToModbusQueue.enqueue(QueueItem::create(*sit));
@@ -345,7 +345,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
 
         const YAML::Node& old_groups(network["poll_groups"]);
         if (old_groups.IsDefined()) {
-            BOOST_LOG_SEV(log, Log::warn) << "'network.pull_groups' are depreciated and will be removed in future releases. Please use 'slaves' section and define per-slave poll_groups instead";
+            BOOST_LOG_SEV(log, Log::warn) << "'network.poll_groups' are deprecated and will be removed in future releases. Please use 'slaves' section and define per-slave poll_groups instead";
             spec.merge(readModbusPollGroups(modbus_config.mName, -1, old_groups));
         }
         ret.push_back(spec);
@@ -682,7 +682,7 @@ void ModMqtt::start() {
     // mosquitto does not use reconnect_delay_set
     // when doing inital connection. We also do not want to
     // process queues before connection to mqtt broker is
-    // estabilished - this will cause availability messages to be dropped.
+    // established - this will cause availability messages to be dropped.
 
     // TODO if broker is down and modbus is up then mQueues will grow forever and
     // memory allocated by queues will never be released. Add MsgStartPolling?
@@ -705,15 +705,15 @@ void ModMqtt::start() {
             int currentSignal = gSignalStatus;
             gSignalStatus = -1;
             if (currentSignal == SIGTERM) {
-                BOOST_LOG_SEV(log, Log::info) << "Got SIGTERM, exiting....";
+                BOOST_LOG_SEV(log, Log::info) << "Got SIGTERM, exiting…";
                 break;
             } else if (currentSignal == SIGHUP) {
-                //TODO reload configuratiion, reconect borker and
+                //TODO reload configuration, reconnect broker and
                 //create new list of modbus clients if needed
             }
             currentSignal = -1;
         } else if (gSignalStatus == 0) {
-            BOOST_LOG_SEV(log, Log::info) << "Got stop request, exiting....";
+            BOOST_LOG_SEV(log, Log::info) << "Got stop request, exiting…";
             break;
         }
     };
@@ -726,7 +726,7 @@ void ModMqtt::start() {
     }
 
     if (mMqtt->isConnected()) {
-        BOOST_LOG_SEV(log, Log::info) << "Publishing avaiability status 0 for all registers";
+        BOOST_LOG_SEV(log, Log::info) << "Publishing availability status 0 for all registers";
         for(std::vector<std::shared_ptr<ModbusClient>>::iterator client = mModbusClients.begin();
             client < mModbusClients.end(); client++)
         {

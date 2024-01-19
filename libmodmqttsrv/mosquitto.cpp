@@ -176,7 +176,7 @@ Mosquitto::on_disconnect(int rc) {
 
 void
 Mosquitto::on_connect(int rc) {
-    BOOST_LOG_SEV(log, Log::info) << "Connection estabilished";
+    BOOST_LOG_SEV(log, Log::info) << "Connection established";
     mOwner->onConnect();
 }
 
