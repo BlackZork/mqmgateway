@@ -3,7 +3,7 @@
 #include "libmodmqttconv/converter.hpp"
 
 /**
- * This converter supports string data readed from modbus
+ * This converter supports string data read from modbus
  * device in uint16 registers. We assume that string data layout is
  * byte-after-byte in modbus packet.
  *

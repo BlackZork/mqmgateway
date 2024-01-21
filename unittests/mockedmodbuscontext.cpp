@@ -194,7 +194,7 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
     if (mInternalOperation)
         BOOST_LOG_SEV(log, modmqttd::Log::info) << "MODBUS: " << mNetworkName
             << "." << it->second.mId << "." << regData.mRegister
-            << " READED: " << modmqttd::DebugTools::registersToStr(ret);
+            << " READ: " << modmqttd::DebugTools::registersToStr(ret);
 
     mInternalOperation = false;
     return ret;

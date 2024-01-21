@@ -109,7 +109,7 @@ class MqttValue {
                     std::string strval(getString());
                     double ret = std::strtod(strval.c_str(), &endptr);
                     if (endptr == nullptr || *endptr != '\0') {
-                        throw ConvException(std::string("Cannot convert") + strval + " to double");
+                        throw ConvException(std::string("Cannot convert ") + strval + " to double");
                     }
                     return ret;
                 }
@@ -130,7 +130,7 @@ class MqttValue {
                     std::string strval(getString());
                     int32_t ret = std::strtol(strval.c_str(), &endptr, 10);
                     if (endptr == nullptr || *endptr != '\0') {
-                        throw ConvException(std::string("Cannot convert") + strval + " to int");
+                        throw ConvException(std::string("Cannot convert ") + strval + " to int");
                     }
                     return ret;
                 }
@@ -151,7 +151,7 @@ class MqttValue {
                     std::string strval(getString());
                     int64_t ret = std::strtoll(strval.c_str(), &endptr, 10);
                     if (endptr == nullptr || *endptr != '\0') {
-                        throw ConvException(std::string("Cannot convert") + strval + " to int64");
+                        throw ConvException(std::string("Cannot convert ") + strval + " to int64");
                     }
                     return ret;
                 }

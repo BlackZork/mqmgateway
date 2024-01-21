@@ -50,7 +50,7 @@ class ModbusThread {
 
         bool hasRegisters() const;
 
-        void dispatchMessages(const QueueItem& readed);
+        void dispatchMessages(const QueueItem& read);
         void sendMessage(const QueueItem& item);
 
         void handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const char* errorMessage);

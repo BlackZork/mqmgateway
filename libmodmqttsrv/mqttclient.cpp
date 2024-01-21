@@ -85,7 +85,7 @@ MqttClient::onDisconnect() {
 
 void
 MqttClient::onConnect() {
-	BOOST_LOG_SEV(log, Log::info) << "Mqtt conected, sending subscriptions...";
+	BOOST_LOG_SEV(log, Log::info) << "Mqtt connected, sending subscriptions…";
 
     for(std::vector<MqttObject>::const_iterator obj = mObjects.begin(); obj != mObjects.end(); obj++)
         for(std::vector<MqttObjectCommand>::const_iterator it = obj->mCommands.begin(); it != obj->mCommands.end(); it++)
