@@ -25,6 +25,8 @@ RUN if [ -z "${MQM_TEST_SKIP}" ]; then cd unittests; ./tests || [ "${MQM_TEST_AL
 RUN make install
 
 FROM alpine:${ALPINE_VERSION} AS runtime
+LABEL org.opencontainers.image.source "https://github.com/BlackZork/mqmgateway"
+LABEL org.opencontainers.image.licenses AGPL
 COPY --from=builder /opt/mqmgateway/install/ /usr/
 COPY --from=builder /opt/mqmgateway/source/modmqttd/config.template.yaml /etc/modmqttd/config.yaml
 RUN apk update && apk add --no-cache \

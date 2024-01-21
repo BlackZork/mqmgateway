@@ -3,11 +3,14 @@ name: ci
 on:
   push:
     branches:
-      - "feature/ci"
+      - "master"
+    tags:
+      - "1.*"
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  # cannut use gitgub.repository due to my upper case username
+  IMAGE_NAME: ghcr.io/blackzork/mqmgateway
 
 # permissions are needed if pushing to ghcr.io
 permissions:

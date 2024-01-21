@@ -1,7 +1,7 @@
 ---
 services:
   mqmgateway:
-    image: "ghcr.io/BlackZork/mqmgateway:feature-ci"
+    image: "ghcr.io/BlackZork/mqmgateway:master"
     container_name: mqmgateway
     init: true
     restart: unless-stopped
