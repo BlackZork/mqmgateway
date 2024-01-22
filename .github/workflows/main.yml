@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - "master"
-    tags:
-      - "1.*"
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
