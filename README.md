@@ -1,7 +1,7 @@
 # MQMGateway - MQTT gateway for modbus networks
 A multithreaded C++ service that exposes data from multiple [Modbus](http://www.modbus.org/) networks as [MQTT](http://mqtt.org/) topics.
 
-![docker build](https://github.com/github/docs/actions/workflows/main.yml/badge.svg)
+![docker build](https://github.com/github.com/BlackZork/mqmgateway/workflows/main.yml/badge.svg)
 
 Main features:
 * Connects to multiple TCP and RTU modbus networks
