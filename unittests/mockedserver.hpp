@@ -130,6 +130,11 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         return mModbusFactory->getModbusRegisterValue(network, slaveId, regNum, regtype);
     }
 
+    std::chrono::time_point<std::chrono::steady_clock>
+    getLastPollTime(const char* network = nullptr) const {
+        return mModbusFactory->getLastPollTime(network);
+    }
+
     void disconnectModbusSlave(const char* network, int slaveId) {
         mModbusFactory->disconnectModbusSlave(network, slaveId);
     }

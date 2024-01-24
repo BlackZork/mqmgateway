@@ -197,6 +197,7 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
             << " READ: " << modmqttd::DebugTools::registersToStr(ret);
 
     mInternalOperation = false;
+    mLastPolTime = std::chrono::steady_clock::now();
     return ret;
 }
 
@@ -261,6 +262,16 @@ MockedModbusFactory::getOrCreateContext(const char* network) {
     }
     return ctx;
 }
+
+std::chrono::time_point<std::chrono::steady_clock>
+MockedModbusFactory::getLastPollTime(const char* network) const {
+    auto it = mModbusNetworks.begin();
+    if (network != nullptr)
+        it = mModbusNetworks.find(network);
+
+    return it->second->getLastPollTime();
+}
+
 
 void
 MockedModbusFactory::setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val) {

@@ -59,8 +59,12 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(const modmqttd::MsgRegisterValues& msg);
         virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
+
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
+        const std::chrono::time_point<std::chrono::steady_clock>& getLastPollTime() const {
+            return mLastPolTime;
+        }
 
         Slave& getSlave(int slaveId);
 
@@ -71,8 +75,11 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         boost::log::sources::severity_logger<modmqttd::Log::severity> log;
         std::mutex mMutex;
         std::map<int, Slave> mSlaves;
+        std::chrono::time_point<std::chrono::steady_clock> mLastPolTime;
 
         std::map<int, MockedModbusContext::Slave>::iterator findOrCreateSlave(int id);
+
+
 };
 
 class MockedModbusFactory : public modmqttd::IModbusFactory {
@@ -89,6 +96,8 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
             }
             return ctx;
         };
+
+        std::chrono::time_point<std::chrono::steady_clock> getLastPollTime(const char* network = nullptr) const;
 
         void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val);
         uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
