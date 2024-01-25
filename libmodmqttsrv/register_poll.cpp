@@ -13,6 +13,7 @@ RegisterPoll::RegisterPoll(int regNum, RegisterType regType, int regCount, std::
     mRefresh = refreshMsec;
     mReadErrors = 0;
     mFirstErrorTime = std::chrono::steady_clock::now();
+    mDelayBeforePoll = std::chrono::milliseconds::zero();
 };
 
 } // namespace

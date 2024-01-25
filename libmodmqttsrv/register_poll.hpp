@@ -20,6 +20,7 @@ class RegisterPoll {
         int mRegister;
         RegisterType mRegisterType;
         std::chrono::steady_clock::duration mRefresh;
+        std::chrono::steady_clock::duration mDelayBeforePoll;
         std::chrono::steady_clock::time_point mLastRead;
 
         int mReadErrors;

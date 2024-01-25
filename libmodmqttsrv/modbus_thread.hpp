@@ -42,9 +42,11 @@ class ModbusThread {
 
         std::shared_ptr<IModbusContext> mModbus;
         ModbusScheduler mScheduler;
+        //ModbusPoller mPoller;
 
         void configure(const ModbusNetworkConfig& config);
         void setPollSpecification(const MsgRegisterPollSpecification& spec);
+        void updateSlaveConfig(const ModbusSlaveConfig& pSlaveConfig);
         void pollRegisters(int slaveId, const std::vector<std::shared_ptr<RegisterPoll>>& registers, bool sendIfChanged = true);
         void doInitialPoll();
 
@@ -58,11 +60,6 @@ class ModbusThread {
         void processWrite(const MsgRegisterValues& msg);
 
         void processCommands();
-
-        std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> getListToRefresh(
-            std::chrono::steady_clock::duration& outDuration,
-            const std::chrono::time_point<std::chrono::steady_clock>& timePoint
-        );
 };
 
 }

@@ -86,6 +86,9 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
         // that was not merged with any mqtt register declaration
         if (it->mRefreshMsec != MsgRegisterPoll::INVALID_REFRESH) {
             std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
+            std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
+            if (slave_cfg != mSlaves.end())
+                reg->mDelayBeforePoll = slave_cfg->second.mDelayBeforePoll;
             mRegisters[it->mSlaveId].push_back(reg);
         }
     }
@@ -97,8 +100,9 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << mNetworkName
             << ", slave " << sit->first
             << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
-            << ", count " << (*it)->getCount()
-            << ", poll every " <<  std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms";
+            << ", count=" << (*it)->getCount()
+            << ", poll every " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms"
+            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mDelayBeforePoll).count() << "ms";
         }
     }
 
@@ -178,6 +182,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             mShouldPoll = netstate->mIsUp;
         } else if (item.isSameAs(typeid(ModbusSlaveConfig))) {
             //no per-slave config attributes defined yet
+            updateSlaveConfig(*item.getData<ModbusSlaveConfig>());
         } else {
             BOOST_LOG_SEV(log, Log::error) << "Unknown message received, ignoring";
         }
@@ -196,6 +201,21 @@ void
 ModbusThread::sendMessage(const QueueItem& item) {
     mFromModbusQueue.enqueue(item);
     modmqttd::notifyQueues();
+}
+
+void
+ModbusThread::updateSlaveConfig(const ModbusSlaveConfig& pConfig) {
+    std::pair<std::map<int, ModbusSlaveConfig>::iterator, bool> result = mSlaves.emplace(std::make_pair(pConfig.mAddress, pConfig));
+    if(!result.second)  {
+        result.first->second = pConfig;
+    }
+
+    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave_registers = mRegisters.find(pConfig.mAddress);
+    if (slave_registers != mRegisters.end()) {
+        for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
+            (*it)->mDelayBeforePoll = pConfig.mDelayBeforePoll;
+        }
+    }
 }
 
 void
