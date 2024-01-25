@@ -8,10 +8,18 @@
 
 namespace modmqttd {
 
+void
+ModbusThread::sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item) {
+    fromModbusQueue.enqueue(item);
+    modmqttd::notifyQueues();
+}
+
 ModbusThread::ModbusThread(
     moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
-    : mToModbusQueue(toModbusQueue), mFromModbusQueue(fromModbusQueue)
+    : mToModbusQueue(toModbusQueue),
+      mFromModbusQueue(fromModbusQueue),
+      mPoller(fromModbusQueue)
 {
 }
 
@@ -20,12 +28,14 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mNetworkName = config.mName;
     mModbus = ModMqtt::getModbusFactory().getContext(config.mName);
     mModbus->init(config);
+    mPoller.init(mModbus);
     // if you experience read timeouts on RTU then increase
     // min_delay_before_poll config value
     mMinDelayBeforePoll = config.mMinDelayBeforePoll;
     BOOST_LOG_SEV(log, Log::info) << "Minimum delay before poll set to " << std::chrono::duration_cast<std::chrono::milliseconds>(mMinDelayBeforePoll).count() << "ms";
 }
 
+/*
 void
 ModbusThread::pollRegisters(int slaveId, const std::vector<std::shared_ptr<RegisterPoll>>& registers, bool sendIfChanged) {
     for(std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = registers.begin();
@@ -76,6 +86,7 @@ ModbusThread::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const 
         sendMessage(QueueItem::create(msg));
     }
 }
+*/
 
 void
 ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
@@ -191,16 +202,8 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
 }
 
 void
-ModbusThread::processCommands() {
-    QueueItem item;
-    while(mToModbusQueue.try_dequeue(item))
-        dispatchMessages(item);
-}
-
-void
 ModbusThread::sendMessage(const QueueItem& item) {
-    mFromModbusQueue.enqueue(item);
-    modmqttd::notifyQueues();
+    sendMessageFromModbus(mFromModbusQueue, item);
 }
 
 void
@@ -218,18 +221,32 @@ ModbusThread::updateSlaveConfig(const ModbusSlaveConfig& pConfig) {
     }
 }
 
+std::string
+constructIdleWaitMessage(const std::chrono::steady_clock::duration& idleWaitDuration) {
+    std::stringstream out;
+    if (idleWaitDuration == std::chrono::steady_clock::duration::zero()) {
+        out << "Checking for incoming message";
+    } else {
+        out << "Waiting for messages";
+        if (idleWaitDuration != std::chrono::steady_clock::duration::max()) {
+            out << ", next poll in " <<  std::chrono::duration_cast<std::chrono::milliseconds>(idleWaitDuration).count() << "ms";
+        }
+    }
+    return out.str();
+}
+
 void
 ModbusThread::run() {
     try {
         BOOST_LOG_SEV(log, Log::debug) << "Modbus thread started";
         const int maxReconnectTime = 60;
-        std::chrono::steady_clock::duration waitDuration = std::chrono::steady_clock::duration::max();
+        std::chrono::steady_clock::duration idleWaitDuration = std::chrono::steady_clock::duration::max();
 
         while(mShouldRun) {
             if (mModbus) {
                 if (!mModbus->isConnected()) {
-                    if (waitDuration > std::chrono::seconds(maxReconnectTime))
-                        waitDuration = std::chrono::seconds(0);
+                    if (idleWaitDuration > std::chrono::seconds(maxReconnectTime))
+                        idleWaitDuration = std::chrono::seconds(0);
                     BOOST_LOG_SEV(log, Log::info) << "modbus: connecting";
                     mModbus->connect();
                     if (mModbus->isConnected()) {
@@ -246,15 +263,29 @@ ModbusThread::run() {
                     if (mShouldPoll) {
                         // if modbus network was disconnected
                         // we need to refresh everything
-                        if (mNeedInitialPoll)
-                            doInitialPoll();
+                        if (mNeedInitialPoll) {
+                            mPoller.doInitialPoll(mRegisters);
+                        }
 
                         //initial wait set to infinity, scheduler will adjust this value
                         //to time period for next poll
-                        waitDuration = std::chrono::steady_clock::duration::max();
+                        idleWaitDuration = std::chrono::steady_clock::duration::max();
+
+                        if (mPoller.allDone()) {
+                            auto start = std::chrono::steady_clock::now();
+                            std::chrono::steady_clock::duration timeToNextPoll;
+                            std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(mRegisters, timeToNextPoll, start);
+                            if (regsToPoll.size()) {
+                                mPoller.setPollList(regsToPoll);
+                            } else {
+                                idleWaitDuration = timeToNextPoll;
+                            }
+                        } else {
+                            idleWaitDuration = mPoller.pollOne();
+                        }
 
                         // note start time and find registers that need a refresh now
-                        auto start = std::chrono::steady_clock::now();
+/*                        auto start = std::chrono::steady_clock::now();
                         std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> toRefresh = mScheduler.getRegistersToPoll(mRegisters, waitDuration, start);
                         for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = toRefresh.begin();
                             slave != toRefresh.end(); slave++)
@@ -274,31 +305,31 @@ ModbusThread::run() {
                                 waitDuration = std::chrono::steady_clock::duration::zero();
                             }
                         }
+*/
                     } else {
                         BOOST_LOG_SEV(log, Log::info) << "Waiting for mqtt network to become online";
-                        waitDuration = std::chrono::steady_clock::duration::max();
+                        idleWaitDuration = std::chrono::steady_clock::duration::max();
                     }
                 } else {
                     sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, false)));
-                    if (waitDuration < std::chrono::seconds(maxReconnectTime))
-                        waitDuration += std::chrono::seconds(5);
+                    if (idleWaitDuration < std::chrono::seconds(maxReconnectTime))
+                        idleWaitDuration += std::chrono::seconds(5);
                 };
             } else {
                 //wait for poll specification
-                waitDuration = std::chrono::steady_clock::duration::max();
+                idleWaitDuration = std::chrono::steady_clock::duration::max();
             }
 
             //register polling can change mShouldRun flag, do not wait
             //for next poll if we are exiting
             if (mShouldRun) {
                 QueueItem item;
-                if (waitDuration <= std::chrono::steady_clock::duration::zero() && mMinDelayBeforePoll != std::chrono::milliseconds(0)) {
-                    waitDuration = mMinDelayBeforePoll;
-                }
-                BOOST_LOG_SEV(log, Log::debug) << "Waiting " <<  std::chrono::duration_cast<std::chrono::milliseconds>(waitDuration).count() << "ms for messages";
-                if (!mToModbusQueue.wait_dequeue_timed(item, waitDuration))
+                BOOST_LOG_SEV(log, Log::debug) << constructIdleWaitMessage(idleWaitDuration);
+                if (!mToModbusQueue.wait_dequeue_timed(item, idleWaitDuration))
                     continue;
                 dispatchMessages(item);
+                while(mToModbusQueue.try_dequeue(item))
+                    dispatchMessages(item);
             }
         };
         if (mModbus && mModbus->isConnected())

@@ -3,16 +3,19 @@
 #include "../readerwriterqueue/readerwriterqueue.h"
 
 #include "common.hpp"
-#include "queue_item.hpp"
 #include "modbus_messages.hpp"
 #include "modbus_scheduler.hpp"
 #include "modbus_slave.hpp"
+#include "modbus_poller.hpp"
+
 #include "imodbuscontext.hpp"
 
 namespace modmqttd {
 
 class ModbusThread {
     public:
+        static void sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item);
+
         ModbusThread(
             moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
@@ -42,7 +45,7 @@ class ModbusThread {
 
         std::shared_ptr<IModbusContext> mModbus;
         ModbusScheduler mScheduler;
-        //ModbusPoller mPoller;
+        ModbusPoller mPoller;
 
         void configure(const ModbusNetworkConfig& config);
         void setPollSpecification(const MsgRegisterPollSpecification& spec);
