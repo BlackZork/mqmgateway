@@ -20,6 +20,7 @@ add_executable(tests
     exprconv_tests.cpp
     modbus_silence_before_poll_tests.cpp
     modbus_poll_specification_tests.cpp
+    modbus_poller_tests.cpp
     mqtt_command_tests.cpp
     mqtt_command_conv_tests.cpp
     mqtt_named_list_conv_tests.cpp

@@ -15,32 +15,87 @@ ModbusPoller::sendMessage(const QueueItem& item) {
 }
 
 void
-ModbusPoller::pollRegisters(int slaveId, const std::vector<std::shared_ptr<RegisterPoll>>& registers, bool sendIfChanged) {
-    for(std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = registers.begin();
-        reg_it != registers.end(); reg_it++)
-    {
-        try {
-            std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-            RegisterPoll& reg(**reg_it);
-            std::vector<uint16_t> newValues(mModbus->readModbusRegisters(slaveId, reg));
-            reg.mLastRead = std::chrono::steady_clock::now();
+ModbusPoller::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
+    mInitialPoll = true;
+    setPollList(pRegisters);
+    BOOST_LOG_SEV(log, Log::debug) << "starting initial poll";
+    mInitialPollStart = std::chrono::steady_clock::now();
+}
 
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
-                            << " polled in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
-            if ((reg.getValues() != newValues) || !sendIfChanged || (reg.mReadErrors != 0)) {
-                MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValues);
-                sendMessage(QueueItem::create(val));
-                reg.update(newValues);
-                reg.mReadErrors = 0;
-                BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister
-                    << " values sent, data=" << DebugTools::registersToStr(reg.getValues());
-            };
-        } catch (const ModbusReadException& ex) {
-            handleRegisterReadError(slaveId, **reg_it, ex.what());
+void
+ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
+    mRegisters = pRegisters;
+    mCurrentSlave = 0;
+
+    if (pRegisters.empty()) {
+        // could happen if modbus is in write only mode
+        mWaitingRegister.reset();
+        mCurrentSlave = 0;
+        return;
+    }
+
+    //just after modbus is connected we assume that any register can be pulled
+    if (!mInitialPoll) {
+        // mLastPollTime is set if initalPoll was executed
+
+        // scan register list for registers that have delay_before_poll set
+        // and find the best one that fits in the last_silence_period
+        std::vector<std::shared_ptr<RegisterPoll>>::iterator selected;
+        for(auto sit = mRegisters.begin(); sit != mRegisters.end(); sit++) {
+            auto last_silence_period = std::chrono::steady_clock::now() - mSlaveLastPollTimes[sit->first];
+            for (auto rit = sit->second.begin(); rit != sit->second.end(); rit++) {
+                if ((*rit)->mDelayBeforePoll == std::chrono::steady_clock::duration::zero())
+                    continue;
+                if ((*rit)->mDelayBeforePoll > last_silence_period)
+                    continue;
+
+                if (mWaitingRegister == nullptr || mWaitingRegister->mDelayBeforePoll < (*rit)->mDelayBeforePoll) {
+                    selected = rit;
+                    mWaitingRegister = *rit;
+                    mCurrentSlave = sit->first;
+                    mDelayStart = std::chrono::steady_clock::now();
+                }
+            }
+        }
+
+        // remove selected register outside of iteration loop
+        if (mWaitingRegister != nullptr) {
+            mRegisters[mCurrentSlave].erase(selected);
+        }
+    }
+
+    // no registers with delay before poll
+    // or we will be doing initial poll
+    if (mCurrentSlave == 0) {
+        mCurrentSlave = mRegisters.begin()->first;
+    }
+}
+
+
+void
+ModbusPoller::pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg_ptr, bool forceSend) {
+    try {
+        std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+        RegisterPoll& reg(*reg_ptr);
+        std::vector<uint16_t> newValues(mModbus->readModbusRegisters(slaveId, reg));
+        mSlaveLastPollTimes[slaveId] = reg.mLastRead = std::chrono::steady_clock::now();
+
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
+                        << " polled in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
+
+        if ((reg.getValues() != newValues) || forceSend || (reg.mReadErrors != 0)) {
+            MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValues);
+            sendMessage(QueueItem::create(val));
+            reg.update(newValues);
+            reg.mReadErrors = 0;
+            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister
+                << " values sent, data=" << DebugTools::registersToStr(reg.getValues());
         };
-    };
+    } catch (const ModbusReadException& ex) {
+        handleRegisterReadError(slaveId, *reg_ptr, ex.what());
+    }
 };
 
 void
@@ -62,5 +117,84 @@ ModbusPoller::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const 
     }
 }
 
+std::chrono::steady_clock::duration
+ModbusPoller::pollNext() {
+    if (mWaitingRegister != nullptr) {
+        auto delay_passed = std::chrono::steady_clock::now() - mDelayStart;
+        auto delay_left = mWaitingRegister->mDelayBeforePoll - delay_passed;
+        if (delay_left > std::chrono::steady_clock::duration::zero()) {
+            return delay_left;
+        } else {
+            //mWaitingRegister is ready to be polled
+            pollRegister(mCurrentSlave, mWaitingRegister, mInitialPoll);
+            mWaitingRegister.reset();
+        }
+    } else {
+
+        std::shared_ptr<RegisterPoll> toPoll;
+
+        if (!mRegisters.empty()) {
+            if (mCurrentSlave != 0) {
+                auto regLst = mRegisters[mCurrentSlave];
+                if (regLst.empty()) {
+                    mRegisters.erase(mCurrentSlave);
+                    mCurrentSlave = 0;
+                } else {
+                    toPoll = regLst.front();
+                    regLst.erase(regLst.begin());
+                }
+            }
+
+            if (toPoll == nullptr) {
+                mCurrentSlave = 0;
+                //go to first slave with non empty list
+                auto mbegin = mRegisters.begin();
+                auto mcurrent = mbegin;
+                while(mcurrent != mRegisters.end()) {
+                    if(!mcurrent->second.empty())
+                        break;
+                    mcurrent++;
+                }
+
+                //erase all traversed empty lists
+                if (mbegin != mcurrent) {
+                    mRegisters.erase(mbegin, mcurrent);
+                }
+
+                if (mcurrent != mRegisters.end()) {
+                    //we have something to poll
+                    mCurrentSlave = mcurrent->first;
+                    toPoll = mcurrent->second.front();
+                }
+            }
+
+            if (toPoll != nullptr) {
+                if (toPoll->mDelayBeforePoll != std::chrono::steady_clock::duration::zero()) {
+                    // setup and return needed delay
+                    // or pull register if there was enough silence
+                    // after previous pull
+                    auto last_silence_period = std::chrono::steady_clock::now() - mSlaveLastPollTimes[mCurrentSlave];
+                    if (last_silence_period < toPoll->mDelayBeforePoll) {
+                        auto delay_left = toPoll->mDelayBeforePoll - last_silence_period;
+                        mWaitingRegister = toPoll;
+                        mDelayStart = std::chrono::steady_clock::now();
+                        return delay_left;
+                    } else {
+                        pollRegister(mCurrentSlave, toPoll, mInitialPoll);
+                    }
+                } else {
+                    pollRegister(mCurrentSlave, toPoll, mInitialPoll);
+                }
+            }
+        }
+
+        if (mInitialPoll && mWaitingRegister == nullptr && mRegisters.empty()) {
+            auto end = std::chrono::steady_clock::now();
+            BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mInitialPollStart).count() << "ms";
+            mInitialPoll = false;
+        }
+    }
+    return std::chrono::steady_clock::duration::zero();
+}
 
 }

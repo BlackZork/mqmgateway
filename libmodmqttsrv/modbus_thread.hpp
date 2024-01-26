@@ -50,8 +50,6 @@ class ModbusThread {
         void configure(const ModbusNetworkConfig& config);
         void setPollSpecification(const MsgRegisterPollSpecification& spec);
         void updateSlaveConfig(const ModbusSlaveConfig& pSlaveConfig);
-        void pollRegisters(int slaveId, const std::vector<std::shared_ptr<RegisterPoll>>& registers, bool sendIfChanged = true);
-        void doInitialPoll();
 
         bool hasRegisters() const;
 

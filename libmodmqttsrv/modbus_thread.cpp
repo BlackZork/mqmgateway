@@ -120,6 +120,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     //now wait for MqttNetworkState(up)
 }
 
+/*
 void
 ModbusThread::doInitialPoll() {
     BOOST_LOG_SEV(log, Log::debug) << "starting initial poll";
@@ -133,6 +134,7 @@ ModbusThread::doInitialPoll() {
     BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
     mNeedInitialPoll = false;
 }
+*/
 
 
 bool
@@ -252,7 +254,10 @@ ModbusThread::run() {
                     if (mModbus->isConnected()) {
                         BOOST_LOG_SEV(log, Log::info) << "modbus: connected";
                         sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, true)));
-                        mNeedInitialPoll = true;
+                        // if modbus network was disconnected
+                        // we need to refresh everything
+                        //mNeedInitialPoll = true;
+                        mPoller.setupInitialPoll(mRegisters);
                     }
                 }
 
@@ -263,10 +268,11 @@ ModbusThread::run() {
                     if (mShouldPoll) {
                         // if modbus network was disconnected
                         // we need to refresh everything
+/*
                         if (mNeedInitialPoll) {
                             mPoller.doInitialPoll(mRegisters);
                         }
-
+*/
                         //initial wait set to infinity, scheduler will adjust this value
                         //to time period for next poll
                         idleWaitDuration = std::chrono::steady_clock::duration::max();
@@ -275,13 +281,13 @@ ModbusThread::run() {
                             auto start = std::chrono::steady_clock::now();
                             std::chrono::steady_clock::duration timeToNextPoll;
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(mRegisters, timeToNextPoll, start);
+                            //if there are no registers to poll
+                            //then wait duration::max() for messages
                             if (regsToPoll.size()) {
                                 mPoller.setPollList(regsToPoll);
-                            } else {
-                                idleWaitDuration = timeToNextPoll;
                             }
                         } else {
-                            idleWaitDuration = mPoller.pollOne();
+                            idleWaitDuration = mPoller.pollNext();
                         }
 
                         // note start time and find registers that need a refresh now

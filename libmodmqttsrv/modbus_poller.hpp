@@ -13,15 +13,34 @@ class ModbusPoller {
     public:
         ModbusPoller(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
         void init(const std::shared_ptr<IModbusContext>& modbus) { mModbus = modbus; }
-        void doInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
-        bool allDone() const;
+        void setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
+        bool allDone() const { return mRegisters.empty(); }
         void setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
-        std::chrono::steady_clock::duration pollOne();
+        /**
+         *  Get next register R to pull from register list
+         *  If R needs delay then return how much time we should wait before
+         *  issuing modbus read call
+         *
+         *  If R does not need delay then issue modbus read call
+         *  and return duration=0
+         */
+        std::chrono::steady_clock::duration pollNext();
     private:
         boost::log::sources::severity_logger<Log::severity> log;
-        void pollRegisters(int slaveId, const std::vector<std::shared_ptr<RegisterPoll>>& registers, bool sendIfChanged);
+
         std::shared_ptr<IModbusContext> mModbus;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
+        std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisters;
+        std::map<int, std::chrono::time_point<std::chrono::steady_clock>> mSlaveLastPollTimes;
+
+        //state
+        int mCurrentSlave;
+        std::shared_ptr<RegisterPoll> mWaitingRegister;
+        bool mInitialPoll;
+        std::chrono::time_point<std::chrono::steady_clock> mInitialPollStart;
+        std::chrono::time_point<std::chrono::steady_clock> mDelayStart;
+
+        void pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg_ptr, bool forceSend);
         void sendMessage(const QueueItem& item);
         void handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const char* errorMessage);
 };
