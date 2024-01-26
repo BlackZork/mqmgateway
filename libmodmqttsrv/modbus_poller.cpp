@@ -135,7 +135,7 @@ ModbusPoller::pollNext() {
 
         if (!mRegisters.empty()) {
             if (mCurrentSlave != 0) {
-                auto regLst = mRegisters[mCurrentSlave];
+                auto& regLst = mRegisters[mCurrentSlave];
                 if (regLst.empty()) {
                     mRegisters.erase(mCurrentSlave);
                     mCurrentSlave = 0;
@@ -165,6 +165,7 @@ ModbusPoller::pollNext() {
                     //we have something to poll
                     mCurrentSlave = mcurrent->first;
                     toPoll = mcurrent->second.front();
+                    mcurrent->second.erase(mcurrent->second.begin());
                 }
             }
 
@@ -185,6 +186,11 @@ ModbusPoller::pollNext() {
                 } else {
                     pollRegister(mCurrentSlave, toPoll, mInitialPoll);
                 }
+
+                if (mRegisters[mCurrentSlave].empty()) {
+                    mRegisters.erase(mCurrentSlave);
+                    mCurrentSlave = 0;
+                };
             }
         }
 

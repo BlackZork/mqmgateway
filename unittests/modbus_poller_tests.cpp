@@ -12,13 +12,18 @@
 class TestRegisters : public std::map<int, std::vector<std::shared_ptr<modmqttd::RegisterPoll>>>
 {
     public:
-        void add(
-            int mSlave,
-            modmqttd::RegisterType type,
-            int mNumber,
-            std::chrono::steady_clock::duration mRefresh = std::chrono::milliseconds(10),
-            std::chrono::steady_clock::duration mDelayBeforePoll = std::chrono::milliseconds::zero()
-        );
+        std::shared_ptr<modmqttd::RegisterPoll> add(
+            int slave,
+            int number,
+            std::chrono::milliseconds refresh = std::chrono::milliseconds(10),
+            std::chrono::steady_clock::duration delayBeforePoll = std::chrono::milliseconds::zero()
+        ) {
+            //TODO no check if already on list
+            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
+            reg->mDelayBeforePoll = delayBeforePoll;
+            (*this)[slave].push_back(reg);
+            return reg;
+        }
 };
 
 
@@ -29,12 +34,28 @@ TEST_CASE("ModbusPoller") {
     modmqttd::ModbusPoller poller(fromModbusQueue);
     poller.init(modbus_factory.getContext("test"));
 
-    SECTION("shoud return zero duration for empty register set") {
-        std::map<int, std::vector<std::shared_ptr<modmqttd::RegisterPoll>>> registers;
+    TestRegisters registers;
+
+    SECTION("should return zero duration for empty register set") {
         poller.setupInitialPoll(registers);
 
         auto waitTime = poller.pollNext();
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
+
+
+        poller.setPollList(registers);
+        waitTime = poller.pollNext();
+        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+    }
+
+    SECTION("should immediately do initial poll for single register") {
+        modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
+
+        auto reg = registers.add(1, 1);
+        poller.setupInitialPoll(registers);
+        auto waitTime = poller.pollNext();
+        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(reg->getValues()[0] == 5);
     }
 
 }

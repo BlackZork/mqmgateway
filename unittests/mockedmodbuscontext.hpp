@@ -89,7 +89,9 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
             std::shared_ptr<MockedModbusContext> ctx;
             if (it == mModbusNetworks.end()) {
                 //it will be initialized by modbus_thread.cpp
-                ctx.reset(new MockedModbusContext());
+                auto modbus = new MockedModbusContext();
+                modbus->mNetworkName = networkName;
+                ctx.reset(modbus);
                 mModbusNetworks[networkName] = ctx;
             } else {
                 ctx = it->second;
