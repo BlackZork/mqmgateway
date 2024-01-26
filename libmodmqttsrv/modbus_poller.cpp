@@ -186,11 +186,6 @@ ModbusPoller::pollNext() {
                 } else {
                     pollRegister(mCurrentSlave, toPoll, mInitialPoll);
                 }
-
-                if (mRegisters[mCurrentSlave].empty()) {
-                    mRegisters.erase(mCurrentSlave);
-                    mCurrentSlave = 0;
-                };
             }
         }
 
@@ -200,6 +195,12 @@ ModbusPoller::pollNext() {
             mInitialPoll = false;
         }
     }
+
+    if (mCurrentSlave && mRegisters[mCurrentSlave].empty()) {
+        mRegisters.erase(mCurrentSlave);
+        mCurrentSlave = 0;
+    };
+
     return std::chrono::steady_clock::duration::zero();
 }
 
