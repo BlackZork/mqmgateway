@@ -188,18 +188,18 @@ ModbusPoller::pollNext() {
                 }
             }
         }
-
-        if (mInitialPoll && mWaitingRegister == nullptr && mRegisters.empty()) {
-            auto end = std::chrono::steady_clock::now();
-            BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mInitialPollStart).count() << "ms";
-            mInitialPoll = false;
-        }
     }
 
     if (mCurrentSlave && mRegisters[mCurrentSlave].empty()) {
         mRegisters.erase(mCurrentSlave);
         mCurrentSlave = 0;
     };
+
+    if (mInitialPoll && mWaitingRegister == nullptr && mRegisters.empty()) {
+        auto end = std::chrono::steady_clock::now();
+        BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mInitialPollStart).count() << "ms";
+        mInitialPoll = false;
+    }
 
     return std::chrono::steady_clock::duration::zero();
 }

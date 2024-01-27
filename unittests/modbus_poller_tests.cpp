@@ -111,7 +111,7 @@ TEST_CASE("ModbusPoller") {
         REQUIRE(poller.allDone());
     }
 
-    SECTION("should delay register read on normal poll") {
+    SECTION("after doing initial poll for single register") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
 
         auto reg = registers.add(1, 1, std::chrono::milliseconds(5));
@@ -119,25 +119,51 @@ TEST_CASE("ModbusPoller") {
         auto waitTime = poller.pollNext();
         REQUIRE(poller.allDone());
 
-        // need to wait because there is no silence between inital poll and
-        // next poll
-        poller.setPollList(registers);
-        waitTime = poller.pollNext();
-        REQUIRE(waitTime > std::chrono::milliseconds(4));
-        REQUIRE(!poller.allDone());
+        SECTION("should delay register read on normal poll") {
+            // need to wait because there is no silence between inital poll and
+            // next poll
+            poller.setPollList(registers);
+            waitTime = poller.pollNext();
+            REQUIRE(waitTime > std::chrono::milliseconds(4));
+            REQUIRE(!poller.allDone());
 
-        //simulate shorter wait than required
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        waitTime = poller.pollNext();
-        REQUIRE(!poller.allDone());
-        REQUIRE(std::chrono::milliseconds::zero() < waitTime);
-        REQUIRE(waitTime < std::chrono::milliseconds(5));
+            //simulate shorter wait than required
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            waitTime = poller.pollNext();
+            REQUIRE(!poller.allDone());
+            REQUIRE(std::chrono::milliseconds::zero() < waitTime);
+            REQUIRE(waitTime < std::chrono::milliseconds(5));
 
-        // required silence period reached
-        std::this_thread::sleep_for(std::chrono::milliseconds(4));
+            // required silence period reached
+            std::this_thread::sleep_for(std::chrono::milliseconds(4));
+            waitTime = poller.pollNext();
+            REQUIRE(waitTime == std::chrono::milliseconds::zero());
+            REQUIRE(reg->getValues()[0] == 5);
+            REQUIRE(poller.allDone());
+        }
+
+        SECTION("should not delay register read if there was enough silence time") {
+            std::this_thread::sleep_for(std::chrono::milliseconds(7));
+
+            poller.setPollList(registers);
+            waitTime = poller.pollNext();
+            REQUIRE(waitTime == std::chrono::milliseconds::zero());
+            REQUIRE(reg->getValues()[0] == 5);
+            REQUIRE(poller.allDone());
+        }
+    }
+
+
+    SECTION("after initial poll for slave two registers") {
+        modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
+        modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 60);
+
+        auto reg1 = registers.add(1, 1);
+        auto reg2 = registers.add(2, 20, std::chrono::milliseconds(5));
+
+        poller.setupInitialPoll(registers);
+        auto waitTime = poller.pollNext();
         waitTime = poller.pollNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
-        REQUIRE(reg->getValues()[0] == 5);
         REQUIRE(poller.allDone());
     }
 }
