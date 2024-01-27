@@ -31,14 +31,13 @@ class ModbusPoller {
         std::shared_ptr<IModbusContext> mModbus;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
         std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisters;
-        std::map<int, std::chrono::time_point<std::chrono::steady_clock>> mSlaveLastPollTimes;
+        std::chrono::time_point<std::chrono::steady_clock> mLastPollTime;
 
         //state
         int mCurrentSlave;
         std::shared_ptr<RegisterPoll> mWaitingRegister;
         bool mInitialPoll;
         std::chrono::time_point<std::chrono::steady_clock> mInitialPollStart;
-        std::chrono::time_point<std::chrono::steady_clock> mDelayStart;
 
         void pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg_ptr, bool forceSend);
         void sendMessage(const QueueItem& item);
