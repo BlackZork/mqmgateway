@@ -155,7 +155,7 @@ TEST_CASE("ModbusPoller") {
     }
 
 
-    SECTION("after initial poll for slave two registers") {
+    SECTION("after initial poll of two registers") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 6);
 
@@ -204,5 +204,25 @@ TEST_CASE("ModbusPoller") {
             REQUIRE(reg1->getValues()[0] == 10);
             REQUIRE(poller.allDone());
         }
+    }
+
+    SECTION("after initial poll of three registers") {
+        modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
+        modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 20);
+        modbus_factory.setModbusRegisterValue("test",2,21,modmqttd::RegisterType::HOLDING, 21);
+
+        auto reg1 = registers.add(1, 1);
+        auto reg2 = registers.add(2, 20);
+        auto reg3 = registers.add(2, 21, std::chrono::milliseconds(5));
+
+        poller.setupInitialPoll(registers);
+        poller.pollNext(); // 2.21 is polled first because it requires silence
+        REQUIRE(reg3->getValues()[0] == 21);
+        poller.pollNext(); // 2.20 is polled next because w group reads by slave
+        REQUIRE(reg2->getValues()[0] == 20);
+        poller.pollNext();
+        REQUIRE(reg1->getValues()[0] == 1);
+        REQUIRE(poller.allDone());
+
     }
 }
