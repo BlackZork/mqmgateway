@@ -16,11 +16,10 @@ ModbusPoller::sendMessage(const QueueItem& item) {
 
 void
 ModbusPoller::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
-    mInitialPoll = true;
     mLastPollTime = std::chrono::time_point<std::chrono::steady_clock>::min();
     setPollList(pRegisters);
     BOOST_LOG_SEV(log, Log::debug) << "starting initial poll";
-    mInitialPollStart = std::chrono::steady_clock::now();
+    mInitialPoll = true;
     // assume max silence before initial poll
 }
 
@@ -29,6 +28,7 @@ void
 ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
     mRegisters = pRegisters;
     mCurrentSlave = 0;
+    mInitialPoll = false;
 
     if (pRegisters.empty()) {
         // could happen if modbus is in write only mode
@@ -70,6 +70,7 @@ ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<Regist
     if (mCurrentSlave == 0) {
         mCurrentSlave = mRegisters.begin()->first;
     }
+    mPollStart = std::chrono::steady_clock::now();
 }
 
 
@@ -196,8 +197,7 @@ ModbusPoller::pollNext() {
 
     if (mInitialPoll && mWaitingRegister == nullptr && mRegisters.empty()) {
         auto end = std::chrono::steady_clock::now();
-        BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mInitialPollStart).count() << "ms";
-        mInitialPoll = false;
+        BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mPollStart).count() << "ms";
     }
 
     return std::chrono::steady_clock::duration::zero();

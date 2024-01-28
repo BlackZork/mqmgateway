@@ -116,7 +116,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mDelayBeforePoll).count() << "ms";
         }
     }
-
+    mPoller.setupInitialPoll(mRegisters);
     //now wait for MqttNetworkState(up)
 }
 
@@ -185,6 +185,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             configure(*item.getData<ModbusNetworkConfig>());
         } else if (item.isSameAs(typeid(MsgRegisterPollSpecification))) {
             setPollSpecification(*item.getData<MsgRegisterPollSpecification>());
+            mGotRegisters = true;
         } else if (item.isSameAs(typeid(EndWorkMessage))) {
             BOOST_LOG_SEV(log, Log::debug) << "Got exit command";
             mShouldRun = false;
@@ -192,7 +193,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             processWrite(*item.getData<MsgRegisterValues>());
         } else if (item.isSameAs(typeid(MsgMqttNetworkState))) {
             std::unique_ptr<MsgMqttNetworkState> netstate(item.getData<MsgMqttNetworkState>());
-            mShouldPoll = netstate->mIsUp;
+            mMqttConnected = netstate->mIsUp;
         } else if (item.isSameAs(typeid(ModbusSlaveConfig))) {
             //no per-slave config attributes defined yet
             updateSlaveConfig(*item.getData<ModbusSlaveConfig>());
@@ -243,6 +244,8 @@ ModbusThread::run() {
         BOOST_LOG_SEV(log, Log::debug) << "Modbus thread started";
         const int maxReconnectTime = 60;
         std::chrono::steady_clock::duration idleWaitDuration = std::chrono::steady_clock::duration::max();
+        //after initial poll we want to call scheduler immediately
+        std::chrono::steady_clock::duration timeToNextPoll = std::chrono::steady_clock::duration::zero();
 
         while(mShouldRun) {
             if (mModbus) {
@@ -257,15 +260,17 @@ ModbusThread::run() {
                         // if modbus network was disconnected
                         // we need to refresh everything
                         //mNeedInitialPoll = true;
-                        mPoller.setupInitialPoll(mRegisters);
+                        if (mGotRegisters)
+                            mPoller.setupInitialPoll(mRegisters);
                     }
                 }
 
-                // start polling only if Mosquitto
-                // have succesfully connected to Mqtt broker
-                // to avoid growing mFromModbusQueue with queued register updates
                 if (mModbus->isConnected()) {
-                    if (mShouldPoll) {
+                    // start polling only if Mosquitto
+                    // have succesfully connected to Mqtt broker
+                    // to avoid growing mFromModbusQueue with queued register updates
+                    // and if we already got the first MsgPollSpecification
+                    if (mMqttConnected && mGotRegisters) {
                         // if modbus network was disconnected
                         // we need to refresh everything
 /*
@@ -275,19 +280,33 @@ ModbusThread::run() {
 */
                         //initial wait set to infinity, scheduler will adjust this value
                         //to time period for next poll
-                        idleWaitDuration = std::chrono::steady_clock::duration::max();
+                        //idleWaitDuration = std::chrono::steady_clock::duration::max();
 
                         if (mPoller.allDone()) {
                             auto start = std::chrono::steady_clock::now();
-                            std::chrono::steady_clock::duration timeToNextPoll;
+                            timeToNextPoll = std::chrono::steady_clock::duration::max();
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(mRegisters, timeToNextPoll, start);
                             //if there are no registers to poll
                             //then wait duration::max() for messages
                             if (regsToPoll.size()) {
                                 mPoller.setPollList(regsToPoll);
+                                idleWaitDuration = std::chrono::steady_clock::duration::zero();
+                            } else {
+                                idleWaitDuration = timeToNextPoll;
                             }
                         } else {
                             idleWaitDuration = mPoller.pollNext();
+                            if (mPoller.allDone()) {
+                                if (mPoller.isInitial()) {
+                                    idleWaitDuration = std::chrono::steady_clock::duration::zero();
+                                } else {
+                                    idleWaitDuration = timeToNextPoll - mPoller.getTotalPollDuration();
+                                    if (idleWaitDuration < std::chrono::steady_clock::duration::zero()) {
+                                        BOOST_LOG_SEV(log, Log::debug) << "Next poll is eariler than current poll time (" <<  std::chrono::duration_cast<std::chrono::milliseconds>(idleWaitDuration).count() << "ms)";
+                                        idleWaitDuration = std::chrono::steady_clock::duration::zero();
+                                    }
+                                }
+                            }
                         }
 
                         // note start time and find registers that need a refresh now
@@ -313,7 +332,11 @@ ModbusThread::run() {
                         }
 */
                     } else {
-                        BOOST_LOG_SEV(log, Log::info) << "Waiting for mqtt network to become online";
+                        if (!mMqttConnected)
+                            BOOST_LOG_SEV(log, Log::info) << "Waiting for mqtt network to become online";
+                        if (!mGotRegisters)
+                            BOOST_LOG_SEV(log, Log::debug) << "Waiting for poll specification message";
+
                         idleWaitDuration = std::chrono::steady_clock::duration::max();
                     }
                 } else {
@@ -322,7 +345,7 @@ ModbusThread::run() {
                         idleWaitDuration += std::chrono::seconds(5);
                 };
             } else {
-                //wait for poll specification
+                //wait for modbus network config
                 idleWaitDuration = std::chrono::steady_clock::duration::max();
             }
 

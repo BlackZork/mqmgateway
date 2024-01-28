@@ -25,6 +25,11 @@ class ModbusPoller {
          *  and return duration=0
          */
         std::chrono::steady_clock::duration pollNext();
+
+        std::chrono::steady_clock::duration getTotalPollDuration() const {
+            return std::chrono::steady_clock::now() - mPollStart;
+        }
+        bool isInitial() const { return mInitialPoll; }
     private:
         boost::log::sources::severity_logger<Log::severity> log;
 
@@ -37,7 +42,7 @@ class ModbusPoller {
         int mCurrentSlave;
         std::shared_ptr<RegisterPoll> mWaitingRegister;
         bool mInitialPoll;
-        std::chrono::time_point<std::chrono::steady_clock> mInitialPollStart;
+        std::chrono::time_point<std::chrono::steady_clock> mPollStart;
 
         void pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg_ptr, bool forceSend);
         void sendMessage(const QueueItem& item);

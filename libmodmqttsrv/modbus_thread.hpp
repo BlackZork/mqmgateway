@@ -39,9 +39,9 @@ class ModbusThread {
         // true if mqtt becomes online
         // and we need to refresh all registers
         bool mNeedInitialPoll = false;
-        //true if mqtt is connected and we should
-        //poll registers
-        bool mShouldPoll = false;
+
+        bool mMqttConnected = false;
+        bool mGotRegisters = false;
 
         std::shared_ptr<IModbusContext> mModbus;
         ModbusScheduler mScheduler;
