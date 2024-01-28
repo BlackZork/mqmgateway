@@ -36,9 +36,6 @@ class ModbusThread {
         std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisters;
 
         bool mShouldRun = true;
-        // true if mqtt becomes online
-        // and we need to refresh all registers
-        bool mNeedInitialPoll = false;
 
         bool mMqttConnected = false;
         bool mGotRegisters = false;
