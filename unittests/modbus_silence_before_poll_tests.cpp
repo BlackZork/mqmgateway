@@ -14,7 +14,7 @@ modbus:
       port: 501
       slaves:
         - address: 1
-          silence_before_poll: 15ms
+          delay_before_poll: 15ms
 mqtt:
   client_id: mqtt_test
   broker:
@@ -31,7 +31,7 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
         server.start();
         // default mocked modbus read time is 5ms per register
-        // refresh is 5ms sowithout silence poll should be executed every 10ms
+        // refresh is 5ms so without silence poll should be executed every 10ms
         server.waitForPublish("test_sensor/state");
         REQUIRE(server.mqttValue("test_sensor/state") == "1");
         std::chrono::time_point<std::chrono::steady_clock> first_poll_ts = server.getLastPollTime();
@@ -77,7 +77,7 @@ modbus:
       port: 501
       slaves:
         - address: 1
-          silence_before_poll: 50ms
+          delay_before_poll: 50ms
 mqtt:
   client_id: mqtt_test
   broker:

@@ -15,7 +15,7 @@ class ModbusPoller {
         void init(const std::shared_ptr<IModbusContext>& modbus) { mModbus = modbus; }
         void setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
         bool allDone() const { return mRegisters.empty(); }
-        void setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
+        void setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool mInitialPoll = false);
         /**
          *  Get next register R to pull from register list
          *  If R needs delay then return how much time we should wait before

@@ -17,18 +17,17 @@ ModbusPoller::sendMessage(const QueueItem& item) {
 void
 ModbusPoller::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
     mLastPollTime = std::chrono::time_point<std::chrono::steady_clock>::min();
-    setPollList(pRegisters);
+    setPollList(pRegisters, true);
     BOOST_LOG_SEV(log, Log::debug) << "starting initial poll";
-    mInitialPoll = true;
     // assume max silence before initial poll
 }
 
 
 void
-ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
+ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
     mRegisters = pRegisters;
     mCurrentSlave = 0;
-    mInitialPoll = false;
+    mInitialPoll = initialPoll;
 
     if (pRegisters.empty()) {
         // could happen if modbus is in write only mode
@@ -45,6 +44,7 @@ ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<Regist
         last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
 
     std::vector<std::shared_ptr<RegisterPoll>>::iterator selected;
+    mWaitingRegister = nullptr;
     for(auto sit = mRegisters.begin(); sit != mRegisters.end(); sit++) {
         for (auto rit = sit->second.begin(); rit != sit->second.end(); rit++) {
             if ((*rit)->mDelayBeforePoll == std::chrono::steady_clock::duration::zero())
