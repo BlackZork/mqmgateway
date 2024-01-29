@@ -198,6 +198,8 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
 
     mInternalOperation = false;
     mLastPolTime = std::chrono::steady_clock::now();
+    mLastPolledSlave = slaveId;
+    mLastPolledRegister = regData.mRegister;
     return ret;
 }
 
@@ -263,13 +265,18 @@ MockedModbusFactory::getOrCreateContext(const char* network) {
     return ctx;
 }
 
-std::chrono::time_point<std::chrono::steady_clock>
-MockedModbusFactory::getLastPollTime(const char* network) const {
+std::shared_ptr<MockedModbusContext>
+MockedModbusFactory::findOrReturnFirstContext(const char* network) const {
     auto it = mModbusNetworks.begin();
     if (network != nullptr)
         it = mModbusNetworks.find(network);
+    return it->second;
+}
 
-    return it->second->getLastPollTime();
+std::chrono::time_point<std::chrono::steady_clock>
+MockedModbusFactory::getLastPollTime(const char* network) const {
+    auto ctx = findOrReturnFirstContext(network);
+    return ctx->getLastPollTime();
 }
 
 
@@ -310,4 +317,9 @@ MockedModbusFactory::disconnectModbusSlave(const char* network, int slaveId) {
     ctx->getSlave(slaveId).setDisconnected();
 }
 
+std::tuple<int, int>
+MockedModbusFactory::getLastReadRegisterAddress(const char* network) const {
+    std::shared_ptr<MockedModbusContext> ctx = findOrReturnFirstContext(network);
+    return ctx->getLastReadRegisterAddress();
+}
 

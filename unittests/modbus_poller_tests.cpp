@@ -8,26 +8,9 @@
 #include "libmodmqttsrv/modbus_types.hpp"
 
 
+#include "modbus_utils.hpp"
 #include "mockedmodbuscontext.hpp"
 #include "../readerwriterqueue/readerwriterqueue.h"
-
-class TestRegisters : public std::map<int, std::vector<std::shared_ptr<modmqttd::RegisterPoll>>>
-{
-    public:
-        std::shared_ptr<modmqttd::RegisterPoll> add(
-            int slave,
-            int number,
-            std::chrono::steady_clock::duration delayBeforePoll = std::chrono::milliseconds::zero(),
-            std::chrono::milliseconds refresh = std::chrono::milliseconds(10)
-        ) {
-            //TODO no check if already on list
-            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
-            reg->mDelayBeforePoll = delayBeforePoll;
-            (*this)[slave].push_back(reg);
-            return reg;
-        }
-};
-
 
 TEST_CASE("ModbusPoller") {
     moodycamel::BlockingReaderWriterQueue<modmqttd::QueueItem> fromModbusQueue;
@@ -36,7 +19,7 @@ TEST_CASE("ModbusPoller") {
     modmqttd::ModbusPoller poller(fromModbusQueue);
     poller.init(modbus_factory.getContext("test"));
 
-    TestRegisters registers;
+    ModbusPollerTestRegisters registers;
     std::chrono::steady_clock::duration waitTime;
 
     SECTION("should return zero duration for empty register set") {
