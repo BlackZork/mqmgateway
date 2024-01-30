@@ -15,7 +15,7 @@ on:
 env:
   REGISTRY: ghcr.io
   # cannot use gitgub.repository due to my upper case username
-  REGISTRY_IMAGE: blackzork/mqmgateway
+  REGISTRY_IMAGE: ghcr.io/blackzork/mqmgateway
 
 # permissions are needed if pushing to ghcr.io
 permissions:
