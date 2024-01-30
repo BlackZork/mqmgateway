@@ -35,7 +35,7 @@ add_subdirectory(libmodmqttsrv)
 add_subdirectory(modmqttd)
 add_subdirectory(unittests ${build_unittests})
 
-SET(GCC_COMPILE_FLAGS "-Wformat -Werror=format-security -Wall")
+SET(GCC_COMPILE_FLAGS "-Wformat -Werror=format-security -Wall -Wstrict-aliasing")
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COMPILE_FLAGS}")
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib/modmqttd")

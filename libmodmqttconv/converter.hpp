@@ -36,7 +36,7 @@ class ConverterTools {
         /**
          * Returns nth converter argument as string
          * */
-        static const std::string& getArg(uint index, const std::vector<std::string>& args) {
+        static const std::string& getArg(size_t index, const std::vector<std::string>& args) {
             if (index < args.size())
                 return args[index];
             throw std::out_of_range("Not enough arguments for converter");

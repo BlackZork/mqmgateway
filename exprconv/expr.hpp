@@ -36,7 +36,7 @@ class ExprtkConverter : public DataConverter {
             mSymbolTable.add_constants();
 
             char buf[16];
-            for(uint i = 0; i < mValues.size(); i++) {
+            for(uint16_t i = 0; i < mValues.size(); i++) {
                 sprintf(buf, "R%d", i);
                 mSymbolTable.add_variable(buf, mValues[i], false);
             }
