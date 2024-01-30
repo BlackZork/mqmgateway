@@ -778,17 +778,22 @@ modmqttd:
     - <mylugin.so dir>
   converter_plugins:
     - myplugin.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
 mqtt:
   objects:
     - topic: test_topic
     command:
       name: set_val
-      register: device1.slave2.12
+      register: tcptest.2.12
       register_type: input
       converter: myplugin.myconverter(1)
     state:
       name: test_val
-      register: device1.slave2.12
+      register: tcptest.2.12
       register_type: input
       converter: myplugin.myconverter(1)
 
