@@ -155,26 +155,7 @@ TEST_CASE("ModbusPoller") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 10);
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 60);
 
-        SECTION("should poll registers in order if there is not enough silence before poll") {
-            poller.setPollList(registers);
-            waitTime = poller.pollNext();
-            REQUIRE(waitTime == std::chrono::milliseconds::zero());
-            REQUIRE(reg1->getValues()[0] == 10);
-            REQUIRE(!poller.allDone());
-
-            waitTime = poller.pollNext();
-            REQUIRE(waitTime > std::chrono::milliseconds(4));
-            REQUIRE(!poller.allDone());
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            waitTime = poller.pollNext();
-            REQUIRE(waitTime == std::chrono::milliseconds::zero());
-            REQUIRE(reg2->getValues()[0] == 60);
-            REQUIRE(poller.allDone());
-
-        }
-
-        SECTION("should poll waiting register first if there is enough silence before poll") {
+        SECTION("should poll waiting register with max delay first") {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             poller.setPollList(registers);
             waitTime = poller.pollNext();

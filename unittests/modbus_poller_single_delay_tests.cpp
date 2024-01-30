@@ -58,9 +58,9 @@ TEST_CASE("ModbusPoller for single delay config") {
 
         poller.setPollList(registers);
         // reg1 should be polled first because we have silence to use
-        // but poll of reg1 need to wait at least 10ms more, because reg2 was polled last
+        // but poll of reg1 need to wait about 10ms more, because reg2 was polled last
         waitTime = poller.pollNext();
-        REQUIRE(waitTime > std::chrono::milliseconds(15));
+        REQUIRE(waitTime > std::chrono::milliseconds(5));
         REQUIRE(!poller.allDone());
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -87,6 +87,9 @@ TEST_CASE("ModbusPoller for single delay config") {
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
         REQUIRE(!poller.allDone());
 
+        //slave changed, reg1 needs 15 ms delay
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
         waitTime = poller.pollNext();
         REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(1,1));
         REQUIRE(poller.allDone());
@@ -103,7 +106,6 @@ TEST_CASE("ModbusPoller for single delay config") {
 
         //reg2 needs silence due to slave change
         waitTime = poller.pollNext();
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(2,20));
         REQUIRE(waitTime > std::chrono::milliseconds(10));
         REQUIRE(!poller.allDone());
 

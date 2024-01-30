@@ -6,7 +6,9 @@
 namespace modmqttd {
 
 ModbusPoller::ModbusPoller(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
-    : mFromModbusQueue(fromModbusQueue)
+    : mFromModbusQueue(fromModbusQueue),
+      mCurrentSlave(0),
+      mLastSlave(0)
 {}
 
 void
@@ -49,17 +51,25 @@ ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<Regist
         for (auto rit = sit->second.begin(); rit != sit->second.end(); rit++) {
             if ((*rit)->mDelayBeforePoll == std::chrono::steady_clock::duration::zero())
                 continue;
-            if ((*rit)->mDelayBeforePoll > last_silence_period)
-                continue;
-
-            if (mWaitingRegister == nullptr || mWaitingRegister->mDelayBeforePoll < (*rit)->mDelayBeforePoll) {
+            if (sit->first == mLastSlave && (*rit)->mDelayType == RegisterPoll::FIRST_READ) {
+                //we do not have to wait if previous list poll ended with the same slave
+                //as this register
                 selected = rit;
                 mWaitingRegister = *rit;
                 mCurrentSlave = sit->first;
+                goto after_waiting_search_loop;
+            } else {
+                if (mWaitingRegister == nullptr || mWaitingRegister->mDelayBeforePoll < (*rit)->mDelayBeforePoll) {
+                    selected = rit;
+                    mWaitingRegister = *rit;
+                    mCurrentSlave = sit->first;
+                }
             }
+
         }
     }
 
+    after_waiting_search_loop:
     // remove selected register outside of iteration loop
     if (mWaitingRegister != nullptr) {
         mRegisters[mCurrentSlave].erase(selected);
@@ -79,6 +89,7 @@ ModbusPoller::pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         RegisterPoll& reg(*reg_ptr);
+        mLastSlave = slaveId; // before read, remember even if read is unsuccessfull
         std::vector<uint16_t> newValues(mModbus->readModbusRegisters(slaveId, reg));
         mLastPollTime = reg.mLastRead = std::chrono::steady_clock::now();
 
@@ -121,17 +132,25 @@ ModbusPoller::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const 
 std::chrono::steady_clock::duration
 ModbusPoller::pollNext() {
     if (mWaitingRegister != nullptr) {
-        if (mLastPollTime != std::chrono::time_point<std::chrono::steady_clock>::min()) {
-            auto delay_passed = std::chrono::steady_clock::now() - mLastPollTime;
-            auto delay_left = mWaitingRegister->mDelayBeforePoll - delay_passed;
-            if (delay_left > std::chrono::steady_clock::duration::zero())
-                return delay_left;
+        if (
+            (mWaitingRegister->mDelayType == RegisterPoll::EVERY_READ)
+            ||
+            (
+                mWaitingRegister->mDelayType == RegisterPoll::FIRST_READ
+                && mCurrentSlave != mLastSlave
+            )
+        ) {
+            if (mLastPollTime != std::chrono::time_point<std::chrono::steady_clock>::min()) {
+                auto delay_passed = std::chrono::steady_clock::now() - mLastPollTime;
+                auto delay_left = mWaitingRegister->mDelayBeforePoll - delay_passed;
+                if (delay_left > std::chrono::steady_clock::duration::zero())
+                    return delay_left;
+            }
         }
         //mWaitingRegister is ready to be polled
         pollRegister(mCurrentSlave, mWaitingRegister, mInitialPoll);
         mWaitingRegister.reset();
     } else {
-
         std::shared_ptr<RegisterPoll> toPoll;
 
         if (!mRegisters.empty()) {

@@ -41,6 +41,8 @@ class ModbusPoller {
 
         //state
         int mCurrentSlave;
+        //used to determine if we have to respect delay of RegisterPoll::ReadDelayType::FIRST_READ
+        int mLastSlave;
         std::shared_ptr<RegisterPoll> mWaitingRegister;
         bool mInitialPoll;
         std::chrono::time_point<std::chrono::steady_clock> mPollStart;
