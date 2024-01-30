@@ -98,7 +98,7 @@ TEST_CASE("ModbusPoller") {
     SECTION("after doing initial poll for single register") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
 
-        auto reg = registers.add(1, 1, std::chrono::milliseconds(5));
+        auto reg = registers.addDelayed(1, 1, std::chrono::milliseconds(5));
         poller.setupInitialPoll(registers);
         waitTime = poller.pollNext();
         REQUIRE(poller.allDone());
@@ -143,7 +143,7 @@ TEST_CASE("ModbusPoller") {
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 6);
 
         auto reg1 = registers.add(1, 1);
-        auto reg2 = registers.add(2, 20, std::chrono::milliseconds(5));
+        auto reg2 = registers.addDelayed(2, 20, std::chrono::milliseconds(5));
 
         poller.setupInitialPoll(registers);
         poller.pollNext(); // 2.20 is polled first because it requires silence
@@ -196,7 +196,7 @@ TEST_CASE("ModbusPoller") {
 
         auto reg1 = registers.add(1, 1);
         auto reg2 = registers.add(2, 20);
-        auto reg3 = registers.add(2, 21, std::chrono::milliseconds(5));
+        auto reg3 = registers.addDelayed(2, 21, std::chrono::milliseconds(5));
 
         poller.setupInitialPoll(registers);
         poller.pollNext(); // 2.21 is polled first because it requires silence

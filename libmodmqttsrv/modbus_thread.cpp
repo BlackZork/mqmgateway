@@ -46,7 +46,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
             std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
             if (slave_cfg != mSlaves.end())
-                reg->mDelayBeforePoll = slave_cfg->second.mDelayBeforePoll;
+                reg->updateSlaveConfig(slave_cfg->second);
             mRegisters[it->mSlaveId].push_back(reg);
         }
     }

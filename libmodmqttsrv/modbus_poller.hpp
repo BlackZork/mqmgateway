@@ -16,9 +16,6 @@ class ModbusPoller {
         void setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
         bool allDone() const { return mRegisters.empty(); }
         void setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool mInitialPoll = false);
-        void setSlaveDelay(int slaveId, std::chrono::steady_clock::duration delay) {
-            mSlaveDelays[slaveId] = delay;
-        }
         /**
          *  Get next register R to pull from register list
          *  If R needs delay then return how much time we should wait before
@@ -39,7 +36,6 @@ class ModbusPoller {
         std::shared_ptr<IModbusContext> mModbus;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
         std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisters;
-        std::map<int, std::chrono::steady_clock::duration> mSlaveDelays;
 
         std::chrono::time_point<std::chrono::steady_clock> mLastPollTime;
 
