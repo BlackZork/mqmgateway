@@ -169,6 +169,15 @@ Modbus network configuration parameters are listed below:
 
       Modbus slave address 
 
+  * **min_delay_before_first_poll** (timespan, optional)
+
+      Required silence period before issuing first register(s) read call to this slave. This silence is required only if a register 
+      that was read in previous poll was from a different slave. 
+
+  * **min_delay_before_poll** (timespan, optional)
+
+      Same as `min_delay_before_first_poll`, but silence period is required before every read call to any register from this slave.
+
   * **poll_groups** (optional)
 
       An optional list of modbus register address ranges that will be polled with a single modbus_read_registers(3) call.
