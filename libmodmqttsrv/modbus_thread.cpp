@@ -32,7 +32,7 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     // if you experience read timeouts on RTU then increase
     // min_delay_before_poll config value
     mMinDelayBeforePoll = config.mMinDelayBeforePoll;
-    BOOST_LOG_SEV(log, Log::info) << "Minimum delay before poll set to " << std::chrono::duration_cast<std::chrono::milliseconds>(mMinDelayBeforePoll).count() << "ms";
+    BOOST_LOG_SEV(log, Log::info) << "Global minimum delay before poll set to " << std::chrono::duration_cast<std::chrono::milliseconds>(mMinDelayBeforePoll).count() << "ms";
 }
 
 void
@@ -47,6 +47,10 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
             if (slave_cfg != mSlaves.end())
                 reg->updateSlaveConfig(slave_cfg->second);
+
+            if (mMinDelayBeforePoll != std::chrono::milliseconds::zero())
+                reg->mDelayBeforePoll = mMinDelayBeforePoll;
+
             mRegisters[it->mSlaveId].push_back(reg);
         }
     }
