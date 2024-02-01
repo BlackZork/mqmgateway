@@ -119,6 +119,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             mGotRegisters = true;
         } else if (item.isSameAs(typeid(EndWorkMessage))) {
             BOOST_LOG_SEV(log, Log::debug) << "Got exit command";
+            item.getData<EndWorkMessage>(); //free QueueItem memory
             mShouldRun = false;
         } else if (item.isSameAs(typeid(MsgRegisterValues))) {
             processWrite(*item.getData<MsgRegisterValues>());

@@ -41,6 +41,10 @@ MqttClient::start() /*throw(MosquittoException)*/ {
 
 void
 MqttClient::shutdown() {
+    //adding MsgMqttNetworkState messages
+    //after mMqtt disconnects
+    mModbusClients.clear();
+
     switch(mConnectionState) {
         case State::CONNECTED:
             BOOST_LOG_SEV(log, Log::info) << "Disconnecting from mqtt broker";

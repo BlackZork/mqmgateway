@@ -726,7 +726,6 @@ void ModMqtt::start() {
     {
         (*client)->stop();
     }
-
     if (mMqtt->isConnected()) {
         BOOST_LOG_SEV(log, Log::info) << "Publishing availability status 0 for all registers";
         for(std::vector<std::shared_ptr<ModbusClient>>::iterator client = mModbusClients.begin();
@@ -735,6 +734,10 @@ void ModMqtt::start() {
             mMqtt->processModbusNetworkState((*client)->mName, false);
         }
     }
+
+    //cleanup mqtt queue after modbus clients are stopped
+    processModbusMessages();
+
     BOOST_LOG_SEV(log, Log::debug) << "Shutting down mosquitto client";
     // If connected, then shutdown()
     // will send disconnection request to mqtt broker.
