@@ -41,8 +41,8 @@ MqttClient::start() /*throw(MosquittoException)*/ {
 
 void
 MqttClient::shutdown() {
-    //adding MsgMqttNetworkState messages
-    //after mMqtt disconnects
+    //do not add any messages to modbus queues - modbus clients
+    //are already stopped
     mModbusClients.clear();
 
     switch(mConnectionState) {
