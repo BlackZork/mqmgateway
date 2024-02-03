@@ -42,13 +42,19 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
 # Installation
 
-1. `git clone https://github.com/BlackZork/mqmgateway.git`
+## From sources
+
+1. `git clone https://github.com/BlackZork/mqmgateway.git#branch=master`
+   
+   You can aslo use `branch=<tagname>` to clone specific release or download sources from [Releases page](https://github.com/BlackZork/mqmgateway/releases)
+
 1. Install dependencies:
    1. boost
    1. libmodbus
    1. mosquitto
    1. yaml-cpp
    1. rapidJSON
+   1. exprtk (optional, for exprtk expressions language support in yaml declarations)
    1. Catch2 (optional, for unit tests)
 
 1. Configure and build project:
@@ -61,22 +67,33 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
     You can add -DWITHOUT_TESTS=1 to skip build of unit test executable.
 
-1. Copy config.template.yaml to /etc/modmqttd/config.yaml.
+1. Copy config.template.yaml to /etc/modmqttd/config.yaml and adjust it.
 
-1. Edit configuration and start service:
+1. Copy modmqttd.service to /etc/systemd/system and start service:
 
 ```
   systemctl start modmqttd
 ```
 
+## Docker image
+
+Docker images for various archicetures (i386, arm6, arm7, amd64) are available in [packages section](https://github.com/.BlackZork/mqmgateway/pkgs/container/mqmgateway). 
+
+1. Pull docker image using instructions provided in packages section.
+
+1. Copy config.template.yaml and example [docker-compose file](docker-compose.yml) to working directory
+
+1. Edit and rename config.template.yaml to config.yaml. In docker-compose.yml adjust devices section to provide serial modbus devices from host to docker container.
+
+1. Run `docker-compose up -d` in working directory to start service.
 
 # Configuration
 
 modmqttd configuration file is in YAML format. It is divied in three main sections:
 
 * modmqttd section contains information about custom plugins
-* modbus section contains modbus network definitions
-* mqtt section contains mqtt broker connection parameters and modbus register mappings
+* modbus section contains modbus network definitions and slave specific configuration.
+* mqtt section contains mqtt broker connection parameters and modbus register mappings to mqtt topics
 
 For quick example see [config.template.yaml](modmqttd/config.template.yaml) in source directory.
 
