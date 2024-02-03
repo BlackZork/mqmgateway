@@ -4,6 +4,7 @@
 #include <chrono>
 #include <vector>
 #include <mutex>
+#include <tuple>
 
 #include "libmodmqttsrv/imodbuscontext.hpp"
 #include "libmodmqttsrv/modbus_types.hpp"
@@ -59,8 +60,15 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(const modmqttd::MsgRegisterValues& msg);
         virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
+
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
+        std::tuple<int,int> getLastReadRegisterAddress() const {
+            return std::tuple(mLastPolledSlave, mLastPolledRegister+1);
+        }
+        const std::chrono::time_point<std::chrono::steady_clock>& getLastPollTime() const {
+            return mLastPolTime;
+        }
 
         Slave& getSlave(int slaveId);
 
@@ -72,27 +80,28 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         std::mutex mMutex;
         std::map<int, Slave> mSlaves;
 
+        std::chrono::time_point<std::chrono::steady_clock> mLastPolTime;
+        int mLastPolledSlave;
+        int mLastPolledRegister;
+
         std::map<int, MockedModbusContext::Slave>::iterator findOrCreateSlave(int id);
+
+
 };
 
 class MockedModbusFactory : public modmqttd::IModbusFactory {
     public:
         virtual std::shared_ptr<modmqttd::IModbusContext> getContext(const std::string& networkName) {
-            auto it = mModbusNetworks.find(networkName);
-            std::shared_ptr<MockedModbusContext> ctx;
-            if (it == mModbusNetworks.end()) {
-                //it will be initialized by modbus_thread.cpp
-                ctx.reset(new MockedModbusContext());
-                mModbusNetworks[networkName] = ctx;
-            } else {
-                ctx = it->second;
-            }
-            return ctx;
+            return getOrCreateContext(networkName.c_str());
         };
+
+        std::chrono::time_point<std::chrono::steady_clock> getLastPollTime(const char* network = nullptr) const;
+        std::tuple<int, int> getLastReadRegisterAddress(const char* network = nullptr) const;
 
         void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val);
         uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
         void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
+
         MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
             auto it = mModbusNetworks.find(networkName);
             return *(it->second);
@@ -100,6 +109,7 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
         void disconnectModbusSlave(const char* network, int slaveId);
     private:
         std::shared_ptr<MockedModbusContext> getOrCreateContext(const char* network);
+        std::shared_ptr<MockedModbusContext> findOrReturnFirstContext(const char* network) const;
         std::map<std::string, std::shared_ptr<MockedModbusContext>> mModbusNetworks;
 };
 

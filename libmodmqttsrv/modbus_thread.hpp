@@ -3,16 +3,19 @@
 #include "../readerwriterqueue/readerwriterqueue.h"
 
 #include "common.hpp"
-#include "queue_item.hpp"
 #include "modbus_messages.hpp"
 #include "modbus_scheduler.hpp"
 #include "modbus_slave.hpp"
+#include "modbus_poller.hpp"
+
 #include "imodbuscontext.hpp"
 
 namespace modmqttd {
 
 class ModbusThread {
     public:
+        static void sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item);
+
         ModbusThread(
             moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
@@ -33,20 +36,17 @@ class ModbusThread {
         std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisters;
 
         bool mShouldRun = true;
-        // true if mqtt becomes online
-        // and we need to refresh all registers
-        bool mNeedInitialPoll = false;
-        //true if mqtt is connected and we should
-        //poll registers
-        bool mShouldPoll = false;
+
+        bool mMqttConnected = false;
+        bool mGotRegisters = false;
 
         std::shared_ptr<IModbusContext> mModbus;
         ModbusScheduler mScheduler;
+        ModbusPoller mPoller;
 
         void configure(const ModbusNetworkConfig& config);
         void setPollSpecification(const MsgRegisterPollSpecification& spec);
-        void pollRegisters(int slaveId, const std::vector<std::shared_ptr<RegisterPoll>>& registers, bool sendIfChanged = true);
-        void doInitialPoll();
+        void updateSlaveConfig(const ModbusSlaveConfig& pSlaveConfig);
 
         bool hasRegisters() const;
 
@@ -58,11 +58,6 @@ class ModbusThread {
         void processWrite(const MsgRegisterValues& msg);
 
         void processCommands();
-
-        std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> getListToRefresh(
-            std::chrono::steady_clock::duration& outDuration,
-            const std::chrono::time_point<std::chrono::steady_clock>& timePoint
-        );
 };
 
 }

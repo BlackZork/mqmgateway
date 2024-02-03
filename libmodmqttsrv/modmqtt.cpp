@@ -337,8 +337,10 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
             for(std::size_t i = 0; i < slaves.size(); i++) {
                 const YAML::Node& slave(slaves[i]);
                 ModbusSlaveConfig slave_config(slave);
+                if (slave_config.mDelayBeforePoll != std::chrono::milliseconds::zero() && slave_config.mDelayBeforeFirstPoll != std::chrono::milliseconds::zero()) {
+                    BOOST_LOG_SEV(log, Log::warn) << "Ignoring delay_before_first_poll for slave " << slave_config.mAddress << " because delay_before_poll is set";
+                }
                 modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
-
                 spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, slave["poll_groups"]));
             }
         }
@@ -725,6 +727,9 @@ void ModMqtt::start() {
         (*client)->stop();
     }
 
+    //process mqtt queue after modbus clients are stopped
+    processModbusMessages();
+
     if (mMqtt->isConnected()) {
         BOOST_LOG_SEV(log, Log::info) << "Publishing availability status 0 for all registers";
         for(std::vector<std::shared_ptr<ModbusClient>>::iterator client = mModbusClients.begin();
@@ -733,6 +738,7 @@ void ModMqtt::start() {
             mMqtt->processModbusNetworkState((*client)->mName, false);
         }
     }
+
     BOOST_LOG_SEV(log, Log::debug) << "Shutting down mosquitto client";
     // If connected, then shutdown()
     // will send disconnection request to mqtt broker.
@@ -743,6 +749,10 @@ void ModMqtt::start() {
         BOOST_LOG_SEV(log, Log::debug) << "Waiting for disconnection event";
         waitForQueues();
     }
+
+    //TODO mosquitto thread could add some messages to
+    //mModbusClients queue between ModbusClient::stop() and MqttClient::shutdown()
+    //Cleanup those messages here
     BOOST_LOG_SEV(log, Log::info) << "Shutdown finished";
 }
 

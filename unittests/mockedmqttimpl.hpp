@@ -83,6 +83,4 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         std::mutex mMutex;
         std::condition_variable mCondition;
-
-        bool isTopicCreated(const char* topic) const;
 };
