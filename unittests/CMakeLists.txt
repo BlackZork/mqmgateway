@@ -15,10 +15,15 @@ add_executable(tests
     mockedmqttimpl.cpp
     mockedmqttimpl.hpp
     mockedserver.hpp
+    modbus_utils.hpp
     # tests
     converter_name_parser_tests.cpp
     exprconv_tests.cpp
+    modbus_silence_before_first_poll_tests.cpp
+    modbus_silence_before_poll_tests.cpp
     modbus_poll_specification_tests.cpp
+    modbus_poller_tests.cpp
+    modbus_poller_single_delay_tests.cpp
     mqtt_command_tests.cpp
     mqtt_command_conv_tests.cpp
     mqtt_named_list_conv_tests.cpp

@@ -41,6 +41,10 @@ MqttClient::start() /*throw(MosquittoException)*/ {
 
 void
 MqttClient::shutdown() {
+    //do not add any messages to modbus queues - modbus clients
+    //are already stopped
+    mModbusClients.clear();
+
     switch(mConnectionState) {
         case State::CONNECTED:
             BOOST_LOG_SEV(log, Log::info) << "Disconnecting from mqtt broker";

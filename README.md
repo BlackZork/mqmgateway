@@ -24,6 +24,7 @@ Main features:
   * support for custom conversion plugins
   * support for conversion in both directions
 * Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
+* Out of the box compatibility with [HomeAssistant](https://www.home-assistant.io/) MQTT interface
 
 MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosquitto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](CMakeLists.txt) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
 
@@ -168,6 +169,18 @@ Modbus network configuration parameters are listed below:
   * **address** (required)
 
       Modbus slave address 
+
+  * **min_delay_before_first_poll** (timespan, optional)
+
+      Required silence period before issuing first register(s) read call to this slave. This silence is required only if a register 
+      that was read in previous poll was from a different slave. 
+
+      This option is useful for RTU networks with a mix of very slow and fast responding slaves. Adding a delay before slow slave
+      can significantly reduce amount of read erorrs if mqmgateway is configured to poll very fast.
+
+  * **min_delay_before_poll** (timespan, optional)
+
+      Same as `min_delay_before_first_poll`, but silence period is required before every read call to any register from this slave.
 
   * **poll_groups** (optional)
 

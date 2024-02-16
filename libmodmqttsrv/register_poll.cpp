@@ -13,6 +13,17 @@ RegisterPoll::RegisterPoll(int regNum, RegisterType regType, int regCount, std::
     mRefresh = refreshMsec;
     mReadErrors = 0;
     mFirstErrorTime = std::chrono::steady_clock::now();
+    mDelayBeforePoll = std::chrono::milliseconds::zero();
 };
+
+void
+RegisterPoll::updateSlaveConfig(const ModbusSlaveConfig& slave_config) {
+    mDelayBeforePoll = slave_config.mDelayBeforePoll;
+    mDelayType = ReadDelayType::EVERY_READ;
+    if (slave_config.mDelayBeforeFirstPoll != std::chrono::milliseconds::zero()) {
+        mDelayBeforePoll = slave_config.mDelayBeforeFirstPoll;
+        mDelayType = ReadDelayType::FIRST_READ;
+    }
+}
 
 } // namespace
