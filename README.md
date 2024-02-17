@@ -77,7 +77,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
 ## Docker image
 
-Docker images for various archicetures (i386, arm6, arm7, amd64) are available in [packages section](https://github.com/.BlackZork/mqmgateway/pkgs/container/mqmgateway). 
+Docker images for various archicetures (i386, arm6, arm7, amd64) are available in [packages section](https://github.com/users/BlackZork/packages/container/package/mqmgateway). 
 
 1. Pull docker image using instructions provided in packages section.
 
