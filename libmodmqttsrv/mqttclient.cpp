@@ -1,6 +1,7 @@
 #include <cstring>
 #include <map>
 
+#include "common.hpp"
 #include "mqttclient.hpp"
 #include "exceptions.hpp"
 #include "modmqtt.hpp"
@@ -79,7 +80,10 @@ MqttClient::onDisconnect() {
         case State::DISCONNECTING:
             BOOST_LOG_SEV(log, Log::info) << "Stopping mosquitto message loop";
             mConnectionState = State::DISCONNECTED;
+// https://github.com/BlackZork/mqmgateway/issues/33
+#ifndef __MUSL__
             mMqttImpl->stop();
+#endif
             mIsStarted = false;
             // signal modmqttd that is waiting on queues mutex
             // for us to disconnect
