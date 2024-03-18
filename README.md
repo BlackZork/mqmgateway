@@ -624,6 +624,17 @@ MQMGateway contains *std* library with basic converters ready to use:
 
     Applies a mask to value read from modbus register.
 
+
+  * **bitmask**
+
+    Usage: state (single holding or input register)
+
+    Arguments:
+      - bit number 1-16
+
+    Returns 1 if given bit is set, 0 otherwise
+
+
   * **string**
 
     Usage: state, command
