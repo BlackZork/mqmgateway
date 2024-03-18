@@ -30,7 +30,7 @@ class BitConverter : public DataConverter {
         virtual void setArgs(const std::vector<std::string>& args) {
             int number = ConverterTools::getIntArg(0, args);
             if (16 < number || number < 0)
-                throw ConvException("Plase provide valid bit number [1-16]");
+                throw ConvException("Please provide a valid bit number [1-16]");
             bitNumber = number;
         }
 
