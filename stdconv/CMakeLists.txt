@@ -1,6 +1,6 @@
 add_library(stdconv
     MODULE
-    bitmask.hpp
+    bits.hpp
     float32.hpp
     int16.hpp
     int32.hpp

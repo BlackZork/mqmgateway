@@ -1,7 +1,7 @@
 
 #include "plugin.hpp"
 
-#include "bitmask.hpp"
+#include "bits.hpp"
 #include "single_arg_ops.hpp"
 #include "int16.hpp"
 #include "int32.hpp"
@@ -35,5 +35,7 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new Int8Converter();
     else if (name == "uint8")
         return new UInt8Converter();
+    else if (name == "bit")
+        return new BitConverter();
     return nullptr;
 }
