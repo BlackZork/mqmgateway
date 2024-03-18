@@ -89,7 +89,7 @@ Docker images for various archicetures (i386, arm6, arm7, amd64) are available i
 
 # Configuration
 
-modmqttd configuration file is in YAML format. It is divied in three main sections:
+modmqttd configuration file is in YAML format. It is divided into three main sections:
 
 * modmqttd section contains information about custom plugins
 * modbus section contains modbus network definitions and slave specific configuration.
