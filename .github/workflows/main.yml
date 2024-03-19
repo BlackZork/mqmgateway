@@ -10,6 +10,7 @@ on:
       - 'LICENSE'
       - 'docker-compose.yml'
       - 'modmqttd.service'
+      - 'config.template.yaml'
   release:
     types: [published]
 

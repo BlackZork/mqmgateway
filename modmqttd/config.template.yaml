@@ -43,6 +43,9 @@ modbus:
       # isma_switch_1 and isma_switch_2 topics
       slaves:
         - address: 1
+          # force 50ms silence before poll 
+          # if last poll was from different slave
+          delay_before_first_poll: 50ms
           poll_groups:
             - register: 273
               register_type: coil
