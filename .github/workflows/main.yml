@@ -6,11 +6,11 @@ on:
       - "master"
     paths-ignore:
       - 'README.md'
-      - 'FUNDING.yml'
+      - '.github/FUNDING.yml'
       - 'LICENSE'
       - 'docker-compose.yml'
       - 'modmqttd.service'
-      - 'config.template.yaml'
+      - 'modmqttd/config.template.yaml'
   release:
     types: [published]
 
