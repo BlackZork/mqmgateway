@@ -39,13 +39,14 @@ modbus:
       address: 192.168.31.10
       port: 502
 
-      # this will force a single modbus read call for
-      # isma_switch_1 and isma_switch_2 topics
       slaves:
         - address: 1
           # force 50ms silence before poll 
           # if last poll was from different slave
           delay_before_first_poll: 50ms
+          # Modbul polling optimalization
+          # poll group will force a single modbus multiple registers read call 
+          # for isma_switch_1 and isma_switch_2 topics defined below
           poll_groups:
             - register: 273
               register_type: coil
