@@ -87,9 +87,9 @@ ModbusContext::init(const ModbusNetworkConfig& config)
     if (config.mResponseDataTimeout.count() > 0) {
         us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseDataTimeout).count();
         if (modbus_set_byte_timeout(mCtx, 0, us)) {
-            throw ModbusContextException("Unable to set response timeout");
+            throw ModbusContextException("Unable to set response data timeout");
         }
-        BOOST_LOG_SEV(log, Log::info) << "Data response timeout set to " << config.mResponseDataTimeout.count() << "ms";
+        BOOST_LOG_SEV(log, Log::info) << "Response data timeout set to " << config.mResponseDataTimeout.count() << "ms";
     }
 
 

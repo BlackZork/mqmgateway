@@ -54,23 +54,30 @@ class ConfigTools {
         }
 
         template <typename T>
-        static bool readOptionalValue(T& pDest, const YAML::Node& parent, const char* nodeName) {
+        static YAML::Node setOptionalValueFromNode(T& pDest, const YAML::Node& parent, const char* nodeName) {
             const YAML::Node& node = parent[nodeName];
-            if (!node.IsDefined())
-                return false;
+            if (node.IsDefined()) {
 
-            if (!node.IsScalar()) {
-                std::string err = std::string(nodeName) + " must have a single value. List/null found";
-                throw ConfigurationException(parent.Mark(), err);
+                if (!node.IsScalar()) {
+                    std::string err = std::string(nodeName) + " must have a single value. List/null found";
+                    throw ConfigurationException(parent.Mark(), err);
+                }
+                pDest = node.as<T>();
             }
 
-            pDest = node.as<T>();
-            return true;
+            return node;
+        }
+
+        template <typename T>
+        static bool readOptionalValue(T& pDest, const YAML::Node& parent, const char* nodeName) {
+            return setOptionalValueFromNode(pDest, parent, nodeName).IsDefined();
         }
 };
 
 
 class ModbusNetworkConfig {
+    static constexpr std::chrono::milliseconds MAX_RESPONSE_TIMEOUT = std::chrono::milliseconds(999);
+
     public:
         typedef enum {
             RTU,
@@ -94,7 +101,7 @@ class ModbusNetworkConfig {
 
         Type mType;
         std::string mName = "";
-        std::chrono::milliseconds mResponseTimeout = std::chrono::seconds(1);
+        std::chrono::milliseconds mResponseTimeout = std::chrono::milliseconds(500);
         std::chrono::milliseconds mResponseDataTimeout = std::chrono::seconds(0);
         std::chrono::milliseconds mMinDelayBeforePoll = std::chrono::seconds(0);
 

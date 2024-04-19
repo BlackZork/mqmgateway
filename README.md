@@ -122,11 +122,11 @@ Modbus network configuration parameters are listed below:
 
   Unique name for network - referenced in mqtt mappings
 
-* **response_timeout** (optional, default 1s)
+* **response_timeout** (optional, default 500ms)
 
   A default timeout interval used to wait for modbus response. See modbus_set_response_timeout(3) for details.
 
-* **response_data_timeout** (optional, default 1s)
+* **response_data_timeout** (optional, default 0)
 
   A default timeout interval used to wait for data when reading response from modbus device. See modbus_set_byte_timeout(3) for details.
 

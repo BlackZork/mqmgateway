@@ -4,6 +4,10 @@
 
 namespace modmqttd {
 
+#if __cplusplus < 201703L
+    constexpr std::chrono::milliseconds ModbusNetworkConfig::MAX_RESPONSE_TIMEOUT;
+#endif
+
 ConfigurationException::ConfigurationException(const YAML::Mark& mark, const char* what) {
     mWhat = "config error";
     if (mark.is_null()) {
@@ -19,8 +23,18 @@ ConfigurationException::ConfigurationException(const YAML::Mark& mark, const cha
 ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
     mName = ConfigTools::readRequiredString(source, "name");
 
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mResponseTimeout, source, "response_timeout");
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mResponseDataTimeout, source, "response_data_timeout");
+    YAML::Node rtNode(ConfigTools::setOptionalValueFromNode<std::chrono::milliseconds>(this->mResponseTimeout, source, "response_timeout"));
+    if (rtNode.IsDefined()) {
+        if ((this->mResponseTimeout < std::chrono::milliseconds::zero()) || (this->mResponseTimeout > MAX_RESPONSE_TIMEOUT))
+            throw ConfigurationException(rtNode.Mark(), "response_timeout value must be in range 0-999ms");
+    }
+
+    YAML::Node rtdNode(ConfigTools::setOptionalValueFromNode<std::chrono::milliseconds>(this->mResponseDataTimeout, source, "response_data_timeout"));
+    if (rtdNode.IsDefined()) {
+        if ((this->mResponseDataTimeout < std::chrono::milliseconds::zero()) || (this->mResponseDataTimeout > MAX_RESPONSE_TIMEOUT))
+            throw ConfigurationException(rtdNode.Mark(), "response_data_timeout value must be in range 0-999ms");
+    }
+
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mMinDelayBeforePoll, source, "min_delay_before_poll");
 
     if (source["device"]) {
