@@ -76,22 +76,22 @@ ModbusContext::init(const ModbusNetworkConfig& config)
             }
             BOOST_LOG_SEV(log, Log::info) << "RTU delay set to " << config.mRtsDelayUs << "us";
         }
+    }
 
+    uint32_t us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseTimeout).count();
+    if (modbus_set_response_timeout(mCtx, 0, us)) {
+        throw ModbusContextException("Unable to set response timeout");
+    }
+    BOOST_LOG_SEV(log, Log::info) << "Response timeout set to " << config.mResponseTimeout.count() << "ms";
 
-        uint32_t us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseTimeout).count();
-        if (modbus_set_response_timeout(mCtx, 0, us)) {
+    if (config.mResponseDataTimeout.count() > 0) {
+        us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseDataTimeout).count();
+        if (modbus_set_byte_timeout(mCtx, 0, us)) {
             throw ModbusContextException("Unable to set response timeout");
         }
-        BOOST_LOG_SEV(log, Log::info) << "Response timeout set to " << config.mResponseTimeout.count() << "ms";
-
-        if (config.mResponseDataTimeout.count() > 0) {
-            us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseDataTimeout).count();
-            if (modbus_set_byte_timeout(mCtx, 0, us)) {
-                throw ModbusContextException("Unable to set response timeout");
-            }
-            BOOST_LOG_SEV(log, Log::info) << "Data response timeout set to " << config.mResponseDataTimeout.count() << "ms";
-        }
+        BOOST_LOG_SEV(log, Log::info) << "Data response timeout set to " << config.mResponseDataTimeout.count() << "ms";
     }
+
 
     if (mCtx == NULL)
         throw ModbusContextException("Unable to create context");
