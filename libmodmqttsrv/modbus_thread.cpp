@@ -19,7 +19,7 @@ ModbusThread::ModbusThread(
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
     : mToModbusQueue(toModbusQueue),
       mFromModbusQueue(fromModbusQueue),
-      mPoller(fromModbusQueue)
+      mExecutor(fromModbusQueue)
 {
 }
 
@@ -28,7 +28,7 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mNetworkName = config.mName;
     mModbus = ModMqtt::getModbusFactory().getContext(config.mName);
     mModbus->init(config);
-    mPoller.init(mModbus);
+    mExecutor.init(mModbus);
     // if you experience read timeouts on RTU then increase
     // min_delay_before_poll config value
     mMinDelayBeforePoll = config.mMinDelayBeforePoll;
@@ -67,7 +67,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mDelayBeforePoll).count() << "ms";
         }
     }
-    mPoller.setupInitialPoll(mRegisters);
+    mExecutor.setupInitialPoll(mRegisters);
     //now wait for MqttNetworkState(up)
 }
 
@@ -193,7 +193,7 @@ ModbusThread::run() {
                         // we need to refresh everything
                         //mNeedInitialPoll = true;
                         if (mGotRegisters)
-                            mPoller.setupInitialPoll(mRegisters);
+                            mExecutor.setupInitialPoll(mRegisters);
                     }
                 }
 
@@ -204,24 +204,24 @@ ModbusThread::run() {
                     // and if we already got the first MsgPollSpecification
                     if (mMqttConnected && mGotRegisters) {
 
-                        if (mPoller.allDone()) {
+                        if (mExecutor.allDone()) {
                             auto start = std::chrono::steady_clock::now();
                             timeToNextPoll = std::chrono::steady_clock::duration::max();
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(mRegisters, timeToNextPoll, start);
 
                             if (regsToPoll.size()) {
-                                mPoller.setPollList(regsToPoll);
+                                mExecutor.setPollList(regsToPoll);
                                 idleWaitDuration = std::chrono::steady_clock::duration::zero();
                             } else {
                                 idleWaitDuration = timeToNextPoll;
                             }
                         } else {
-                            idleWaitDuration = mPoller.pollNext();
-                            if (mPoller.allDone()) {
-                                if (mPoller.isInitial()) {
+                            idleWaitDuration = mExecutor.pollNext();
+                            if (mExecutor.allDone()) {
+                                if (mExecutor.isInitial()) {
                                     idleWaitDuration = std::chrono::steady_clock::duration::zero();
                                 } else {
-                                    idleWaitDuration = timeToNextPoll - mPoller.getTotalPollDuration();
+                                    idleWaitDuration = timeToNextPoll - mExecutor.getTotalPollDuration();
                                     if (idleWaitDuration < std::chrono::steady_clock::duration::zero()) {
                                         BOOST_LOG_SEV(log, Log::debug) << "Next poll is eariler than current poll time (" <<  std::chrono::duration_cast<std::chrono::milliseconds>(idleWaitDuration).count() << "ms)";
                                         idleWaitDuration = std::chrono::steady_clock::duration::zero();

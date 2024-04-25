@@ -9,9 +9,9 @@
 
 namespace modmqttd {
 
-class ModbusPoller {
+class ModbusExecutor {
     public:
-        ModbusPoller(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
+        ModbusExecutor(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
         void init(const std::shared_ptr<IModbusContext>& modbus) { mModbus = modbus; }
         void setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
         bool allDone() const { return mRegisters.empty(); }

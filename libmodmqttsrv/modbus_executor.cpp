@@ -1,23 +1,23 @@
-#include "modbus_poller.hpp"
+#include "modbus_executor.hpp"
 #include "modbus_messages.hpp"
 #include "modbus_thread.hpp"
 #include "queue_item.hpp"
 
 namespace modmqttd {
 
-ModbusPoller::ModbusPoller(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
+ModbusExecutor::ModbusExecutor(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
     : mFromModbusQueue(fromModbusQueue),
       mCurrentSlave(0),
       mLastSlave(0)
 {}
 
 void
-ModbusPoller::sendMessage(const QueueItem& item) {
+ModbusExecutor::sendMessage(const QueueItem& item) {
     ModbusThread::sendMessageFromModbus(mFromModbusQueue, item);
 }
 
 void
-ModbusPoller::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
+ModbusExecutor::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
     mLastPollTime = std::chrono::time_point<std::chrono::steady_clock>::min();
     setPollList(pRegisters, true);
     BOOST_LOG_SEV(log, Log::debug) << "starting initial poll";
@@ -26,7 +26,7 @@ ModbusPoller::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<R
 
 
 void
-ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
+ModbusExecutor::setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
     mRegisters = pRegisters;
     mCurrentSlave = 0;
     mInitialPoll = initialPoll;
@@ -85,7 +85,7 @@ ModbusPoller::setPollList(const std::map<int, std::vector<std::shared_ptr<Regist
 
 
 void
-ModbusPoller::pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg_ptr, bool forceSend) {
+ModbusExecutor::pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg_ptr, bool forceSend) {
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         RegisterPoll& reg(*reg_ptr);
@@ -111,7 +111,7 @@ ModbusPoller::pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg
 };
 
 void
-ModbusPoller::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const char* errorMessage) {
+ModbusExecutor::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const char* errorMessage) {
     // avoid flooding logs with register read error messages - log last error every 5 minutes
     regPoll.mReadErrors++;
     if (regPoll.mReadErrors == 1 || (std::chrono::steady_clock::now() - regPoll.mFirstErrorTime > RegisterPoll::DurationBetweenLogError)) {
@@ -130,7 +130,7 @@ ModbusPoller::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const 
 }
 
 std::chrono::steady_clock::duration
-ModbusPoller::pollNext() {
+ModbusExecutor::pollNext() {
     if (mWaitingRegister != nullptr) {
         if (
             (mWaitingRegister->mDelayType == RegisterPoll::EVERY_READ)

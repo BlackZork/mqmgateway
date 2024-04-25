@@ -3,7 +3,7 @@
 #include "libmodmqttsrv/register_poll.hpp"
 #include "libmodmqttsrv/modbus_types.hpp"
 
-class ModbusPollerTestRegisters : public std::map<int, std::vector<std::shared_ptr<modmqttd::RegisterPoll>>>
+class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared_ptr<modmqttd::RegisterPoll>>>
 {
     public:
         std::shared_ptr<modmqttd::RegisterPoll> add(

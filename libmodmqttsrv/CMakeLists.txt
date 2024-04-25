@@ -17,10 +17,10 @@ add_library(modmqttsrv
     modbus_client.hpp 
     modbus_context.cpp
     modbus_context.hpp
+    modbus_executor.cpp
+    modbus_executor.hpp
     modbus_messages.cpp
     modbus_messages.hpp
-    modbus_poller.cpp
-    modbus_poller.hpp
     modbus_scheduler.cpp
     modbus_scheduler.hpp
     modbus_slave.cpp
