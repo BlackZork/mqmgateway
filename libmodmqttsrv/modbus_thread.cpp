@@ -37,6 +37,7 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
 
 void
 ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
+    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> registerMap;
     for(std::vector<MsgRegisterPoll>::const_iterator it = spec.mRegisters.begin();
         it != spec.mRegisters.end(); it++)
     {
@@ -51,11 +52,13 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             if (mMinDelayBeforePoll != std::chrono::milliseconds::zero())
                 reg->mDelayBeforePoll = mMinDelayBeforePoll;
 
-            mRegisters[it->mSlaveId].push_back(reg);
+            registerMap[it->mSlaveId].push_back(reg);
         }
     }
-    BOOST_LOG_SEV(log, Log::debug) << "Poll specification set, got " << mRegisters.size() << " slaves," << spec.mRegisters.size() << " registers to poll:";
-    for (auto sit = mRegisters.begin(); sit != mRegisters.end(); sit++) {
+
+    mScheduler.setPollSpecification(registerMap);
+    BOOST_LOG_SEV(log, Log::debug) << "Poll specification set, got " << registerMap.size() << " slaves," << spec.mRegisters.size() << " registers to poll:";
+    for (auto sit = registerMap.begin(); sit != registerMap.end(); sit++) {
         for (auto it = sit->second.begin(); it != sit->second.end(); it++) {
 
             BOOST_LOG_SEV(log, Log::debug)
@@ -67,7 +70,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mDelayBeforePoll).count() << "ms";
         }
     }
-    mExecutor.setupInitialPoll(mRegisters);
+    mExecutor.setupInitialPoll(registerMap);
     //now wait for MqttNetworkState(up)
 }
 
@@ -77,10 +80,11 @@ ModbusThread::processWrite(const MsgRegisterValues& msg) {
         mModbus->writeModbusRegisters(msg);
         //send state change immediately if we
         //are polling this register
-        std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::iterator slave = mRegisters.find(msg.mSlaveId);
-        if (slave != mRegisters.end()) {
+        auto& registers = mScheduler.getPollSpecification();
+        std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = registers.find(msg.mSlaveId);
+        if (slave != registers.end()) {
             int regNumber = msg.mRegisterNumber;
-            std::vector<std::shared_ptr<RegisterPoll>>::iterator reg_it = std::find_if(
+            std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = std::find_if(
                 slave->second.begin(), slave->second.end(),
                 [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegister; }
             );
@@ -137,8 +141,9 @@ ModbusThread::updateSlaveConfig(const ModbusSlaveConfig& pConfig) {
         result.first->second = pConfig;
     }
 
-    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave_registers = mRegisters.find(pConfig.mAddress);
-    if (slave_registers != mRegisters.end()) {
+    auto& registers = mScheduler.getPollSpecification();
+    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave_registers = registers.find(pConfig.mAddress);
+    if (slave_registers != registers.end()) {
         for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
             (*it)->mDelayBeforePoll = pConfig.mDelayBeforePoll;
         }
@@ -182,7 +187,7 @@ ModbusThread::run() {
                         // we need to refresh everything
                         //mNeedInitialPoll = true;
                         if (mGotRegisters)
-                            mExecutor.setupInitialPoll(mRegisters);
+                            mExecutor.setupInitialPoll(mScheduler.getPollSpecification());
                     }
                 }
 
@@ -196,7 +201,7 @@ ModbusThread::run() {
                         if (mExecutor.allDone()) {
                             auto start = std::chrono::steady_clock::now();
                             timeToNextPoll = std::chrono::steady_clock::duration::max();
-                            std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(mRegisters, timeToNextPoll, start);
+                            std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(timeToNextPoll, start);
 
                             if (regsToPoll.size()) {
                                 mExecutor.setPollList(regsToPoll);

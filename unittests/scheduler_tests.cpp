@@ -10,13 +10,11 @@ TEST_CASE( "Modbus scheduler basic tests" ) {
     std::chrono::time_point<std::chrono::steady_clock> timePoint;
 
     SECTION ("No registers should return empty list to poll") {
-        RegisterSpec source;
-        REQUIRE(scheduler.getRegistersToPoll(source, duration, timePoint).size() == 0);
+        REQUIRE(scheduler.getRegistersToPoll(duration, timePoint).size() == 0);
     }
 }
 
 TEST_CASE( "Modbus scheduler single register tests" ) {
-    modmqttd::ModbusScheduler scheduler;
     std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 
     RegisterSpec source;
@@ -26,9 +24,12 @@ TEST_CASE( "Modbus scheduler single register tests" ) {
 
     std::chrono::nanoseconds duration = std::chrono::seconds(1000);
 
+    modmqttd::ModbusScheduler scheduler;
+    scheduler.setPollSpecification(source);
+
     SECTION ("poll register now and wait 1sec for next poll") {
         reg->mLastRead = now - std::chrono::milliseconds(1000);
-        RegisterSpec poll = scheduler.getRegistersToPoll(source, duration, now);
+        RegisterSpec poll = scheduler.getRegistersToPoll(duration, now);
 
         CHECK(duration == std::chrono::milliseconds(1000));
         REQUIRE(poll.size() == 1);
@@ -36,7 +37,7 @@ TEST_CASE( "Modbus scheduler single register tests" ) {
 
     SECTION ("wait 800ms to poll register") {
         reg->mLastRead = now - std::chrono::milliseconds(200);
-        RegisterSpec poll = scheduler.getRegistersToPoll(source, duration, now);
+        RegisterSpec poll = scheduler.getRegistersToPoll(duration, now);
 
         CHECK(duration == std::chrono::milliseconds(800));
         REQUIRE(poll.size() == 0);

@@ -32,9 +32,6 @@ class ModbusThread {
         // slave config
         std::map<int, ModbusSlaveConfig> mSlaves;
 
-        //poll specs from slave config merged with mqtt section
-        std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisters;
-
         bool mShouldRun = true;
 
         bool mMqttConnected = false;

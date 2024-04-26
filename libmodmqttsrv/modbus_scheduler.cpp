@@ -5,7 +5,6 @@ namespace modmqttd {
 
 std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>
 ModbusScheduler::getRegistersToPoll(
-    const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& registers,
     std::chrono::steady_clock::duration& outDuration,
     const std::chrono::time_point<std::chrono::steady_clock>& timePoint
 ) {
@@ -13,8 +12,8 @@ ModbusScheduler::getRegistersToPoll(
 
     //BOOST_LOG_SEV(log, Log::debug) << "initial outduration " << std::chrono::duration_cast<std::chrono::milliseconds>(outDuration).count();
 
-    for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = registers.begin();
-        slave != registers.end(); slave++)
+    for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.begin();
+        slave != mRegisterMap.end(); slave++)
     {
         for(std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = slave->second.begin();
             reg_it != slave->second.end(); reg_it++)
