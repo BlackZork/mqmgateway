@@ -48,8 +48,6 @@ class ModbusThread {
         void setPollSpecification(const MsgRegisterPollSpecification& spec);
         void updateSlaveConfig(const ModbusSlaveConfig& pSlaveConfig);
 
-        bool hasRegisters() const;
-
         void dispatchMessages(const QueueItem& read);
         void sendMessage(const QueueItem& item);
 

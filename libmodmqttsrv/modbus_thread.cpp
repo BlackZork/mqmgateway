@@ -71,17 +71,6 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     //now wait for MqttNetworkState(up)
 }
 
-bool
-ModbusThread::hasRegisters() const {
-    for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator it = mRegisters.begin();
-        it != mRegisters.end(); it++)
-    {
-        if (it->second.size() != 0)
-            return true;
-    }
-    return false;
-}
-
 void
 ModbusThread::processWrite(const MsgRegisterValues& msg) {
     try {
