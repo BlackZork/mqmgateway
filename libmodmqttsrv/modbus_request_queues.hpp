@@ -6,7 +6,7 @@
 
 namespace modmqttd {
 
-class ModbusPollQueue {
+class ModbusRequestsQueues {
     public:
         // set a list of registers from next poll
         void addPollList(const std::vector<std::shared_ptr<RegisterPoll>>& pollList);
@@ -16,13 +16,12 @@ class ModbusPollQueue {
         // mNextPollQueue and return the first one
         std::shared_ptr<RegisterPoll> popNext();
 
-        bool empty() const { return mWaitingList.empty() && mPollQueue.empty(); }
+        bool empty() const { return mPollQueue.empty(); }
 
-        // registers waiting to be polled after mPollQueue becomes empty
-        // multiple addPollList calls will update this list removing duplicates
-        std::vector<std::shared_ptr<RegisterPoll>> mWaitingList;
         // registers to poll next
         std::deque<std::shared_ptr<RegisterPoll>> mPollQueue;
+
+        int mMaxWriteQueueSize = 1000;
 };
 
 }
