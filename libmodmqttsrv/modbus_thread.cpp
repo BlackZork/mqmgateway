@@ -199,7 +199,7 @@ ModbusThread::run() {
                     if (mMqttConnected && mGotRegisters) {
 
                         auto now = std::chrono::steady_clock::now();
-                        if (nextPollTimePoint < now) {
+                        if (!mExecutor.isInitial() && nextPollTimePoint < now) {
                             std::chrono::steady_clock::duration schedulerWaitDuration;
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(schedulerWaitDuration, now);
                             nextPollTimePoint = now + schedulerWaitDuration;

@@ -32,15 +32,17 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
     bool setupQueues = allDone();
 
-    mInitialPoll = initialPoll;
     if (mInitialPoll) {
-        mPollStart = std::chrono::steady_clock::now();
         if (!pollDone()) {
             BOOST_LOG_SEV(log, Log::error) << "Cannot add next registers before initial poll is finished. Fix control loop.";
             return;
         }
     }
 
+    if (initialPoll) {
+        mInitialPoll = initialPoll;
+        mPollStart = std::chrono::steady_clock::now();
+    }
 
     bool hasRegisters = false;
     for (auto& pit: pRegisters) {
@@ -62,6 +64,8 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
     // and find the best one that fits in the last_silence_period
     auto last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
 
+    BOOST_LOG_SEV(log, Log::trace) << "Starting election for silence period " << std::chrono::duration_cast<std::chrono::milliseconds>(last_silence_period).count() << "ms";
+
     mWaitingRegister = nullptr;
     u_int16_t maxQueueSize = 0;
 
@@ -73,15 +77,20 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
         bool ignore_first_read = (sit == mCurrentQueue);
 
-        ModbusRequestDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
+        // we cannot break loop
+        // becaue maxQueueSize may be set incorrectly
+        if (currentDiff != std::chrono::steady_clock::duration::zero()) {
+            ModbusRequestDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
 
-        if (reg_delay < currentDiff) {
-            std::shared_ptr<IRegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
-            mWaitingRegister = reg;
-            mCurrentQueue = sit;
-            currentDiff = reg_delay;
-            // we cannot break here even if currentDiff == 0
-            // becaue maxQueueSize may be set incorrectly
+            if (reg_delay < currentDiff) {
+                std::shared_ptr<IRegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
+                mWaitingRegister = reg;
+                mCurrentQueue = sit;
+                currentDiff = reg_delay;
+                BOOST_LOG_SEV(log, Log::trace) << "Electing next register to poll as " << mCurrentQueue->first << "." << mWaitingRegister->getRegister()
+                    << ", delay=" << std::chrono::duration_cast<std::chrono::milliseconds>(reg_delay).count() << "ms"
+                    << ", diff=" << std::chrono::duration_cast<std::chrono::milliseconds>(currentDiff).count() << "ms";
+            }
         }
     }
 
@@ -91,6 +100,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
         mWaitingRegister = mCurrentQueue->second.popNext();
     }
 
+    BOOST_LOG_SEV(log, Log::trace) << "Next register to poll set to " << mCurrentQueue->first << "." << mWaitingRegister->getRegister() << ", mBatchSize=" << maxQueueSize;
     setBatchSize(maxQueueSize);
 }
 
@@ -152,8 +162,11 @@ ModbusExecutor::pollNext() {
         ) {
             auto delay_passed = std::chrono::steady_clock::now() - mLastPollTime;
             auto delay_left = mWaitingRegister->getDelay() - delay_passed;
-            if (delay_left > std::chrono::steady_clock::duration::zero())
+            if (delay_left > std::chrono::steady_clock::duration::zero()) {
+                BOOST_LOG_SEV(log, Log::trace) << "Command for " << mCurrentQueue->first << "." << mWaitingRegister->getRegister()
+                    << " need to wait " << std::chrono::duration_cast<std::chrono::milliseconds>(delay_left).count() << "ms";
                 return delay_left;
+            }
         }
         //mWaitingRegister is ready to be read or written
         sendCommand();
@@ -190,10 +203,14 @@ ModbusExecutor::pollNext() {
             if (mWaitingRegister->getDelay() != std::chrono::steady_clock::duration::zero()) {
                 // setup and return needed delay
                 // or pull register if there was enough silence
-                // after previous pull
+                // after previous command
                 auto last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
                 if (last_silence_period < mWaitingRegister->getDelay()) {
                     auto delay_left = mWaitingRegister->getDelay() - last_silence_period;
+
+                    BOOST_LOG_SEV(log, Log::trace) << "Next register set to " << mCurrentQueue->first << "." << mWaitingRegister->getRegister()
+                        << ", delay=" << std::chrono::duration_cast<std::chrono::milliseconds>(mWaitingRegister->getDelay()).count() << "ms"
+                        << ", left=" << std::chrono::duration_cast<std::chrono::milliseconds>(delay_left).count() << "ms";
                     return delay_left;
                 }
             }

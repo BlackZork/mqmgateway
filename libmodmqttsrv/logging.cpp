@@ -33,7 +33,8 @@ std::ostream& operator<< (std::ostream& strm, Log::severity level)
         "ERROR",
         "WARNING",
         "INFO",
-        "DEBUG"
+        "DEBUG",
+        "TRACE"
     };
 
     if (static_cast< std::size_t >(level) < sizeof(strings) / sizeof(*strings))

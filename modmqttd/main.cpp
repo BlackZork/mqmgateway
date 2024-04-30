@@ -30,7 +30,7 @@ int main(int ac, char* av[]) {
 
         desc.add_options()
             ("help", "produce help message")
-            ("loglevel, l", args::value<int>(&logLevel), "set log level 1-5, higher is more verbose")
+            ("loglevel, l", args::value<int>(&logLevel), "set log level 1-6, higher is more verbose")
             ("config, c", args::value<string>(&configPath), "path to configuration file")
         ;
 
