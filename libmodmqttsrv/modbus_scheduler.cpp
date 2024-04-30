@@ -12,6 +12,7 @@ ModbusScheduler::getRegistersToPoll(
 
     //BOOST_LOG_SEV(log, Log::debug) << "initial outduration " << std::chrono::duration_cast<std::chrono::milliseconds>(outDuration).count();
 
+    outDuration = std::chrono::steady_clock::duration::max();
     for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.begin();
         slave != mRegisterMap.end(); slave++)
     {
@@ -32,6 +33,7 @@ ModbusScheduler::getRegistersToPoll(
             } else {
                 time_to_poll = reg.mRefresh - time_passed;
             }
+
             if (outDuration > time_to_poll) {
                 outDuration = time_to_poll;
                 BOOST_LOG_SEV(log, Log::debug) << "Wait duration set to " << std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll).count()
@@ -39,7 +41,6 @@ ModbusScheduler::getRegistersToPoll(
             }
         }
     }
-
 
     return ret;
 }

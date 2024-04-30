@@ -109,7 +109,6 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             configure(*item.getData<ModbusNetworkConfig>());
         } else if (item.isSameAs(typeid(MsgRegisterPollSpecification))) {
             setPollSpecification(*item.getData<MsgRegisterPollSpecification>());
-            mGotRegisters = true;
         } else if (item.isSameAs(typeid(EndWorkMessage))) {
             BOOST_LOG_SEV(log, Log::debug) << "Got exit command";
             item.getData<EndWorkMessage>(); //free QueueItem memory
@@ -184,8 +183,7 @@ ModbusThread::run() {
                         sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, true)));
                         // if modbus network was disconnected
                         // we need to refresh everything
-                        //mNeedInitialPoll = true;
-                        if (mGotRegisters) {
+                        if (!mExecutor.isInitial()) {
                             mExecutor.setupInitialPoll(mScheduler.getPollSpecification());
                         }
                     }
@@ -196,7 +194,7 @@ ModbusThread::run() {
                     // have succesfully connected to Mqtt broker
                     // to avoid growing mFromModbusQueue with queued register updates
                     // and if we already got the first MsgPollSpecification
-                    if (mMqttConnected && mGotRegisters) {
+                    if (mMqttConnected) {
 
                         auto now = std::chrono::steady_clock::now();
                         if (!mExecutor.isInitial() && nextPollTimePoint < now) {
@@ -204,6 +202,8 @@ ModbusThread::run() {
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(schedulerWaitDuration, now);
                             nextPollTimePoint = now + schedulerWaitDuration;
                             mExecutor.addPollList(regsToPoll);
+                            BOOST_LOG_SEV(log, Log::trace) << "Scheduling " << regsToPoll.size() << " registers to execute" <<
+                                ", next schedule in " << std::chrono::duration_cast<std::chrono::milliseconds>(schedulerWaitDuration).count() << "ms";
                         }
 
                         if (mExecutor.allDone()) {
@@ -214,8 +214,6 @@ ModbusThread::run() {
                     } else {
                         if (!mMqttConnected)
                             BOOST_LOG_SEV(log, Log::info) << "Waiting for mqtt network to become online";
-                        if (!mGotRegisters)
-                            BOOST_LOG_SEV(log, Log::debug) << "Waiting for poll specification message";
 
                         idleWaitDuration = std::chrono::steady_clock::duration::max();
                     }

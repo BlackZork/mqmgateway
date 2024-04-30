@@ -27,6 +27,7 @@ add_executable(tests
     modbus_poll_specification_tests.cpp
     modbus_request_queues_tests.cpp
     mqtt_command_tests.cpp
+    mqtt_command_only_tests.cpp
     mqtt_command_conv_tests.cpp
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp

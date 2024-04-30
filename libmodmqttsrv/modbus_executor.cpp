@@ -13,6 +13,7 @@ ModbusExecutor::ModbusExecutor(moodycamel::BlockingReaderWriterQueue<QueueItem>&
     mLastPollTime = std::chrono::steady_clock::now() - std::chrono::hours(100000);
     mLastQueue = mQueues.end();
     mCurrentQueue = mQueues.end();
+    mInitialPoll = false;
 }
 
 void
@@ -224,6 +225,7 @@ ModbusExecutor::pollNext() {
         } else {
             auto end = std::chrono::steady_clock::now();
             BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mPollStart).count() << "ms";
+            mInitialPoll = false;
         }
     }
 

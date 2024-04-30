@@ -5,6 +5,7 @@
 #include <vector>
 #include <mutex>
 #include <tuple>
+#include <condition_variable>
 
 #include "libmodmqttsrv/imodbuscontext.hpp"
 #include "libmodmqttsrv/modbus_types.hpp"
@@ -23,7 +24,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 bool mError = false;
             };
             public:
-                Slave(int id = 0) : mId(id) {}
+                Slave(const std::shared_ptr<std::condition_variable>& ioCondition, int id = 0) : mIOCondition(ioCondition), mId(id) {}
                 void write(const modmqttd::MsgRegisterValues& msg, bool internalOperation = false);
                 std::vector<uint16_t> read(const modmqttd::RegisterPoll& regData, bool internalOperation = false);
 
@@ -51,7 +52,12 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 bool mDisconnected = false;
                 int mReadCount = 0;
                 int mWriteCount = 0;
+                std::shared_ptr<std::condition_variable> mIOCondition;
         };
+
+        MockedModbusContext() {
+            mCondition.reset(new std::condition_variable());
+        }
 
         virtual void init(const modmqttd::ModbusNetworkConfig& config);
         virtual void connect() { mIsConnected = true; }
@@ -60,6 +66,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(const modmqttd::MsgRegisterValues& msg);
         virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
+        virtual uint16_t waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout);
+        virtual uint16_t getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype);
 
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
@@ -78,6 +86,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
     private:
         boost::log::sources::severity_logger<modmqttd::Log::severity> log;
         std::mutex mMutex;
+        std::shared_ptr<std::condition_variable> mCondition;
         std::map<int, Slave> mSlaves;
 
         std::chrono::time_point<std::chrono::steady_clock> mLastPolTime;
@@ -107,6 +116,8 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
             return *(it->second);
         }
         void disconnectModbusSlave(const char* network, int slaveId);
+
+        uint16_t waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout);
     private:
         std::shared_ptr<MockedModbusContext> getOrCreateContext(const char* network);
         std::shared_ptr<MockedModbusContext> findOrReturnFirstContext(const char* network) const;
