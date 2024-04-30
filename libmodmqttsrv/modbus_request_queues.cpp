@@ -50,7 +50,7 @@ ModbusRequestsQueues::findForSilencePeriod(std::chrono::steady_clock::duration p
     for(auto pi = mPollQueue.begin(); pi != mPollQueue.end(); pi++) {
         if (!(*pi)->hasDelay())
             continue;
-        if (ignore_first_read  && (*pi)->getDelay().delay_type == ModbusRequestDelay::DelayType::FIRST_READ)
+        if (ignore_first_read  && (*pi)->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE)
             continue;
 
         auto diff = abs((*pi)->getDelay() - pPeriod);

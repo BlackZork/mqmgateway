@@ -31,8 +31,14 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mExecutor.init(mModbus);
     // if you experience read timeouts on RTU then increase
     // min_delay_before_poll config value
-    mMinDelayBeforePoll = config.mMinDelayBeforePoll;
-    BOOST_LOG_SEV(log, Log::info) << "Global minimum delay before poll set to " << std::chrono::duration_cast<std::chrono::milliseconds>(mMinDelayBeforePoll).count() << "ms";
+    mDelayBeforeCommand = config.mDelayBeforeCommand;
+    mDelayBeforeFirstCommand = config.mDelayBeforeFirstCommand;
+    if (mDelayBeforeCommand.count() != 0 || mDelayBeforeFirstCommand.count() != 0) {
+        BOOST_LOG_SEV(log, Log::info) << "Global minimum delays set. Delay before every command "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(mDelayBeforeCommand).count() << "ms"
+            << ", delay when slave changes "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(mDelayBeforeFirstCommand).count() << "ms";
+    }
 }
 
 void
@@ -46,11 +52,17 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
         if (it->mRefreshMsec != MsgRegisterPoll::INVALID_REFRESH) {
             std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
             std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
-            if (slave_cfg != mSlaves.end())
-                reg->updateSlaveConfig(slave_cfg->second);
 
-            if (mMinDelayBeforePoll != std::chrono::milliseconds::zero())
-                reg->mDelay = mMinDelayBeforePoll;
+            if (mDelayBeforeCommand != std::chrono::milliseconds::zero()) {
+                reg->mDelay = mDelayBeforeCommand;
+                reg->mDelay.delay_type = ModbusCommandDelay::EVERYTIME;
+            } else if (mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
+                reg->mDelay = mDelayBeforeFirstCommand;
+                reg->mDelay.delay_type = ModbusCommandDelay::ON_SLAVE_CHANGE;
+            }
+
+            if (slave_cfg != mSlaves.end())
+                reg->updateFromSlaveConfig(slave_cfg->second);
 
             registerMap[it->mSlaveId].push_back(reg);
         }
@@ -120,7 +132,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             mMqttConnected = netstate->mIsUp;
         } else if (item.isSameAs(typeid(ModbusSlaveConfig))) {
             //no per-slave config attributes defined yet
-            updateSlaveConfig(*item.getData<ModbusSlaveConfig>());
+            updateFromSlaveConfig(*item.getData<ModbusSlaveConfig>());
         } else {
             BOOST_LOG_SEV(log, Log::error) << "Unknown message received, ignoring";
         }
@@ -134,7 +146,7 @@ ModbusThread::sendMessage(const QueueItem& item) {
 }
 
 void
-ModbusThread::updateSlaveConfig(const ModbusSlaveConfig& pConfig) {
+ModbusThread::updateFromSlaveConfig(const ModbusSlaveConfig& pConfig) {
     std::pair<std::map<int, ModbusSlaveConfig>::iterator, bool> result = mSlaves.emplace(std::make_pair(pConfig.mAddress, pConfig));
     if(!result.second)  {
         result.first->second = pConfig;
@@ -144,7 +156,7 @@ ModbusThread::updateSlaveConfig(const ModbusSlaveConfig& pConfig) {
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave_registers = registers.find(pConfig.mAddress);
     if (slave_registers != registers.end()) {
         for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
-            (*it)->mDelay = pConfig.mDelayBeforePoll;
+            (*it)->mDelay = pConfig.mDelayBeforeCommand;
         }
     }
 }

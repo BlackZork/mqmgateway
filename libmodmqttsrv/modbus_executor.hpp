@@ -54,7 +54,7 @@ class ModbusExecutor {
 
         std::chrono::steady_clock::time_point mLastPollTime;
 
-        //used to determine if we have to respect delay of RegisterPoll::ReadDelayType::FIRST_READ
+        //used to determine if we have to respect delay of RegisterPoll::ReadDelayType::ON_SLAVE_CHANGE
         std::map<int, ModbusRequestsQueues>::iterator mLastQueue;
         std::shared_ptr<IRegisterCommand> mWaitingRegister;
         bool mInitialPoll;

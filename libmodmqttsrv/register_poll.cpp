@@ -17,12 +17,13 @@ RegisterPoll::RegisterPoll(int regNum, RegisterType regType, int regCount, std::
 };
 
 void
-RegisterPoll::updateSlaveConfig(const ModbusSlaveConfig& slave_config) {
-    mDelay = slave_config.mDelayBeforePoll;
-    mDelay.delay_type = ModbusRequestDelay::DelayType::EVERY_READ;
-    if (slave_config.mDelayBeforeFirstPoll != std::chrono::milliseconds::zero()) {
-        mDelay = slave_config.mDelayBeforeFirstPoll;
-        mDelay.delay_type = ModbusRequestDelay::DelayType::FIRST_READ;
+RegisterPoll::updateFromSlaveConfig(const ModbusSlaveConfig& slave_config) {
+    if (slave_config.mDelayBeforeCommand != std::chrono::milliseconds::zero()) {
+        mDelay = slave_config.mDelayBeforeCommand;
+        mDelay.delay_type = ModbusCommandDelay::EVERYTIME;
+    } else if (slave_config.mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
+        mDelay = slave_config.mDelayBeforeFirstCommand;
+        mDelay.delay_type = ModbusCommandDelay::ON_SLAVE_CHANGE;
     }
 }
 

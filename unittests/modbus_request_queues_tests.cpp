@@ -52,7 +52,7 @@ TEST_CASE("ModbusRequestQueues") {
 
     SECTION("should return best fit for delayed register ignoring first_request delays") {
         registers.addDelayed(1,1, std::chrono::milliseconds(50));
-        registers.addDelayed(1,2, std::chrono::milliseconds(100), modmqttd::ModbusRequestDelay::DelayType::FIRST_READ);
+        registers.addDelayed(1,2, std::chrono::milliseconds(100), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
         registers.add(1,3);
 
         queue.addPollList(registers[1]);

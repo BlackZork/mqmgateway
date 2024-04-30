@@ -27,7 +27,8 @@ class ModbusThread {
 
         // global config
         std::string mNetworkName;
-        std::chrono::steady_clock::duration mMinDelayBeforePoll = std::chrono::steady_clock::duration::zero();
+        std::chrono::steady_clock::duration mDelayBeforeCommand = std::chrono::steady_clock::duration::zero();
+        std::chrono::steady_clock::duration mDelayBeforeFirstCommand = std::chrono::steady_clock::duration::zero();
 
         // slave config
         std::map<int, ModbusSlaveConfig> mSlaves;
@@ -43,7 +44,7 @@ class ModbusThread {
 
         void configure(const ModbusNetworkConfig& config);
         void setPollSpecification(const MsgRegisterPollSpecification& spec);
-        void updateSlaveConfig(const ModbusSlaveConfig& pSlaveConfig);
+        void updateFromSlaveConfig(const ModbusSlaveConfig& pSlaveConfig);
 
         void dispatchMessages(const QueueItem& read);
         void sendMessage(const QueueItem& item);

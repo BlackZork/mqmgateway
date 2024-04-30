@@ -14,7 +14,7 @@ namespace modmqttd {
 class IRegisterCommand {
     public:
         virtual int getRegister() const = 0;
-        virtual const ModbusRequestDelay& getDelay() const = 0;
+        virtual const ModbusCommandDelay& getDelay() const = 0;
         const bool hasDelay() const {
             return getDelay() != std::chrono::steady_clock::duration::zero();
         }
@@ -34,17 +34,17 @@ class RegisterPoll : public IRegisterCommand {
         virtual int getRegister() const { return mRegister; };
         virtual int getCount() const { return mLastValues.size(); }
         virtual const std::vector<uint16_t>& getValues() const { return mLastValues; }
-        virtual const ModbusRequestDelay& getDelay() const { return mDelay; }
+        virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
 
         void update(const std::vector<uint16_t> newValues) { mLastValues = newValues; }
-        void updateSlaveConfig(const ModbusSlaveConfig& slave_config);
+        void updateFromSlaveConfig(const ModbusSlaveConfig& slave_config);
 
         int mRegister;
         RegisterType mRegisterType;
         std::chrono::steady_clock::duration mRefresh;
 
         // delay before poll
-        ModbusRequestDelay mDelay;
+        ModbusCommandDelay mDelay;
 
         std::chrono::steady_clock::time_point mLastRead;
 
@@ -62,11 +62,11 @@ class RegisterWrite : public IRegisterCommand {
               mValues(pValues)
         {}
         virtual int getRegister() const { return mRegister; };
-        virtual const ModbusRequestDelay& getDelay() const { return mDelay; }
+        virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
         virtual int getCount() { return mValues.getCount(); };
         virtual const std::vector<uint16_t>& getValues() const { return mValues.values(); }
 
-        ModbusRequestDelay mDelay;
+        ModbusCommandDelay mDelay;
     private:
         int mRegister;
         RegisterType mRegisterType;

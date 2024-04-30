@@ -12,27 +12,27 @@ enum RegisterType {
 };
 
 
-class ModbusRequestDelay : public std::chrono::steady_clock::duration {
+class ModbusCommandDelay : public std::chrono::steady_clock::duration {
     public:
         typedef enum {
             // wait before every request
-            EVERY_READ = 0,
+            EVERYTIME = 0,
             // wait only if new request is for different slave than
             // previous one
-            FIRST_READ = 1
+            ON_SLAVE_CHANGE = 1
         } DelayType;
 
-        ModbusRequestDelay() {}
-        ModbusRequestDelay(const std::chrono::steady_clock::duration& dur, DelayType dt = DelayType::EVERY_READ)
+        ModbusCommandDelay() {}
+        ModbusCommandDelay(const std::chrono::steady_clock::duration& dur, DelayType dt = DelayType::EVERYTIME)
             : std::chrono::steady_clock::duration(dur),
             delay_type(dt)
         {}
-        ModbusRequestDelay& operator=(const std::chrono::steady_clock::duration& dur) {
+        ModbusCommandDelay& operator=(const std::chrono::steady_clock::duration& dur) {
             std::chrono::steady_clock::duration::operator= (dur);
             return *this;
         }
 
-        DelayType delay_type = DelayType::EVERY_READ;
+        DelayType delay_type = DelayType::EVERYTIME;
 };
 
 }

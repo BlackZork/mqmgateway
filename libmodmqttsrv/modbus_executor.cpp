@@ -81,7 +81,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
         // we cannot break loop
         // becaue maxQueueSize may be set incorrectly
         if (currentDiff != std::chrono::steady_clock::duration::zero()) {
-            ModbusRequestDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
+            ModbusCommandDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
 
             if (reg_delay < currentDiff) {
                 std::shared_ptr<IRegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
@@ -153,10 +153,10 @@ std::chrono::steady_clock::duration
 ModbusExecutor::pollNext() {
     if (mWaitingRegister != nullptr) {
         if (
-            (mWaitingRegister->getDelay().delay_type == ModbusRequestDelay::DelayType::EVERY_READ)
+            (mWaitingRegister->getDelay().delay_type == ModbusCommandDelay::DelayType::EVERYTIME)
             ||
             (
-                mWaitingRegister->getDelay().delay_type == ModbusRequestDelay::DelayType::FIRST_READ
+                mWaitingRegister->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE
                 && mLastQueue != mQueues.end()
                 && mCurrentQueue->first != mLastQueue->first
             )

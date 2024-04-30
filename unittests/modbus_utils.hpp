@@ -21,7 +21,7 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
             int slave,
             int number,
             std::chrono::steady_clock::duration delayBeforePoll = std::chrono::milliseconds::zero(),
-            modmqttd::ModbusRequestDelay::DelayType delayType = modmqttd::ModbusRequestDelay::DelayType::EVERY_READ,
+            modmqttd::ModbusCommandDelay::DelayType delayType = modmqttd::ModbusCommandDelay::DelayType::EVERYTIME,
             std::chrono::milliseconds refresh = std::chrono::milliseconds(10)
         ) {
             //TODO no check if already on list
