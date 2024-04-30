@@ -2,28 +2,40 @@
 
 #include <chrono>
 #include <vector>
+
+#include "libmodmqttconv/modbusregisters.hpp"
+
+
 #include "modbus_types.hpp"
 #include "modbus_slave.hpp"
 
 namespace modmqttd {
 
-class RegisterPoll {
+class IRegisterCommand {
     public:
-        typedef enum {
-            // wait mDelayBeforePoll before every read from this slave
-            EVERY_READ = 0,
-            // respect mDelayBeforePoll only before the first read from this slave
-            // subsequent reads will be executed without any delay.
-            FIRST_READ = 1
-        } ReadDelayType;
+        virtual int getRegister() const = 0;
+        virtual const ModbusRequestDelay& getDelay() const = 0;
+        const bool hasDelay() const {
+            return getDelay() != std::chrono::steady_clock::duration::zero();
+        }
+        virtual int getCount() const = 0;
+        virtual const std::vector<uint16_t>& getValues() const = 0;
+};
 
+
+class RegisterPoll : public IRegisterCommand {
+    public:
         static constexpr std::chrono::steady_clock::duration DurationBetweenLogError = std::chrono::minutes(5);
         // if we cannot read register in this time MsgRegisterReadFailed is sent
         static constexpr int DefaultReadErrorCount = 3;
 
         RegisterPoll(int regNum, RegisterType regType, int regCount, std::chrono::milliseconds refreshMsec);
-        int getCount() const { return mLastValues.size(); }
-        const std::vector<uint16_t>& getValues() const { return mLastValues; }
+
+        virtual int getRegister() const { return mRegister; };
+        virtual int getCount() const { return mLastValues.size(); }
+        virtual const std::vector<uint16_t>& getValues() const { return mLastValues; }
+        virtual const ModbusRequestDelay& getDelay() const { return mDelay; }
+
         void update(const std::vector<uint16_t> newValues) { mLastValues = newValues; }
         void updateSlaveConfig(const ModbusSlaveConfig& slave_config);
 
@@ -31,8 +43,8 @@ class RegisterPoll {
         RegisterType mRegisterType;
         std::chrono::steady_clock::duration mRefresh;
 
-        std::chrono::steady_clock::duration mDelayBeforePoll;
-        ReadDelayType mDelayType = ReadDelayType::EVERY_READ;
+        // delay before poll
+        ModbusRequestDelay mDelay;
 
         std::chrono::steady_clock::time_point mLastRead;
 
@@ -40,6 +52,25 @@ class RegisterPoll {
         std::chrono::steady_clock::time_point mFirstErrorTime;
     private:
         std::vector<uint16_t> mLastValues;
+};
+
+class RegisterWrite : public IRegisterCommand {
+    public:
+        RegisterWrite(int pRegister, RegisterType pType, ModbusRegisters& pValues)
+            : mRegister(pRegister),
+              mRegisterType(pType),
+              mValues(pValues)
+        {}
+        virtual int getRegister() const { return mRegister; };
+        virtual const ModbusRequestDelay& getDelay() const { return mDelay; }
+        virtual int getCount() { return mValues.getCount(); };
+        virtual const std::vector<uint16_t>& getValues() const { return mValues.values(); }
+
+        ModbusRequestDelay mDelay;
+    private:
+        int mRegister;
+        RegisterType mRegisterType;
+        ModbusRegisters mValues;
 };
 
 } //namespace

@@ -16,12 +16,68 @@ ModbusRequestsQueues::addPollList(const std::vector<std::shared_ptr<RegisterPoll
     }
 }
 
-std::shared_ptr<RegisterPoll>
+std::shared_ptr<IRegisterCommand>
 ModbusRequestsQueues::popNext() {
-    std::shared_ptr<RegisterPoll> ret(mPollQueue.front());
-    mPollQueue.pop_front();
+    if (mPopFromPoll) {
+        if (mPollQueue.empty()) {
+            return popNext(mWriteQueue);
+        } else {
+            mPopFromPoll = false;
+            return popNext(mPollQueue);
+        }
+    } else {
+        if (mWriteQueue.empty()) {
+            return popNext(mPollQueue);
+        } else {
+            mPopFromPoll = true;
+            return popNext(mWriteQueue);
+        }
+    }
+}
+
+
+template<typename T>
+std::shared_ptr<IRegisterCommand>
+ModbusRequestsQueues::popNext(T& queue) {
+    std::shared_ptr<IRegisterCommand> ret(queue.front());
+    queue.pop_front();
     return ret;
 }
 
+std::chrono::steady_clock::duration
+ModbusRequestsQueues::findForSilencePeriod(std::chrono::steady_clock::duration pPeriod, bool ignore_first_read) {
+    auto ret = std::chrono::steady_clock::duration::max();
+    for(auto pi = mPollQueue.begin(); pi != mPollQueue.end(); pi++) {
+        if (!(*pi)->hasDelay())
+            continue;
+        if (ignore_first_read  && (*pi)->getDelay().delay_type == ModbusRequestDelay::DelayType::FIRST_READ)
+            continue;
+
+        auto diff = abs((*pi)->getDelay() - pPeriod);
+        if (diff == std::chrono::steady_clock::duration::zero()) {
+            ret = (*pi)->getDelay();
+            mLastPollFound = pi;
+            break;
+        } else if (diff < ret) {
+            ret = (*pi)->getDelay();
+            mLastPollFound = pi;
+        }
+    }
+    return ret;
+}
+
+std::shared_ptr<IRegisterCommand>
+ModbusRequestsQueues::popFirstWithDelay(std::chrono::steady_clock::duration pPeriod, bool ignore_first_read) {
+    auto ret = std::shared_ptr<IRegisterCommand>();
+check_cache:
+    if (mLastPollFound != mPollQueue.end()) {
+        ret = *mLastPollFound;
+        mPollQueue.erase(mLastPollFound);
+    } else {
+        findForSilencePeriod(pPeriod, ignore_first_read);
+        goto check_cache;
+    }
+    return ret;
+}
 
 }

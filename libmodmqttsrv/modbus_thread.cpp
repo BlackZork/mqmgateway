@@ -50,7 +50,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
                 reg->updateSlaveConfig(slave_cfg->second);
 
             if (mMinDelayBeforePoll != std::chrono::milliseconds::zero())
-                reg->mDelayBeforePoll = mMinDelayBeforePoll;
+                reg->mDelay = mMinDelayBeforePoll;
 
             registerMap[it->mSlaveId].push_back(reg);
         }
@@ -67,7 +67,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
             << ", count=" << (*it)->getCount()
             << ", poll every " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms"
-            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mDelayBeforePoll).count() << "ms";
+            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mDelay).count() << "ms";
         }
     }
     mExecutor.setupInitialPoll(registerMap);
@@ -145,7 +145,7 @@ ModbusThread::updateSlaveConfig(const ModbusSlaveConfig& pConfig) {
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave_registers = registers.find(pConfig.mAddress);
     if (slave_registers != registers.end()) {
         for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
-            (*it)->mDelayBeforePoll = pConfig.mDelayBeforePoll;
+            (*it)->mDelay = pConfig.mDelayBeforePoll;
         }
     }
 }
@@ -170,8 +170,7 @@ ModbusThread::run() {
         BOOST_LOG_SEV(log, Log::debug) << "Modbus thread started";
         const int maxReconnectTime = 60;
         std::chrono::steady_clock::duration idleWaitDuration = std::chrono::steady_clock::duration::max();
-        //after initial poll we want to call scheduler immediately
-        std::chrono::steady_clock::duration timeToNextPoll = std::chrono::steady_clock::duration::zero();
+        std::chrono::steady_clock::time_point nextPollTimePoint = std::chrono::steady_clock::now();
 
         while(mShouldRun) {
             if (mModbus) {
@@ -186,8 +185,9 @@ ModbusThread::run() {
                         // if modbus network was disconnected
                         // we need to refresh everything
                         //mNeedInitialPoll = true;
-                        if (mGotRegisters)
+                        if (mGotRegisters) {
                             mExecutor.setupInitialPoll(mScheduler.getPollSpecification());
+                        }
                     }
                 }
 
@@ -198,30 +198,18 @@ ModbusThread::run() {
                     // and if we already got the first MsgPollSpecification
                     if (mMqttConnected && mGotRegisters) {
 
-                        if (mExecutor.allDone()) {
-                            auto start = std::chrono::steady_clock::now();
-                            timeToNextPoll = std::chrono::steady_clock::duration::max();
-                            std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(timeToNextPoll, start);
+                        auto now = std::chrono::steady_clock::now();
+                        if (nextPollTimePoint < now) {
+                            std::chrono::steady_clock::duration schedulerWaitDuration;
+                            std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(schedulerWaitDuration, now);
+                            nextPollTimePoint = now + schedulerWaitDuration;
+                            mExecutor.addPollList(regsToPoll);
+                        }
 
-                            if (regsToPoll.size()) {
-                                mExecutor.setPollList(regsToPoll);
-                                idleWaitDuration = std::chrono::steady_clock::duration::zero();
-                            } else {
-                                idleWaitDuration = timeToNextPoll;
-                            }
+                        if (mExecutor.allDone()) {
+                            idleWaitDuration = (nextPollTimePoint - now);
                         } else {
                             idleWaitDuration = mExecutor.pollNext();
-                            if (mExecutor.allDone()) {
-                                if (mExecutor.isInitial()) {
-                                    idleWaitDuration = std::chrono::steady_clock::duration::zero();
-                                } else {
-                                    idleWaitDuration = timeToNextPoll - mExecutor.getTotalPollDuration();
-                                    if (idleWaitDuration < std::chrono::steady_clock::duration::zero()) {
-                                        BOOST_LOG_SEV(log, Log::debug) << "Next poll is eariler than current poll time (" <<  std::chrono::duration_cast<std::chrono::milliseconds>(idleWaitDuration).count() << "ms)";
-                                        idleWaitDuration = std::chrono::steady_clock::duration::zero();
-                                    }
-                                }
-                            }
                         }
                     } else {
                         if (!mMqttConnected)

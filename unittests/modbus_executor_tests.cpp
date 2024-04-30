@@ -29,7 +29,7 @@ TEST_CASE("ModbusExecutor") {
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
         REQUIRE(executor.allDone());
 
-        executor.setPollList(registers);
+        executor.addPollList(registers);
         waitTime = executor.pollNext();
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
         REQUIRE(executor.allDone());
@@ -106,7 +106,7 @@ TEST_CASE("ModbusExecutor") {
         SECTION("should delay register read on normal poll") {
             // need to wait because there is no silence between inital poll and
             // next poll
-            executor.setPollList(registers);
+            executor.addPollList(registers);
             waitTime = executor.pollNext();
             REQUIRE(waitTime > std::chrono::milliseconds(4));
             REQUIRE(!executor.allDone());
@@ -129,7 +129,7 @@ TEST_CASE("ModbusExecutor") {
         SECTION("should not delay register read if there was enough silence time") {
             std::this_thread::sleep_for(std::chrono::milliseconds(7));
 
-            executor.setPollList(registers);
+            executor.addPollList(registers);
             waitTime = executor.pollNext();
             REQUIRE(waitTime == std::chrono::milliseconds::zero());
             REQUIRE(reg->getValues()[0] == 5);
@@ -157,7 +157,7 @@ TEST_CASE("ModbusExecutor") {
 
         SECTION("should poll waiting register with max delay first") {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            executor.setPollList(registers);
+            executor.addPollList(registers);
             waitTime = executor.pollNext();
             REQUIRE(waitTime == std::chrono::milliseconds::zero());
             REQUIRE(reg2->getValues()[0] == 60);

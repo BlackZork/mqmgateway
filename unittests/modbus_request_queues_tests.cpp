@@ -31,4 +31,39 @@ TEST_CASE("ModbusRequestQueues") {
         queue.addPollList(registers[1]);
         REQUIRE(queue.mPollQueue.size() == 3);
     }
+
+    SECTION("should return best fit for delayed register") {
+        registers.addDelayed(1,1, std::chrono::milliseconds(50));
+        registers.addDelayed(1,2, std::chrono::milliseconds(100));
+        registers.add(1,3);
+
+        queue.addPollList(registers[1]);
+
+        auto dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), true);
+        REQUIRE(dur == std::chrono::milliseconds(100));
+
+        std::shared_ptr<modmqttd::IRegisterCommand> reg = queue.popFirstWithDelay(std::chrono::milliseconds(100), true);
+        REQUIRE(reg->getRegister() == 1);
+
+        dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), false);
+        REQUIRE(dur == std::chrono::milliseconds(50));
+
+    }
+
+    SECTION("should return best fit for delayed register ignoring first_request delays") {
+        registers.addDelayed(1,1, std::chrono::milliseconds(50));
+        registers.addDelayed(1,2, std::chrono::milliseconds(100), modmqttd::ModbusRequestDelay::DelayType::FIRST_READ);
+        registers.add(1,3);
+
+        queue.addPollList(registers[1]);
+
+        auto dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), true);
+        REQUIRE(dur == std::chrono::milliseconds(50));
+
+        dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), false);
+        REQUIRE(dur == std::chrono::milliseconds(100));
+
+    }
+
+
 }

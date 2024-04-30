@@ -1,15 +1,19 @@
 #include "modbus_executor.hpp"
 #include "modbus_messages.hpp"
 #include "modbus_thread.hpp"
+#include "modbus_types.hpp"
 #include "queue_item.hpp"
 
 namespace modmqttd {
 
 ModbusExecutor::ModbusExecutor(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
-    : mFromModbusQueue(fromModbusQueue),
-      mCurrentSlave(0),
-      mLastSlave(0)
-{}
+    : mFromModbusQueue(fromModbusQueue)
+{
+    //some random past value, not using steady_clock:min() due to overflow
+    mLastPollTime = std::chrono::steady_clock::now() - std::chrono::hours(100000);
+    mLastQueue = mQueues.end();
+    mCurrentQueue = mQueues.end();
+}
 
 void
 ModbusExecutor::sendMessage(const QueueItem& item) {
@@ -18,78 +22,83 @@ ModbusExecutor::sendMessage(const QueueItem& item) {
 
 void
 ModbusExecutor::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
-    mLastPollTime = std::chrono::time_point<std::chrono::steady_clock>::min();
-    setPollList(pRegisters, true);
+    addPollList(pRegisters, true);
     BOOST_LOG_SEV(log, Log::debug) << "starting initial poll";
-    // assume max silence before initial poll
 }
 
 
 void
-ModbusExecutor::setPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
-    mRegisters = pRegisters;
-    mCurrentSlave = 0;
+ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
+
+    bool setupQueues = allDone();
+
     mInitialPoll = initialPoll;
-
-    if (pRegisters.empty()) {
-        // could happen if modbus is in write only mode
-        mWaitingRegister.reset();
-        mCurrentSlave = 0;
-        return;
-    }
-
-
-    // scan register list for registers that have delay_before_poll set
-    // and find the best one that fits in the last_silence_period
-    auto last_silence_period = std::chrono::steady_clock::duration::max();
-    if (mLastPollTime != std::chrono::time_point<std::chrono::steady_clock>::min())
-        last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
-
-    std::vector<std::shared_ptr<RegisterPoll>>::iterator selected;
-    mWaitingRegister = nullptr;
-    for(auto sit = mRegisters.begin(); sit != mRegisters.end(); sit++) {
-        for (auto rit = sit->second.begin(); rit != sit->second.end(); rit++) {
-            if ((*rit)->mDelayBeforePoll == std::chrono::steady_clock::duration::zero())
-                continue;
-            if (sit->first == mLastSlave && (*rit)->mDelayType == RegisterPoll::FIRST_READ) {
-                //we do not have to wait if previous list poll ended with the same slave
-                //as this register
-                selected = rit;
-                mWaitingRegister = *rit;
-                mCurrentSlave = sit->first;
-                goto after_waiting_search_loop;
-            } else {
-                if (mWaitingRegister == nullptr || mWaitingRegister->mDelayBeforePoll < (*rit)->mDelayBeforePoll) {
-                    selected = rit;
-                    mWaitingRegister = *rit;
-                    mCurrentSlave = sit->first;
-                }
-            }
-
+    if (mInitialPoll) {
+        mPollStart = std::chrono::steady_clock::now();
+        if (!pollDone()) {
+            BOOST_LOG_SEV(log, Log::error) << "Cannot add next registers before initial poll is finished. Fix control loop.";
+            return;
         }
     }
 
-    after_waiting_search_loop:
-    // remove selected register outside of iteration loop
-    if (mWaitingRegister != nullptr) {
-        mRegisters[mCurrentSlave].erase(selected);
+
+    bool hasRegisters = false;
+    for (auto& pit: pRegisters) {
+        auto& queue = mQueues[pit.first];
+        queue.addPollList(pit.second);
+        if (!queue.empty())
+            hasRegisters = true;
     }
 
-    // no registers with delay before poll
-    // or we will be doing initial poll
-    if (mCurrentSlave == 0) {
-        mCurrentSlave = mRegisters.begin()->first;
+    // we are already sending requests or have nothing to do
+    // so do not try to find what to read or write next
+    if (!setupQueues || !hasRegisters) {
+        return;
     }
-    mPollStart = std::chrono::steady_clock::now();
+
+    mCurrentQueue = mQueues.begin();
+
+    // scan register list for registers that have delay_before_poll set
+    // and find the best one that fits in the last_silence_period
+    auto last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
+
+    mWaitingRegister = nullptr;
+    u_int16_t maxQueueSize = 0;
+
+    auto currentDiff = std::chrono::steady_clock::duration::max();
+
+    for(auto sit = mQueues.begin(); sit != mQueues.end(); sit++) {
+        if (sit->second.mPollQueue.size() > maxQueueSize)
+            maxQueueSize = sit->second.mPollQueue.size();
+
+        bool ignore_first_read = (sit == mCurrentQueue);
+
+        ModbusRequestDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
+
+        if (reg_delay < currentDiff) {
+            std::shared_ptr<IRegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
+            mWaitingRegister = reg;
+            mCurrentQueue = sit;
+            currentDiff = reg_delay;
+            // we cannot break here even if currentDiff == 0
+            // becaue maxQueueSize may be set incorrectly
+        }
+    }
+
+    //if there are no registers with delay set start from the first queue
+    if (currentDiff == std::chrono::steady_clock::duration::max()) {
+        mCurrentQueue = mQueues.begin();
+        mWaitingRegister = mCurrentQueue->second.popNext();
+    }
+
+    setBatchSize(maxQueueSize);
 }
 
 
 void
-ModbusExecutor::pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& reg_ptr, bool forceSend) {
+ModbusExecutor::pollRegister(int slaveId, RegisterPoll& reg, bool forceSend) {
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-        RegisterPoll& reg(*reg_ptr);
-        mLastSlave = slaveId; // before read, remember even if read is unsuccessfull
         std::vector<uint16_t> newValues(mModbus->readModbusRegisters(slaveId, reg));
         mLastPollTime = reg.mLastRead = std::chrono::steady_clock::now();
 
@@ -106,7 +115,7 @@ ModbusExecutor::pollRegister(int slaveId, const std::shared_ptr<RegisterPoll>& r
                 << " values sent, data=" << DebugTools::registersToStr(reg.getValues());
         };
     } catch (const ModbusReadException& ex) {
-        handleRegisterReadError(slaveId, *reg_ptr, ex.what());
+        handleRegisterReadError(slaveId, reg, ex.what());
     }
 };
 
@@ -133,93 +142,116 @@ std::chrono::steady_clock::duration
 ModbusExecutor::pollNext() {
     if (mWaitingRegister != nullptr) {
         if (
-            (mWaitingRegister->mDelayType == RegisterPoll::EVERY_READ)
+            (mWaitingRegister->getDelay().delay_type == ModbusRequestDelay::DelayType::EVERY_READ)
             ||
             (
-                mWaitingRegister->mDelayType == RegisterPoll::FIRST_READ
-                && mCurrentSlave != mLastSlave
+                mWaitingRegister->getDelay().delay_type == ModbusRequestDelay::DelayType::FIRST_READ
+                && mLastQueue != mQueues.end()
+                && mCurrentQueue->first != mLastQueue->first
             )
         ) {
-            if (mLastPollTime != std::chrono::time_point<std::chrono::steady_clock>::min()) {
-                auto delay_passed = std::chrono::steady_clock::now() - mLastPollTime;
-                auto delay_left = mWaitingRegister->mDelayBeforePoll - delay_passed;
-                if (delay_left > std::chrono::steady_clock::duration::zero())
-                    return delay_left;
+            auto delay_passed = std::chrono::steady_clock::now() - mLastPollTime;
+            auto delay_left = mWaitingRegister->getDelay() - delay_passed;
+            if (delay_left > std::chrono::steady_clock::duration::zero())
+                return delay_left;
+        }
+        //mWaitingRegister is ready to be read or written
+        sendCommand();
+    } else {
+        // find next non empty queue and start sending requests from it
+        if (mCurrentQueue != mQueues.end()) {
+            if (mCommandsLeft == 0 || mCurrentQueue->second.empty()) {
+                auto nextQueue = mCurrentQueue;
+                nextQueue++;
+                while(nextQueue != mCurrentQueue) {
+                    if (nextQueue == mQueues.end())
+                        nextQueue = mQueues.begin();
+
+                    if (!nextQueue->second.empty()) {
+                        break;
+                    }
+                    nextQueue++;
+                }
+
+                if (mCurrentQueue != nextQueue) {
+                    mCurrentQueue = nextQueue;
+                    mWaitingRegister = mCurrentQueue->second.popNext();
+                    mCommandsLeft = mBatchSize;
+                } else {
+                    //nothing to do
+                    return std::chrono::steady_clock::duration::max();
+                }
+            } else {
+                mWaitingRegister = mCurrentQueue->second.popNext();
             }
         }
-        //mWaitingRegister is ready to be polled
-        pollRegister(mCurrentSlave, mWaitingRegister, mInitialPoll);
-        mWaitingRegister.reset();
-    } else {
-        std::shared_ptr<RegisterPoll> toPoll;
 
-        if (!mRegisters.empty()) {
-            if (mCurrentSlave != 0) {
-                auto& regLst = mRegisters[mCurrentSlave];
-                if (regLst.empty()) {
-                    mRegisters.erase(mCurrentSlave);
-                    mCurrentSlave = 0;
-                } else {
-                    toPoll = regLst.front();
-                    regLst.erase(regLst.begin());
+        if (mWaitingRegister != nullptr) {
+            if (mWaitingRegister->getDelay() != std::chrono::steady_clock::duration::zero()) {
+                // setup and return needed delay
+                // or pull register if there was enough silence
+                // after previous pull
+                auto last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
+                if (last_silence_period < mWaitingRegister->getDelay()) {
+                    auto delay_left = mWaitingRegister->getDelay() - last_silence_period;
+                    return delay_left;
                 }
             }
-
-            if (toPoll == nullptr) {
-                mCurrentSlave = 0;
-                //go to first slave with non empty list
-                auto mbegin = mRegisters.begin();
-                auto mcurrent = mbegin;
-                while(mcurrent != mRegisters.end()) {
-                    if(!mcurrent->second.empty())
-                        break;
-                    mcurrent++;
-                }
-
-                //erase all traversed empty lists
-                if (mbegin != mcurrent) {
-                    mRegisters.erase(mbegin, mcurrent);
-                }
-
-                if (mcurrent != mRegisters.end()) {
-                    //we have something to poll
-                    mCurrentSlave = mcurrent->first;
-                    toPoll = mcurrent->second.front();
-                    mcurrent->second.erase(mcurrent->second.begin());
-                }
-            }
-
-            if (toPoll != nullptr) {
-                if (toPoll->mDelayBeforePoll != std::chrono::steady_clock::duration::zero()) {
-                    // setup and return needed delay
-                    // or pull register if there was enough silence
-                    // after previous pull
-                    auto last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
-                    if (last_silence_period < toPoll->mDelayBeforePoll) {
-                        auto delay_left = toPoll->mDelayBeforePoll - last_silence_period;
-                        mWaitingRegister = toPoll;
-                        return delay_left;
-                    } else {
-                        pollRegister(mCurrentSlave, toPoll, mInitialPoll);
-                    }
-                } else {
-                    pollRegister(mCurrentSlave, toPoll, mInitialPoll);
-                }
-            }
+            sendCommand();
         }
     }
 
-    if (mCurrentSlave && mRegisters[mCurrentSlave].empty()) {
-        mRegisters.erase(mCurrentSlave);
-        mCurrentSlave = 0;
-    };
-
-    if (mInitialPoll && mWaitingRegister == nullptr && mRegisters.empty()) {
-        auto end = std::chrono::steady_clock::now();
-        BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mPollStart).count() << "ms";
+    if (mInitialPoll && pollDone()) {
+        if (mCurrentQueue == mQueues.end()) {
+            BOOST_LOG_SEV(log, Log::info) << "Nothing to do for initial poll";
+        } else {
+            auto end = std::chrono::steady_clock::now();
+            BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mPollStart).count() << "ms";
+        }
     }
 
     return std::chrono::steady_clock::duration::zero();
 }
+
+void
+ModbusExecutor::sendCommand() {
+    if (typeid(*mWaitingRegister) == typeid(RegisterPoll)) {
+        pollRegister(mCurrentQueue->first, static_cast<RegisterPoll&>(*mWaitingRegister), mInitialPoll);
+    } else {
+        //TODO write
+    }
+    mLastQueue = mCurrentQueue;
+    mWaitingRegister.reset();
+    mCommandsLeft--;
+}
+
+
+bool
+ModbusExecutor::allDone() const {
+    if (mWaitingRegister != nullptr)
+        return false;
+
+    auto non_empty = std::find_if(mQueues.begin(), mQueues.end(),
+        [](const auto& queue) -> bool { return !(queue.second.empty()); }
+    );
+
+    return non_empty == mQueues.end();
+}
+
+bool
+ModbusExecutor::pollDone() const {
+    auto non_empty = std::find_if(mQueues.begin(), mQueues.end(),
+        [](const auto& queue) -> bool { return !(queue.second.mPollQueue.empty()); }
+    );
+
+    return non_empty == mQueues.end();
+}
+
+void
+ModbusExecutor::setBatchSize(int size) {
+    mBatchSize = size;
+    mCommandsLeft = size;
+}
+
 
 }
