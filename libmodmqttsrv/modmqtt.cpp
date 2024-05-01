@@ -701,7 +701,6 @@ void ModMqtt::start() {
     while(mMqtt->isStarted()) {
         if (gSignalStatus == -1) {
             waitForQueues();
-            //BOOST_LOG_SEV(log, Log::debug) << "Processing modbus queues";
             processModbusMessages();
         } else if (gSignalStatus > 0) {
             int currentSignal = gSignalStatus;
@@ -782,6 +781,8 @@ ModMqtt::processModbusMessages() {
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);
+            } else {
+                BOOST_LOG_SEV(log, Log::error) << "Unknown message from modbus thread, ignoring";
             }
         }
     }

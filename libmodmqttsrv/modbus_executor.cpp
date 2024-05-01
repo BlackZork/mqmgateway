@@ -178,7 +178,7 @@ ModbusExecutor::writeRegisters(int slaveId, const RegisterWrite& cmd) {
 
         if (cmd.mReturnMessage != nullptr) {
             cmd.mReturnMessage->mRegisters = ModbusRegisters(cmd.getValues());
-            sendMessage(QueueItem::create(cmd.mReturnMessage));
+            sendMessage(QueueItem::create(*cmd.mReturnMessage));
         }
     } catch (const ModbusWriteException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "error writing register "
