@@ -8,6 +8,7 @@
 namespace modmqttd {
 
 class RegisterPoll;
+class RegisterWrite;
 class MsgRegisterValues;
 
 /**
@@ -20,7 +21,7 @@ class IModbusContext {
         virtual bool isConnected() const = 0;
         virtual void disconnect() = 0;
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const RegisterPoll& regData) = 0;
-        virtual void writeModbusRegisters(const MsgRegisterValues& msg) = 0;
+        virtual void writeModbusRegisters(int slaveId, const RegisterWrite& msg) = 0;
         virtual ModbusNetworkConfig::Type getNetworkType() const = 0;
         virtual ~IModbusContext() {};
 };

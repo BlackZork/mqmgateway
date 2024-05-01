@@ -23,6 +23,7 @@ mqtt:
       state:
         register: tcptest.1.2
         register_type: holding
+        refresh: 2s
 )";
 
 
@@ -32,14 +33,10 @@ mqtt:
     server.waitForPublish("test_switch/state");
     server.publish("test_switch/set", "32");
 
-    server.waitForPublish("test_switch/state");
+    server.waitForPublish("test_switch/state", std::chrono::seconds(30));
     REQUIRE(server.mqttValue("test_switch/state") == "32");
 
-    std::shared_ptr<modmqttd::IModbusContext> ctx = server.mModbusFactory->getContext("tcptest");
-    MockedModbusContext& c = static_cast<MockedModbusContext&>(*ctx);
-    MockedModbusContext::Slave& s = c.getSlave(1);
-    REQUIRE(s.mHolding.find(1) != s.mHolding.end());
-    REQUIRE(s.mHolding[1].mValue == 32);
+    REQUIRE(server.getModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING) == 32);
 
     server.stop();
 }

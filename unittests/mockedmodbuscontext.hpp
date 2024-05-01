@@ -12,7 +12,6 @@
 #include "libmodmqttsrv/logging.hpp"
 #include "libmodmqttsrv/config.hpp"
 
-
 class MockedModbusContext : public modmqttd::IModbusContext {
     public:
         static const std::chrono::milliseconds sDefaultSlaveReadTime;
@@ -25,7 +24,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
             };
             public:
                 Slave(const std::shared_ptr<std::condition_variable>& ioCondition, int id = 0) : mIOCondition(ioCondition), mId(id) {}
-                void write(const modmqttd::MsgRegisterValues& msg, bool internalOperation = false);
+                void write(const modmqttd::RegisterWrite& msg, bool internalOperation = false);
                 std::vector<uint16_t> read(const modmqttd::RegisterPoll& regData, bool internalOperation = false);
 
                 void setDisconnected(bool flag = true) { mDisconnected = flag; }
@@ -64,7 +63,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual bool isConnected() const { return mIsConnected; }
         virtual void disconnect() { mIsConnected = false; }
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
-        virtual void writeModbusRegisters(const modmqttd::MsgRegisterValues& msg);
+        virtual void writeModbusRegisters(int slaveId, const modmqttd::RegisterWrite& msg);
         virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
         virtual uint16_t waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout);
         virtual uint16_t getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype);

@@ -686,7 +686,7 @@ void ModMqtt::start() {
     // process queues before connection to mqtt broker is
     // established - this will cause availability messages to be dropped.
 
-    // TODO if broker is down and modbus is up then mQueues will grow forever and
+    // TODO if broker is down and modbus is up then mSlaveQueues will grow forever and
     // memory allocated by queues will never be released. Add MsgStartPolling?
     BOOST_LOG_SEV(log, Log::debug) << "Performing initial connection to mqtt broker";
     do {

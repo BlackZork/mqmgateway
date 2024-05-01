@@ -4,7 +4,6 @@
 
 #include "modbus_messages.hpp"
 #include "logging.hpp"
-#include "register_poll.hpp"
 #include "imodbuscontext.hpp"
 
 namespace modmqttd {
@@ -19,7 +18,7 @@ class ModbusContext : public IModbusContext {
         virtual bool isConnected() const { return mIsConnected; }
         virtual void disconnect();
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const RegisterPoll& regData);
-        virtual void writeModbusRegisters(const MsgRegisterValues& msg);
+        virtual void writeModbusRegisters(int slaveId, const RegisterWrite& msg);
         virtual ModbusNetworkConfig::Type getNetworkType() const { return mNetworkType; }
         virtual ~ModbusContext() {
             modbus_free(mCtx);

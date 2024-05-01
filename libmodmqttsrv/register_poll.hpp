@@ -5,7 +5,7 @@
 
 #include "libmodmqttconv/modbusregisters.hpp"
 
-
+#include "modbus_messages.hpp"
 #include "modbus_types.hpp"
 #include "modbus_slave.hpp"
 
@@ -56,21 +56,29 @@ class RegisterPoll : public IRegisterCommand {
 
 class RegisterWrite : public IRegisterCommand {
     public:
-        RegisterWrite(int pRegister, RegisterType pType, ModbusRegisters& pValues)
+        RegisterWrite(const MsgRegisterValues& msg)
+            : RegisterWrite(msg.mRegisterNumber,
+              msg.mRegisterType,
+              msg.mRegisters
+              )
+        {}
+        RegisterWrite(int pRegister, RegisterType pType, const ModbusRegisters& pValues)
             : mRegister(pRegister),
               mRegisterType(pType),
-              mValues(pValues)
+              mValues(pValues),
+              mDelay(std::chrono::milliseconds::zero())
         {}
         virtual int getRegister() const { return mRegister; };
         virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
-        virtual int getCount() { return mValues.getCount(); };
+        virtual int getCount() const { return mValues.getCount(); };
         virtual const std::vector<uint16_t>& getValues() const { return mValues.values(); }
 
-        ModbusCommandDelay mDelay;
-    private:
         int mRegister;
+        ModbusCommandDelay mDelay;
         RegisterType mRegisterType;
         ModbusRegisters mValues;
+
+        std::shared_ptr<MsgRegisterValues> mReturnMessage;
 };
 
 } //namespace

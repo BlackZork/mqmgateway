@@ -19,6 +19,8 @@ namespace modmqttd {
             const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& getPollSpecification() const {
                 return mRegisterMap;
             }
+
+            std::shared_ptr<RegisterPoll> findRegisterPoll(const MsgRegisterValues& pValues) const;
             /**
              * Returns map of devices with list of registers, that
              * should be polled now.

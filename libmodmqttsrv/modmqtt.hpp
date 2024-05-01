@@ -20,7 +20,6 @@ namespace modmqttd {
 // to wait on empty queues and posix singals processing
 extern std::mutex gQueueMutex;
 extern std::condition_variable gHasMessagesCondition;
-extern bool gHasMessagesFlag;
 void notifyQueues();
 
 class ModMqtt {

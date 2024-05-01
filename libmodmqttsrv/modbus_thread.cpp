@@ -19,7 +19,7 @@ ModbusThread::ModbusThread(
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
     : mToModbusQueue(toModbusQueue),
       mFromModbusQueue(fromModbusQueue),
-      mExecutor(fromModbusQueue)
+      mExecutor(fromModbusQueue, toModbusQueue)
 {
 }
 
@@ -87,29 +87,16 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
 }
 
 void
-ModbusThread::processWrite(const MsgRegisterValues& msg) {
-    try {
-        mModbus->writeModbusRegisters(msg);
-        //send state change immediately if we
-        //are polling this register
-        auto& registers = mScheduler.getPollSpecification();
-        std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = registers.find(msg.mSlaveId);
-        if (slave != registers.end()) {
-            int regNumber = msg.mRegisterNumber;
-            std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = std::find_if(
-                slave->second.begin(), slave->second.end(),
-                [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegister; }
-            );
-            if (reg_it != slave->second.end()) {
-                sendMessage(QueueItem::create(msg));
-            }
-        }
-    } catch (const ModbusWriteException& ex) {
-        BOOST_LOG_SEV(log, Log::error) << "error writing register "
-            << msg.mSlaveId << "." << msg.mRegisterNumber << ": " << ex.what();
-        MsgRegisterWriteFailed msg(msg.mSlaveId, msg.mRegisterType, msg.mRegisterNumber, msg.mCount);
-        sendMessage(QueueItem::create(msg));
+ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
+    auto cmd = std::shared_ptr<RegisterWrite>(new RegisterWrite(*msg));
+    //send state change immediately if we
+    //are polling this register
+    std::shared_ptr<RegisterPoll> poll(mScheduler.findRegisterPoll(*msg));
+    if (poll != nullptr) {
+        cmd->mReturnMessage = msg;
     }
+
+    mExecutor.addWriteCommand(msg->mSlaveId, cmd);
 }
 
 void
@@ -126,7 +113,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             item.getData<EndWorkMessage>(); //free QueueItem memory
             mShouldRun = false;
         } else if (item.isSameAs(typeid(MsgRegisterValues))) {
-            processWrite(*item.getData<MsgRegisterValues>());
+            processWrite(item.getData<MsgRegisterValues>());
         } else if (item.isSameAs(typeid(MsgMqttNetworkState))) {
             std::unique_ptr<MsgMqttNetworkState> netstate(item.getData<MsgMqttNetworkState>());
             mMqttConnected = netstate->mIsUp;

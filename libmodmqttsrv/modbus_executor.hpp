@@ -12,12 +12,17 @@ namespace modmqttd {
 
 class ModbusExecutor {
     public:
-        ModbusExecutor(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
+        ModbusExecutor(
+            moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue,
+            moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue
+        );
         void init(const std::shared_ptr<IModbusContext>& modbus) { mModbus = modbus; }
         void setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters);
         bool allDone() const;
         bool pollDone() const;
+
         void addPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool mInitialPoll = false);
+        void addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite>& pCommand);
         /**
          *  Get next request R to send from modbus queues
          *  If R needs delay then return how much time we should wait before
@@ -39,10 +44,10 @@ class ModbusExecutor {
 
         std::shared_ptr<IModbusContext> mModbus;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
+        moodycamel::BlockingReaderWriterQueue<QueueItem>& mToModbusQueue;
 
-
-        std::map<int, ModbusRequestsQueues> mQueues;
-        std::map<int, ModbusRequestsQueues>::iterator mCurrentQueue;
+        std::map<int, ModbusRequestsQueues> mSlaveQueues;
+        std::map<int, ModbusRequestsQueues>::iterator mCurrentSlaveQueue;
 
         // max number of requests to single slave after
         // we switch to next one. Used to avoid
@@ -61,7 +66,8 @@ class ModbusExecutor {
         std::chrono::time_point<std::chrono::steady_clock> mPollStart;
 
         void sendCommand();
-        void pollRegister(int slaveId, RegisterPoll& reg_ptr, bool forceSend);
+        void pollRegisters(int slaveId, RegisterPoll& reg_ptr, bool forceSend);
+        void writeRegisters(int slaveId, const RegisterWrite& cmd);
         void sendMessage(const QueueItem& item);
         void handleRegisterReadError(int slaveId, RegisterPoll& reg, const char* errorMessage);
         void setBatchSize(int size);

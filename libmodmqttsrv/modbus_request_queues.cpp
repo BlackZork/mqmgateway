@@ -18,21 +18,28 @@ ModbusRequestsQueues::addPollList(const std::vector<std::shared_ptr<RegisterPoll
 
 std::shared_ptr<IRegisterCommand>
 ModbusRequestsQueues::popNext() {
+    std::shared_ptr<IRegisterCommand> ret;
     if (mPopFromPoll) {
         if (mPollQueue.empty()) {
-            return popNext(mWriteQueue);
+            ret = popNext(mWriteQueue);
         } else {
             mPopFromPoll = false;
-            return popNext(mPollQueue);
+            ret = popNext(mPollQueue);
         }
     } else {
         if (mWriteQueue.empty()) {
-            return popNext(mPollQueue);
+            ret = popNext(mPollQueue);
         } else {
             mPopFromPoll = true;
-            return popNext(mWriteQueue);
+            ret = popNext(mWriteQueue);
         }
     }
+    if (typeid(*ret) == typeid(RegisterWrite)) {
+        if (!mWriteQueueIsUsageLow && mWriteQueue.size() == mWriteQueueLowUsageLevel) {
+            mWriteQueueIsUsageLow = true;
+        }
+    }
+    return ret;
 }
 
 
@@ -78,6 +85,25 @@ check_cache:
         goto check_cache;
     }
     return ret;
+}
+
+void
+ModbusRequestsQueues::addWriteCommand(const std::shared_ptr<RegisterWrite>& pReq) {
+    int prevSize = mWriteQueue.size();
+
+    mWriteQueue.push_back(pReq);
+    if (mWriteQueue.size() > mMaxWriteQueueSize) {
+        mWriteQueue.pop_front();
+    } else if (mWriteQueueIsUsageLow && mWriteQueue.size() == mWriteQueueHighUsageLevel) {
+        mWriteQueueIsUsageLow = false;
+    }
+}
+
+void
+ModbusRequestsQueues::setMaxWriteQueueSize(int pNewSize) {
+    mMaxWriteQueueSize = pNewSize;
+    mWriteQueueHighUsageLevel = int(mMaxWriteQueueSize*0.8);
+    mWriteQueueLowUsageLevel = int(mMaxWriteQueueSize*0.5);
 }
 
 }

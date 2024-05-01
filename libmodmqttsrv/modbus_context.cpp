@@ -1,4 +1,6 @@
+
 #include "modbus_context.hpp"
+#include "register_poll.hpp"
 
 namespace modmqttd {
 
@@ -168,9 +170,9 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
 }
 
 void
-ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
-    if (msg.mSlaveId != 0)
-        modbus_set_slave(mCtx, msg.mSlaveId);
+ModbusContext::writeModbusRegisters(int slaveId, const RegisterWrite& msg) {
+    if (slaveId != 0)
+        modbus_set_slave(mCtx, slaveId);
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
 
@@ -178,40 +180,40 @@ ModbusContext::writeModbusRegisters(const MsgRegisterValues& msg) {
     int retCode;
     switch(msg.mRegisterType) {
         case RegisterType::COIL:
-            if (msg.mRegisters.getCount() == 1) {
-                uint16_t value = msg.mRegisters.getValue(0);
-                retCode = modbus_write_bit(mCtx, msg.mRegisterNumber, value == 1 ? TRUE : FALSE);
+            if (msg.mValues.getCount() == 1) {
+                uint16_t value = msg.mValues.getValue(0);
+                retCode = modbus_write_bit(mCtx, msg.mRegister, value == 1 ? TRUE : FALSE);
             } else {
-                int arraySize = msg.mRegisters.getCount();
+                int arraySize = msg.mValues.getCount();
                 std::shared_ptr<uint8_t> values((uint8_t*)malloc(arraySize), free);
                 std::memset(values.get(), 0x0, arraySize);
                 for(int i = 0; i < arraySize; i++) {
-                    uint16_t value = msg.mRegisters.getValue(i);
+                    uint16_t value = msg.mValues.getValue(i);
                     values.get()[i] = value == 1 ? TRUE : FALSE;
                 }
-                retCode = modbus_write_bits(mCtx, msg.mRegisterNumber, msg.mRegisters.getCount(), values.get());
+                retCode = modbus_write_bits(mCtx, msg.mRegister, msg.mValues.getCount(), values.get());
             }
         break;
         case RegisterType::HOLDING:
-            if (msg.mRegisters.getCount() == 1) {
-                retCode = modbus_write_register(mCtx, msg.mRegisterNumber, msg.mRegisters.getValue(0));
+            if (msg.mValues.getCount() == 1) {
+                retCode = modbus_write_register(mCtx, msg.mRegister, msg.mValues.getValue(0));
             } else {
                 int elSize = sizeof(uint16_t);
-                int arraySize = msg.mRegisters.getCount();
+                int arraySize = msg.mValues.getCount();
                 size_t bufSize = elSize * arraySize;
                 std::shared_ptr<uint16_t> values((uint16_t*)malloc(bufSize), free);
                 std::memset(values.get(), 0x0, bufSize);
-                for(int i = 0; i < msg.mRegisters.getCount(); i++) {
-                    values.get()[i] = msg.mRegisters.getValue(i);
+                for(int i = 0; i < msg.mValues.getCount(); i++) {
+                    values.get()[i] = msg.mValues.getValue(i);
                 }
-                retCode = modbus_write_registers(mCtx, msg.mRegisterNumber, msg.mRegisters.getCount(), values.get());
+                retCode = modbus_write_registers(mCtx, msg.mRegister, msg.mValues.getCount(), values.get());
             }
         break;
         default:
             throw ModbusContextException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
     }
     if (retCode == -1)
-        throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterNumber) + " failed");
+        throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
 }
 
 } //namespace

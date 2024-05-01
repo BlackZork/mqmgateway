@@ -49,7 +49,7 @@ class ModbusThread {
         void dispatchMessages(const QueueItem& read);
         void sendMessage(const QueueItem& item);
 
-        void processWrite(const MsgRegisterValues& msg);
+        void processWrite(const std::shared_ptr<MsgRegisterValues>& msg);
 
         void processCommands();
 };

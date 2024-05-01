@@ -14,9 +14,10 @@
 
 TEST_CASE("ModbusExecutor for single delay config") {
     moodycamel::BlockingReaderWriterQueue<modmqttd::QueueItem> fromModbusQueue;
+    moodycamel::BlockingReaderWriterQueue<modmqttd::QueueItem> toModbusQueue;
     MockedModbusFactory modbus_factory;
 
-    modmqttd::ModbusExecutor executor(fromModbusQueue);
+    modmqttd::ModbusExecutor executor(fromModbusQueue, toModbusQueue);
     executor.init(modbus_factory.getContext("test"));
 
     ModbusExecutorTestRegisters registers;

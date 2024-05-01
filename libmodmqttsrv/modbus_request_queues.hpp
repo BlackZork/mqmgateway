@@ -9,13 +9,16 @@ namespace modmqttd {
 
 class ModbusRequestsQueues {
     public:
+        ModbusRequestsQueues() {
+            setMaxWriteQueueSize(1000);
+        }
         // set a list of registers from next poll
         void addPollList(const std::vector<std::shared_ptr<RegisterPoll>>& pollList);
 
         // shared_ptr because RegisterWrite will be long-lived object
         // just like RegisterPoll. ModbusThread will maintain a list of writeRequests just like PollSpecification
         // to count and log write errors in 5min timeframes
-        void addWriteRequest(const std::shared_ptr<RegisterWrite>& pReq) { mWriteQueue.push_back(pReq); }
+        void addWriteCommand(const std::shared_ptr<RegisterWrite>& pReq);
 
         // find the smallest positive difference between silence_period and delay need for register in queue.
         std::chrono::steady_clock::duration findForSilencePeriod(std::chrono::steady_clock::duration pPeriod, bool ignore_first_read);
@@ -31,11 +34,14 @@ class ModbusRequestsQueues {
 
         bool empty() const { return mPollQueue.empty() && mWriteQueue.empty(); }
 
+        void setMaxWriteQueueSize(int pNewSize);
+        float getWriteQueueUsagePrec() const { return mWriteQueue.size()*100/float(mMaxWriteQueueSize); }
+        bool isWriteQueueUsageLow() const { return mWriteQueueIsUsageLow; }
+
         // registers to poll next
         std::deque<std::shared_ptr<RegisterPoll>> mPollQueue;
 
         std::deque<std::shared_ptr<RegisterWrite>> mWriteQueue;
-        int mMaxWriteQueueSize = 1000;
     private:
         //cache for popFirstWithDelay
         std::deque<std::shared_ptr<RegisterPoll>>::iterator mLastPollFound;
@@ -45,6 +51,11 @@ class ModbusRequestsQueues {
         // if true then popNext will get element from mPollQueue,
         // otherwise from mWriteQueue
         bool mPopFromPoll = true;
+
+        int mMaxWriteQueueSize;
+        int mWriteQueueLowUsageLevel;
+        int mWriteQueueHighUsageLevel;
+        bool mWriteQueueIsUsageLow;
 };
 
 }

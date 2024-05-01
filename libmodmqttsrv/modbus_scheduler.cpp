@@ -45,4 +45,22 @@ ModbusScheduler::getRegistersToPoll(
     return ret;
 }
 
+std::shared_ptr<RegisterPoll>
+ModbusScheduler::findRegisterPoll(const MsgRegisterValues& pValues) const {
+
+    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.find(pValues.mSlaveId);
+    if (slave != mRegisterMap.end()) {
+        int regNumber = pValues.mRegisterNumber;
+        std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = std::find_if(
+            slave->second.begin(), slave->second.end(),
+            [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegister; }
+        );
+        if (reg_it != slave->second.end()) {
+            return *reg_it;
+        }
+    }
+
+    return std::shared_ptr<RegisterPoll>();
+}
+
 }
