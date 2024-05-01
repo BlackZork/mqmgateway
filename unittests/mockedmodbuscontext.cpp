@@ -48,10 +48,10 @@ MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool inter
         };
     }
 
-    if (!internalOperation)
+    if (!internalOperation) {
         mWriteCount++;
-    else
         mIOCondition->notify_all();
+    }
 }
 
 std::vector<uint16_t>

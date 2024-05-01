@@ -119,6 +119,8 @@ ModbusExecutor::addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite
     if (wasLow && ! queue.isWriteQueueUsageLow()) {
         BOOST_LOG_SEV(log, Log::warn) << "Write queue for slave " << slaveId << " is " << std::fixed << std::setprecision(2) << queue.getWriteQueueUsagePrec() << "%, write commands will be dropped when full";
     }
+    if (mCurrentSlaveQueue == mSlaveQueues.end())
+        mCurrentSlaveQueue = mSlaveQueues.begin();
 }
 
 
