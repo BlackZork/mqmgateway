@@ -52,10 +52,9 @@ ModbusScheduler::findRegisterPoll(const MsgRegisterValues& pValues) const {
 
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.find(pValues.mSlaveId);
     if (slave != mRegisterMap.end()) {
-        int regNumber = pValues.mRegister;
         std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = std::find_if(
             slave->second.begin(), slave->second.end(),
-            [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegister; }
+            [&pValues](const std::shared_ptr<RegisterPoll>& item) -> bool { return item->overlaps(pValues); }
         );
         if (reg_it != slave->second.end()) {
             return *reg_it;
