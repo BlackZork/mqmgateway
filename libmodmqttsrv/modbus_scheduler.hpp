@@ -35,7 +35,7 @@ namespace modmqttd {
             );
         private:
             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisterMap;
-            boost::log::sources::severity_logger<Log::severity> log;
+            static  boost::log::sources::severity_logger<Log::severity> log;
     };
 }
 

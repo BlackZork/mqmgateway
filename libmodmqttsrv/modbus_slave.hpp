@@ -9,7 +9,7 @@ namespace modmqttd {
 
 class ModbusSlaveConfig {
 
-    boost::log::sources::severity_logger<Log::severity> log;
+    static boost::log::sources::severity_logger<Log::severity> log;
 
     public:
         ModbusSlaveConfig(const YAML::Node& data);

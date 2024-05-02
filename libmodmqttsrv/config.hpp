@@ -79,7 +79,7 @@ class ConfigTools {
 class ModbusNetworkConfig {
     static constexpr std::chrono::milliseconds MAX_RESPONSE_TIMEOUT = std::chrono::milliseconds(999);
 
-    boost::log::sources::severity_logger<Log::severity> log;
+    static boost::log::sources::severity_logger<Log::severity> log;
 
     public:
         typedef enum {

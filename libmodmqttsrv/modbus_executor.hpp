@@ -40,7 +40,7 @@ class ModbusExecutor {
         }
         bool isInitial() const { return mInitialPoll; }
     private:
-        boost::log::sources::severity_logger<Log::severity> log;
+        static  boost::log::sources::severity_logger<Log::severity> log;
 
         std::shared_ptr<IModbusContext> mModbus;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;

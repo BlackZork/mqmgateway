@@ -71,7 +71,7 @@ class MsgRegisterPoll {
 #endif
         }
 
-        boost::log::sources::severity_logger<Log::severity> log;
+        static boost::log::sources::severity_logger<Log::severity> log;
 
         int mSlaveId;
         int mRegister;
@@ -89,7 +89,7 @@ class MsgRegisterPoll {
 
 class MsgRegisterPollSpecification {
     public:
-        boost::log::sources::severity_logger<Log::severity> log;
+        static boost::log::sources::severity_logger<Log::severity> log;
 
         MsgRegisterPollSpecification(const std::string& networkName) : mNetworkName(networkName) {}
 

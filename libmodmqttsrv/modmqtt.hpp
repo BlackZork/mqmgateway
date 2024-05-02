@@ -27,7 +27,7 @@ class ModMqtt {
         static void setModbusContextFactory(const std::shared_ptr<IModbusFactory>& factory);
         static IModbusFactory& getModbusFactory() { return *mModbusFactory; }
 
-        boost::log::sources::severity_logger<Log::severity> log;
+        static boost::log::sources::severity_logger<Log::severity> log;
         ModMqtt();
         void addConverterPath(const std::string& path) { mConverterPaths.push_back(path); }
         void init(const std::string& configPath);
