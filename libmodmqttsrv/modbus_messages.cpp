@@ -4,32 +4,15 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> MsgRegisterPollSpecification::log;
+
 #if __cplusplus < 201703L
     constexpr std::chrono::milliseconds MsgRegisterPoll::INVALID_REFRESH;
 #endif
 
-bool
-MsgRegisterPoll::overlaps(const MsgRegisterPoll& poll) const {
-    if (mRegisterType != poll.mRegisterType
-        || mSlaveId != poll.mSlaveId
-    ) return false;
-
-    return (
-        (firstRegister() <= poll.lastRegister()) && (poll.firstRegister() <= lastRegister())
-    );
-}
-
 void
 MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
-    int first = firstRegister() <= other.firstRegister() ? firstRegister() : other.firstRegister();
-    int last = lastRegister() >= other.lastRegister() ? lastRegister() : other.lastRegister();
-
-    BOOST_LOG_SEV(log, Log::debug) << "Extending register "
-    << mRegister << "(" << mCount << ") to "
-    << first << "(" <<  last-first+1 << ")";
-
-    mRegister = first;
-    mCount = last - mRegister + 1;
+    ModbusAddressRange::merge(other);
 
     //set the shortest poll period
     if (mRefreshMsec == INVALID_REFRESH) {
@@ -41,19 +24,15 @@ MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
 }
 
 bool
-MsgRegisterPoll::isConsecutiveOf(const MsgRegisterPoll& other) const {
-    return (lastRegister() + 1 == other.firstRegister() || other.lastRegister()+1 == firstRegister());
-}
-
-bool
 MsgRegisterPoll::isSameAs(const MsgRegisterPoll& other) const {
-    if (mRegisterType != other.mRegisterType
-        || mSlaveId != other.mSlaveId
-    ) return false;
+    if (!ModbusAddressRange::isSameAs(other))
+        return false;
+
+    if (mSlaveId != other.mSlaveId)
+        return false;
 
     return mRegister == other.mRegister && mCount == other.mCount;
 }
-
 
 struct RegRange {
     RegRange(const MsgRegisterPoll& poll)
@@ -114,7 +93,7 @@ MsgRegisterPollSpecification::merge(const MsgRegisterPoll& poll) {
     std::vector<MsgRegisterPoll> overlaped;
     auto reg_it = mRegisters.begin();
     while(reg_it != mRegisters.end()) {
-        if (poll.overlaps(*reg_it)) {
+        if (poll.mSlaveId == reg_it->mSlaveId && poll.overlaps(*reg_it)) {
             overlaped.push_back(*reg_it);
             reg_it = mRegisters.erase(reg_it);
         } else {

@@ -23,7 +23,7 @@ class IRegisterCommand {
 };
 
 
-class RegisterPoll : public IRegisterCommand {
+class RegisterPoll : public ModbusAddressRange, public IRegisterCommand {
     public:
         static constexpr std::chrono::steady_clock::duration DurationBetweenLogError = std::chrono::minutes(5);
         // if we cannot read register in this time MsgRegisterReadFailed is sent
@@ -36,11 +36,9 @@ class RegisterPoll : public IRegisterCommand {
         virtual const std::vector<uint16_t>& getValues() const { return mLastValues; }
         virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
 
-        void update(const std::vector<uint16_t> newValues) { mLastValues = newValues; }
+        void update(const std::vector<uint16_t> newValues) { mLastValues = newValues; mCount = newValues.size(); }
         void updateFromSlaveConfig(const ModbusSlaveConfig& slave_config);
 
-        int mRegister;
-        RegisterType mRegisterType;
         std::chrono::steady_clock::duration mRefresh;
 
         // delay before poll
@@ -54,28 +52,26 @@ class RegisterPoll : public IRegisterCommand {
         std::vector<uint16_t> mLastValues;
 };
 
-class RegisterWrite : public IRegisterCommand {
+class RegisterWrite : public ModbusAddressRange, public IRegisterCommand {
     public:
         RegisterWrite(const MsgRegisterValues& msg)
-            : RegisterWrite(msg.mRegisterNumber,
+            : RegisterWrite(msg.mRegister,
               msg.mRegisterType,
               msg.mRegisters
               )
         {}
         RegisterWrite(int pRegister, RegisterType pType, const ModbusRegisters& pValues)
-            : mRegister(pRegister),
-              mRegisterType(pType),
+            : ModbusAddressRange(pRegister, pType, pValues.getCount()),
               mValues(pValues),
               mDelay(std::chrono::milliseconds::zero())
         {}
+
         virtual int getRegister() const { return mRegister; };
         virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
         virtual int getCount() const { return mValues.getCount(); };
         virtual const std::vector<uint16_t>& getValues() const { return mValues.values(); }
 
-        int mRegister;
         ModbusCommandDelay mDelay;
-        RegisterType mRegisterType;
         ModbusRegisters mValues;
 
         std::shared_ptr<MsgRegisterValues> mReturnMessage;

@@ -3,6 +3,8 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> ModbusScheduler::log;
+
 std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>
 ModbusScheduler::getRegistersToPoll(
     std::chrono::steady_clock::duration& outDuration,
@@ -50,7 +52,7 @@ ModbusScheduler::findRegisterPoll(const MsgRegisterValues& pValues) const {
 
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.find(pValues.mSlaveId);
     if (slave != mRegisterMap.end()) {
-        int regNumber = pValues.mRegisterNumber;
+        int regNumber = pValues.mRegister;
         std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = std::find_if(
             slave->second.begin(), slave->second.end(),
             [&regNumber](const std::shared_ptr<RegisterPoll>& item) -> bool { return regNumber == item->mRegister; }

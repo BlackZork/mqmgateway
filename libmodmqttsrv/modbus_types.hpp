@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include "logging.hpp"
+
 namespace modmqttd {
 
 enum RegisterType {
@@ -33,6 +35,26 @@ class ModbusCommandDelay : public std::chrono::steady_clock::duration {
         }
 
         DelayType delay_type = DelayType::EVERYTIME;
+};
+
+class ModbusAddressRange {
+    protected:
+        static boost::log::sources::severity_logger<Log::severity> log;
+    public:
+        ModbusAddressRange(int pRegister, RegisterType pRegisterType, int pCount)
+            : mRegister(pRegister), mRegisterType(pRegisterType), mCount(pCount)
+        {}
+
+        void merge(const ModbusAddressRange& other);
+        bool overlaps(const ModbusAddressRange& poll) const;
+        bool isConsecutiveOf(const ModbusAddressRange& other) const;
+        bool isSameAs(const ModbusAddressRange& other) const;
+        int firstRegister() const { return mRegister; }
+        int lastRegister() const { return (mRegister + mCount) - 1; }
+
+        int mRegister;
+        int mCount;
+        RegisterType mRegisterType;
 };
 
 }

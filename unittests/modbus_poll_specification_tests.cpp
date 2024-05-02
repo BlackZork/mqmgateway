@@ -4,12 +4,8 @@
 
 modmqttd::MsgRegisterPoll
 createPoll(int firstRegister, int lastRegister, int refresh = 1) {
-    modmqttd::MsgRegisterPoll ret(firstRegister);
-    ret.mCount = lastRegister - firstRegister + 1;
-    ret.mSlaveId = 1;
-    ret.mRegisterType = modmqttd::RegisterType::INPUT;
+    modmqttd::MsgRegisterPoll ret(1, firstRegister, modmqttd::RegisterType::INPUT, lastRegister - firstRegister + 1);
     ret.mRefreshMsec = std::chrono::milliseconds(refresh);
-
     return ret;
 }
 

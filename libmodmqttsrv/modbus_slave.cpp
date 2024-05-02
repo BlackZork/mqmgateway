@@ -4,6 +4,8 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> ModbusSlaveConfig::log;
+
 ModbusSlaveConfig::ModbusSlaveConfig(const YAML::Node& data) {
     mAddress = ConfigTools::readRequiredValue<int>(data, "address");
 

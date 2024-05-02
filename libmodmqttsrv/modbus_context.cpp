@@ -4,6 +4,8 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> ModbusContext::log;
+
 void
 ModbusContext::init(const ModbusNetworkConfig& config)
 {

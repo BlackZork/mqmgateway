@@ -29,6 +29,7 @@ add_library(modmqttsrv
     modbus_slave.hpp
     modbus_thread.cpp
     modbus_thread.hpp
+    modbus_types.cpp
     modbus_types.hpp
     modmqtt.cpp 
     modmqtt.hpp 

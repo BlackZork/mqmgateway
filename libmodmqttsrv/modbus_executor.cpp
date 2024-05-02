@@ -8,6 +8,8 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> ModbusExecutor::log;
+
 ModbusExecutor::ModbusExecutor(
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue
