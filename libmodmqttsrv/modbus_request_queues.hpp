@@ -9,9 +9,6 @@ namespace modmqttd {
 
 class ModbusRequestsQueues {
     public:
-        ModbusRequestsQueues() {
-            setMaxWriteQueueSize(1000);
-        }
         // set a list of registers from next poll
         void addPollList(const std::vector<std::shared_ptr<RegisterPoll>>& pollList);
 
@@ -34,10 +31,6 @@ class ModbusRequestsQueues {
 
         bool empty() const { return mPollQueue.empty() && mWriteQueue.empty(); }
 
-        void setMaxWriteQueueSize(int pNewSize);
-        float getWriteQueueUsagePrec() const { return mWriteQueue.size()*100/float(mMaxWriteQueueSize); }
-        bool isWriteQueueUsageLow() const { return mWriteQueueIsUsageLow; }
-
         // registers to poll next
         std::deque<std::shared_ptr<RegisterPoll>> mPollQueue;
 
@@ -51,11 +44,6 @@ class ModbusRequestsQueues {
         // if true then popNext will get element from mPollQueue,
         // otherwise from mWriteQueue
         bool mPopFromPoll = true;
-
-        int mMaxWriteQueueSize;
-        int mWriteQueueLowUsageLevel;
-        int mWriteQueueHighUsageLevel;
-        bool mWriteQueueIsUsageLow;
 };
 
 }

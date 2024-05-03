@@ -34,11 +34,6 @@ ModbusRequestsQueues::popNext() {
             ret = popNext(mWriteQueue);
         }
     }
-    if (typeid(*ret) == typeid(RegisterWrite)) {
-        if (!mWriteQueueIsUsageLow && mWriteQueue.size() == mWriteQueueLowUsageLevel) {
-            mWriteQueueIsUsageLow = true;
-        }
-    }
     return ret;
 }
 
@@ -89,21 +84,8 @@ check_cache:
 
 void
 ModbusRequestsQueues::addWriteCommand(const std::shared_ptr<RegisterWrite>& pReq) {
-    int prevSize = mWriteQueue.size();
-
     mWriteQueue.push_back(pReq);
-    if (mWriteQueue.size() > mMaxWriteQueueSize) {
-        mWriteQueue.pop_front();
-    } else if (mWriteQueueIsUsageLow && mWriteQueue.size() == mWriteQueueHighUsageLevel) {
-        mWriteQueueIsUsageLow = false;
-    }
 }
 
-void
-ModbusRequestsQueues::setMaxWriteQueueSize(int pNewSize) {
-    mMaxWriteQueueSize = pNewSize;
-    mWriteQueueHighUsageLevel = int(mMaxWriteQueueSize*0.8);
-    mWriteQueueLowUsageLevel = int(mMaxWriteQueueSize*0.5);
-}
 
 }

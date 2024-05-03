@@ -116,11 +116,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 void
 ModbusExecutor::addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite>& pCommand) {
     auto& queue = mSlaveQueues[slaveId];
-    bool wasLow = queue.isWriteQueueUsageLow();
     queue.addWriteCommand(pCommand);
-    if (wasLow && ! queue.isWriteQueueUsageLow()) {
-        BOOST_LOG_SEV(log, Log::warn) << "Write queue for slave " << slaveId << " is " << std::fixed << std::setprecision(2) << queue.getWriteQueueUsagePrec() << "%, write commands will be dropped when full";
-    }
     if (mCurrentSlaveQueue == mSlaveQueues.end())
         mCurrentSlaveQueue = mSlaveQueues.begin();
 }
@@ -235,12 +231,7 @@ ModbusExecutor::pollNext() {
                 // nextQueue could point at it again after doing full circle
                 if (mCurrentSlaveQueue != nextQueue || !mCurrentSlaveQueue->second.empty()) {
                     mCurrentSlaveQueue = nextQueue;
-                    bool wasHigh = !mCurrentSlaveQueue->second.isWriteQueueUsageLow();
                     mWaitingRegister = mCurrentSlaveQueue->second.popNext();
-                    if (wasHigh && mCurrentSlaveQueue->second.isWriteQueueUsageLow()) {
-                        BOOST_LOG_SEV(log, Log::info) << "Write queue for slave " << mCurrentSlaveQueue->first
-                            << " is below " << std::fixed << std::setprecision(2) << mCurrentSlaveQueue->second.getWriteQueueUsagePrec() << "%";
-                    }
                     mCommandsLeft = mBatchSize;
                 } else {
                     //nothing to do
