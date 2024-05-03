@@ -272,7 +272,7 @@ TEST_CASE("ModbusExecutor") {
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 2, 2, modmqttd::RegisterType::HOLDING) == 20);
         REQUIRE(executor.getCommandsLeft() == 0);
 
-        executor.pollNext(); //write to the second slave
+        executor.pollNext(); //switch and write to the second slave
 
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 1, modmqttd::RegisterType::HOLDING) == modmqttd::ModbusExecutor::WRITE_BATCH_SIZE);
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 2, 2, modmqttd::RegisterType::HOLDING) == 200);

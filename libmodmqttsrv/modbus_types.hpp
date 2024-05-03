@@ -24,7 +24,7 @@ class ModbusCommandDelay : public std::chrono::steady_clock::duration {
             ON_SLAVE_CHANGE = 1
         } DelayType;
 
-        ModbusCommandDelay() {}
+        ModbusCommandDelay() : std::chrono::steady_clock::duration(0) {}
         ModbusCommandDelay(const std::chrono::steady_clock::duration& dur, DelayType dt = DelayType::EVERYTIME)
             : std::chrono::steady_clock::duration(dur),
             delay_type(dt)

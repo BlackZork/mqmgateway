@@ -7,7 +7,6 @@
 
 #include "modbus_messages.hpp"
 #include "modbus_types.hpp"
-#include "modbus_slave.hpp"
 
 namespace modmqttd {
 
@@ -18,6 +17,7 @@ class IRegisterCommand {
         const bool hasDelay() const {
             return getDelay() != std::chrono::steady_clock::duration::zero();
         }
+        virtual void setDelay(const ModbusCommandDelay& pDelay) = 0;
         virtual int getCount() const = 0;
         virtual const std::vector<uint16_t>& getValues() const = 0;
 };
@@ -35,14 +35,12 @@ class RegisterPoll : public ModbusAddressRange, public IRegisterCommand {
         virtual int getCount() const { return mLastValues.size(); }
         virtual const std::vector<uint16_t>& getValues() const { return mLastValues; }
         virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
+        virtual void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
 
         void update(const std::vector<uint16_t> newValues) { mLastValues = newValues; mCount = newValues.size(); }
-        void updateFromSlaveConfig(const ModbusSlaveConfig& slave_config);
 
         std::chrono::steady_clock::duration mRefresh;
 
-        // delay before poll
-        ModbusCommandDelay mDelay;
 
         std::chrono::steady_clock::time_point mLastRead;
 
@@ -50,6 +48,9 @@ class RegisterPoll : public ModbusAddressRange, public IRegisterCommand {
         std::chrono::steady_clock::time_point mFirstErrorTime;
     private:
         std::vector<uint16_t> mLastValues;
+
+        // delay before poll
+        ModbusCommandDelay mDelay;
 };
 
 class RegisterWrite : public ModbusAddressRange, public IRegisterCommand {
@@ -70,11 +71,13 @@ class RegisterWrite : public ModbusAddressRange, public IRegisterCommand {
         virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
         virtual int getCount() const { return mValues.getCount(); };
         virtual const std::vector<uint16_t>& getValues() const { return mValues.values(); }
+        virtual void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
 
-        ModbusCommandDelay mDelay;
         ModbusRegisters mValues;
 
         std::shared_ptr<MsgRegisterValues> mReturnMessage;
+    private:
+        ModbusCommandDelay mDelay;
 };
 
 } //namespace

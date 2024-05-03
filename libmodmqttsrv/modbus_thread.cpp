@@ -9,6 +9,20 @@
 namespace modmqttd {
 
 void
+setCommandDelays(IRegisterCommand& cmd, const std::chrono::milliseconds& everyTime, const std::chrono::milliseconds& onChange) {
+    ModbusCommandDelay delay;
+    if (everyTime != std::chrono::milliseconds::zero()) {
+        delay = everyTime;
+        delay.delay_type = ModbusCommandDelay::EVERYTIME;
+    } else if (onChange != std::chrono::milliseconds::zero()) {
+        delay = onChange;
+        delay.delay_type = ModbusCommandDelay::ON_SLAVE_CHANGE;
+    }
+    cmd.setDelay(delay);
+}
+
+
+void
 ModbusThread::sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item) {
     fromModbusQueue.enqueue(item);
     modmqttd::notifyQueues();
@@ -53,16 +67,10 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
             std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
 
-            if (mDelayBeforeCommand != std::chrono::milliseconds::zero()) {
-                reg->mDelay = mDelayBeforeCommand;
-                reg->mDelay.delay_type = ModbusCommandDelay::EVERYTIME;
-            } else if (mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
-                reg->mDelay = mDelayBeforeFirstCommand;
-                reg->mDelay.delay_type = ModbusCommandDelay::ON_SLAVE_CHANGE;
-            }
+            setCommandDelays(*reg, mDelayBeforeCommand, mDelayBeforeFirstCommand);
 
             if (slave_cfg != mSlaves.end())
-                reg->updateFromSlaveConfig(slave_cfg->second);
+                setCommandDelays(*reg, slave_cfg->second.mDelayBeforeCommand, slave_cfg->second.mDelayBeforeFirstCommand);
 
             registerMap[it->mSlaveId].push_back(reg);
         }
@@ -79,7 +87,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
             << ", count=" << (*it)->getCount()
             << ", poll every " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms"
-            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mDelay).count() << "ms";
+            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelay()).count() << "ms";
         }
     }
     mExecutor.setupInitialPoll(registerMap);
@@ -89,12 +97,22 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
 void
 ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
     auto cmd = std::shared_ptr<RegisterWrite>(new RegisterWrite(*msg));
+
+    //TODO cache this setup
+
     //send state change immediately if we
     //are polling this register
     std::shared_ptr<RegisterPoll> poll(mScheduler.findRegisterPoll(*msg));
     if (poll != nullptr) {
         cmd->mReturnMessage = msg;
     }
+
+    setCommandDelays(*cmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
+    std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(msg->mSlaveId);
+    if (it != mSlaves.end()) {
+        setCommandDelays(*cmd, it->second.mDelayBeforeCommand, it->second.mDelayBeforeFirstCommand);
+    }
+
 
     mExecutor.addWriteCommand(msg->mSlaveId, cmd);
 }
@@ -143,10 +161,11 @@ ModbusThread::updateFromSlaveConfig(const ModbusSlaveConfig& pConfig) {
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave_registers = registers.find(pConfig.mAddress);
     if (slave_registers != registers.end()) {
         for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
-            (*it)->mDelay = pConfig.mDelayBeforeCommand;
+            setCommandDelays(**it, pConfig.mDelayBeforeCommand, pConfig.mDelayBeforeFirstCommand);
         }
     }
 }
+
 
 std::string
 constructIdleWaitMessage(const std::chrono::steady_clock::duration& idleWaitDuration) {

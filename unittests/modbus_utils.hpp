@@ -26,8 +26,9 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
         ) {
             //TODO no check if already on list
             std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
-            reg->mDelay = delay;
-            reg->mDelay.delay_type = delayType;
+            modmqttd::ModbusCommandDelay md(delay);
+            md.delay_type = delayType;
+            reg->setDelay(md);
             (*this)[slave].push_back(reg);
             return reg;
         }
@@ -48,8 +49,9 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
             modmqttd::ModbusCommandDelay::DelayType delayType = modmqttd::ModbusCommandDelay::DelayType::EVERYTIME
         ) {
             std::shared_ptr<modmqttd::RegisterWrite> reg(new modmqttd::RegisterWrite(number-1, modmqttd::RegisterType::HOLDING, value));
-            reg->mDelay = delay;
-            reg->mDelay.delay_type = delayType;
+            modmqttd::ModbusCommandDelay md(delay);
+            md.delay_type = delayType;
+            reg->setDelay(md);
             return reg;
         }
 };

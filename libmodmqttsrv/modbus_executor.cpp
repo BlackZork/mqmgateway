@@ -56,14 +56,17 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
         mPollStart = std::chrono::steady_clock::now();
     }
 
+    bool new_registers = false;
     for (auto& pit: pRegisters) {
         auto& queue = mSlaveQueues[pit.first];
         queue.addPollList(pit.second);
+        if (!queue.empty())
+            new_registers = true;
     }
 
     // we are already polling data or have nothing to do
     // so do not try to find what to read or write next
-    if (!setupQueues || allDone()) {
+    if (!setupQueues || !new_registers) {
         return;
     }
 

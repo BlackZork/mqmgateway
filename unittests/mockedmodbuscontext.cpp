@@ -264,7 +264,7 @@ MockedModbusContext::getModbusRegisterValue(int slaveId, int regNum, modmqttd::R
 
 uint16_t
 MockedModbusContext::waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout) {
-    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting " << timeout.count() << "ms for write to register " << slaveId << "." << regNum << ", type=" << std::to_string(regType);
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting " << timeout.count() << "ms for value " << val << " in register " << slaveId << "." << regNum << ", type=" << std::to_string(regType);
 
     std::mutex m;
     std::unique_lock<std::mutex> lck(m);

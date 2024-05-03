@@ -27,8 +27,8 @@ class ModbusThread {
 
         // global config
         std::string mNetworkName;
-        std::chrono::steady_clock::duration mDelayBeforeCommand = std::chrono::steady_clock::duration::zero();
-        std::chrono::steady_clock::duration mDelayBeforeFirstCommand = std::chrono::steady_clock::duration::zero();
+        std::chrono::milliseconds mDelayBeforeCommand = std::chrono::milliseconds::zero();
+        std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::milliseconds::zero();
 
         // slave config
         std::map<int, ModbusSlaveConfig> mSlaves;
