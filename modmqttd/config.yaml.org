@@ -1,0 +1,28 @@
+modmqttd:
+  converter_search_path:
+    - /usr/lib/modmqttd
+modbus:
+  networks:
+    - name: tcptest
+      address: 192.168.31.10
+      port: 502
+      response_timeout: 500ms
+      # how log to wait for next bytes of a response
+      response_data_timeout: 500ms      
+
+mqtt:
+  client_id: modbus
+  refresh: 10s
+  broker:
+    host: 172.17.0.1
+    port: 1883
+    # optional: default is 60sec
+    keepalive: 60
+  objects:
+    - topic: isma_switch_1
+      network: tcptest
+      slave: 1
+      refresh: 1s
+      state:
+        register: 273
+        register_type: coil

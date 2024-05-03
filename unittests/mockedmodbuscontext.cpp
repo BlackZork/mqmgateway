@@ -3,6 +3,7 @@
 #include "libmodmqttsrv/modbus_messages.hpp"
 #include "libmodmqttsrv/modbus_context.hpp"
 #include "libmodmqttsrv/debugtools.hpp"
+#include "libmodmqttsrv/register_poll.hpp"
 #include "catch2/catch_all.hpp"
 
 #include <thread>
@@ -12,23 +13,23 @@ const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveReadTime = std
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveWriteTime = std::chrono::milliseconds(10);
 
 void
-MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool internalOperation) {
+MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mWriteTime);
         if (mDisconnected) {
             errno = EIO;
-            throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterNumber) + " failed");
+            throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
         }
-        if (hasError(msg.mRegisterNumber, msg.mRegisterType, msg.mCount)) {
+        if (hasError(msg.mRegister, msg.mRegisterType, msg.getCount())) {
             errno = EIO;
-            throw modmqttd::ModbusReadException(std::string("register write fn ") + std::to_string(msg.mRegisterNumber) + " failed");
+            throw modmqttd::ModbusReadException(std::string("register write fn ") + std::to_string(msg.mRegister) + " failed");
         }
     }
 
 
-    for(int i = 0; i < msg.mCount; i++) {
-        int regNumber = msg.mRegisterNumber + i;
-        uint16_t value = msg.mRegisters.getValue(i);
+    for(int i = 0; i < msg.getCount(); i++) {
+        int regNumber = msg.mRegister + i;
+        uint16_t value = msg.mValues.getValue(i);
         switch(msg.mRegisterType) {
             case modmqttd::RegisterType::COIL:
                 mCoil[regNumber].mValue = value == 1;
@@ -47,8 +48,10 @@ MockedModbusContext::Slave::write(const modmqttd::MsgRegisterValues& msg, bool i
         };
     }
 
-    if (!internalOperation)
+    if (!internalOperation) {
         mWriteCount++;
+        mIOCondition->notify_all();
+    }
 }
 
 std::vector<uint16_t>
@@ -209,14 +212,14 @@ MockedModbusContext::init(const modmqttd::ModbusNetworkConfig& config) {
 }
 
 void
-MockedModbusContext::writeModbusRegisters(const modmqttd::MsgRegisterValues& msg) {
+MockedModbusContext::writeModbusRegisters(int pSlaveId, const modmqttd::RegisterWrite& msg) {
     std::unique_lock<std::mutex> lck(mMutex);
-    std::map<int, Slave>::iterator it = findOrCreateSlave(msg.mSlaveId);
+    std::map<int, Slave>::iterator it = findOrCreateSlave(pSlaveId);
 
     if (mInternalOperation)
         BOOST_LOG_SEV(log, modmqttd::Log::info) << "MODBUS: " << mNetworkName
-            << "." << it->second.mId << "." << msg.mRegisterNumber
-            << " WRITE: " << modmqttd::DebugTools::registersToStr(msg.mRegisters.values());
+            << "." << it->second.mId << "." << msg.mRegister
+            << " WRITE: " << modmqttd::DebugTools::registersToStr(msg.mValues.values());
     it->second.write(msg, mInternalOperation);
     mInternalOperation = false;
 }
@@ -225,8 +228,8 @@ std::map<int, MockedModbusContext::Slave>::iterator
 MockedModbusContext::findOrCreateSlave(int id) {
     std::map<int, Slave>::iterator it = mSlaves.find(id);
     if (it == mSlaves.end()) {
-        Slave s(id);
-        mSlaves[id] = s;
+        Slave s(mCondition, id);
+        mSlaves.insert(std::make_pair(id, s));
         it = mSlaves.find(id);
     }
     return it;
@@ -248,6 +251,43 @@ MockedModbusContext::getWriteCount(int slaveId) const {
     std::map<int, Slave>::const_iterator it = mSlaves.find(slaveId);
     return it->second.getWriteCount();
 }
+
+uint16_t
+MockedModbusContext::getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype) {
+    mInternalOperation = true;
+    modmqttd::RegisterPoll poll(--regNum, regtype, 1, std::chrono::milliseconds(0));
+
+    auto vals = readModbusRegisters(slaveId, poll);
+    return vals[0];
+}
+
+
+uint16_t
+MockedModbusContext::waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout) {
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting " << timeout.count() << "ms for value " << val << " in register " << slaveId << "." << regNum << ", type=" << std::to_string(regType);
+
+    std::mutex m;
+    std::unique_lock<std::mutex> lck(m);
+
+    uint16_t currentVal = getModbusRegisterValue(slaveId, regNum, regType);
+    if (currentVal != val) {
+        auto start = std::chrono::steady_clock::now();
+        int dur;
+        do {
+            if (mCondition->wait_for(lck, timeout) == std::cv_status::timeout)
+                break;
+            currentVal = getModbusRegisterValue(slaveId, regNum, regType);
+
+            if (currentVal == val)
+                break;
+            auto end = std::chrono::steady_clock::now();
+            dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        } while (dur < timeout.count());
+    }
+    return currentVal;
+}
+
+
 
 std::shared_ptr<MockedModbusContext>
 MockedModbusFactory::getOrCreateContext(const char* network) {
@@ -284,21 +324,16 @@ void
 MockedModbusFactory::setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val) {
     regNum--;
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
-    modmqttd::MsgRegisterValues msg(slaveId, regtype, regNum, val);
+    modmqttd::RegisterWrite msg(regNum, regtype, ModbusRegisters(val));
     ctx->mInternalOperation = true;
-    ctx->writeModbusRegisters(msg);
+    ctx->writeModbusRegisters(slaveId, msg);
 }
 
 
 uint16_t
 MockedModbusFactory::getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
-    regNum--;
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
-    ctx->mInternalOperation = true;
-    modmqttd::RegisterPoll poll(regNum, regtype, 1, std::chrono::milliseconds(0));
-
-    auto vals = ctx->readModbusRegisters(slaveId, poll);
-    return vals[0];
+    return ctx->getModbusRegisterValue(slaveId, regNum, regtype);
 }
 
 
@@ -323,3 +358,9 @@ MockedModbusFactory::getLastReadRegisterAddress(const char* network) const {
     return ctx->getLastReadRegisterAddress();
 }
 
+
+uint16_t
+MockedModbusFactory::waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout) {
+    std::shared_ptr<MockedModbusContext> ctx = findOrReturnFirstContext(network);
+    return ctx->waitForModbusValue(slaveId, regNum, regType, val, timeout);
+}

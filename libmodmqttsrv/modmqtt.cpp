@@ -114,6 +114,8 @@ parsePayloadType(const YAML::Node& data) {
     throw ConfigurationException(data.Mark(), std::string("Unknown payload type ") + ptype);
 }
 
+boost::log::sources::severity_logger<Log::severity> ModMqtt::log;
+
 ModMqtt::ModMqtt()
 {
     // unit tests create main class multiple times
@@ -285,10 +287,7 @@ ModMqtt::readModbusPollGroups(const std::string& modbus_network, int default_sla
         RegisterConfigName reg(group, modbus_network, default_slave);
         int count = ConfigTools::readRequiredValue<int>(group, "count");
 
-        MsgRegisterPoll poll(reg.mRegisterNumber, count);
-        poll.mSlaveId = reg.mSlaveId;
-        poll.mRegisterType = parseRegisterType(group);
-        poll.mCount = count;
+        MsgRegisterPoll poll(reg.mSlaveId, reg.mRegisterNumber, parseRegisterType(group), count);
         // we do not set mRefreshMsec here, it should be merged
         // from mqtt overlapping groups
         // if no mqtt groups overlap, then modbus client will drop this poll group
@@ -337,7 +336,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
             for(std::size_t i = 0; i < slaves.size(); i++) {
                 const YAML::Node& slave(slaves[i]);
                 ModbusSlaveConfig slave_config(slave);
-                if (slave_config.mDelayBeforePoll != std::chrono::milliseconds::zero() && slave_config.mDelayBeforeFirstPoll != std::chrono::milliseconds::zero()) {
+                if (slave_config.mDelayBeforeCommand != std::chrono::milliseconds::zero() && slave_config.mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
                     BOOST_LOG_SEV(log, Log::warn) << "Ignoring delay_before_first_poll for slave " << slave_config.mAddress << " because delay_before_poll is set";
                 }
                 modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
@@ -654,9 +653,7 @@ ModMqtt::updateSpecification(
 
     bool hasRefresh = parseAndAddRefresh(currentRefresh, data);
 
-    MsgRegisterPoll poll(rname.mRegisterNumber, count);
-    poll.mRegisterType = parseRegisterType(data);
-    poll.mSlaveId = rname.mSlaveId;
+    MsgRegisterPoll poll(rname.mSlaveId, rname.mRegisterNumber, parseRegisterType(data), count);
     poll.mRefreshMsec = currentRefresh.top();
 
     // find network poll specification or create one
@@ -686,7 +683,7 @@ void ModMqtt::start() {
     // process queues before connection to mqtt broker is
     // established - this will cause availability messages to be dropped.
 
-    // TODO if broker is down and modbus is up then mQueues will grow forever and
+    // TODO if broker is down and modbus is up then mSlaveQueues will grow forever and
     // memory allocated by queues will never be released. Add MsgStartPolling?
     BOOST_LOG_SEV(log, Log::debug) << "Performing initial connection to mqtt broker";
     do {
@@ -701,7 +698,6 @@ void ModMqtt::start() {
     while(mMqtt->isStarted()) {
         if (gSignalStatus == -1) {
             waitForQueues();
-            //BOOST_LOG_SEV(log, Log::debug) << "Processing modbus queues";
             processModbusMessages();
         } else if (gSignalStatus > 0) {
             int currentSignal = gSignalStatus;
@@ -782,6 +778,8 @@ ModMqtt::processModbusMessages() {
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);
+            } else {
+                BOOST_LOG_SEV(log, Log::error) << "Unknown message from modbus thread, ignoring";
             }
         }
     }

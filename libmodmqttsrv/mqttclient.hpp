@@ -52,7 +52,7 @@ class MqttClient {
 
         void subscribeToCommandTopic(const std::string& objectName, const MqttObjectCommand& cmd);
 
-        boost::log::sources::severity_logger<Log::severity> log;
+        static boost::log::sources::severity_logger<Log::severity> log;
         ModMqtt& mOwner;
         MqttBrokerConfig mBrokerConfig;
 

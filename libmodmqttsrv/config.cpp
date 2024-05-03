@@ -4,6 +4,8 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> ModbusNetworkConfig::log;
+
 #if __cplusplus < 201703L
     constexpr std::chrono::milliseconds ModbusNetworkConfig::MAX_RESPONSE_TIMEOUT;
 #endif
@@ -35,7 +37,12 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
             throw ConfigurationException(rtdNode.Mark(), "response_data_timeout value must be in range 0-999ms");
     }
 
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mMinDelayBeforePoll, source, "min_delay_before_poll");
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, source, "min_delay_before_poll")) {
+            BOOST_LOG_SEV(log, Log::warn) << "'min_delay_before_poll' is deprecated and will be removed in future releases. Rename it to 'min_delay_before_command'";
+    }
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, source, "delay_before_command");
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeFirstCommand, source, "delay_before_first_command");
+
 
     if (source["device"]) {
         mType = Type::RTU;

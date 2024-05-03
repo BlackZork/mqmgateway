@@ -30,6 +30,7 @@ void
 MockedMqttImpl::subscribe(const char* topic) {
     std::unique_lock<std::mutex> lck(mMutex);
     mSubscriptions.insert(topic);
+    mCondition.notify_all();
 }
 
 void
@@ -87,6 +88,28 @@ MockedMqttImpl::waitForPublish(const char* topic, std::chrono::milliseconds time
     mPublishedTopics.erase(topic);
     return published;
 }
+
+bool
+MockedMqttImpl::waitForSubscription(const char* topic, std::chrono::milliseconds timeout) {
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting " << timeout.count() << "ms for subscription on: [" << topic << "]";
+    std::unique_lock<std::mutex> lck(mMutex);
+    bool subscribed = mSubscriptions.find(topic) != mSubscriptions.end();
+    if (!subscribed) {
+        auto start = std::chrono::steady_clock::now();
+        int dur;
+        do {
+            if (mCondition.wait_for(lck, timeout) == std::cv_status::timeout)
+                break;
+            subscribed = mSubscriptions.find(topic) != mSubscriptions.end();
+            if (subscribed)
+                break;
+            auto end = std::chrono::steady_clock::now();
+            dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        } while (dur < timeout.count());
+    }
+    return subscribed;
+}
+
 
 int
 MockedMqttImpl::getPublishCount(const char* topic) {

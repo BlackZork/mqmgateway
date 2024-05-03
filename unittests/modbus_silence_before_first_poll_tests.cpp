@@ -14,7 +14,7 @@ modbus:
       port: 501
       slaves:
         - address: 1
-          delay_before_first_poll: 100ms
+          delay_before_first_command: 100ms
 mqtt:
   client_id: mqtt_test
   broker:
@@ -57,7 +57,7 @@ modbus:
       port: 501
       slaves:
         - address: 1
-          delay_before_first_poll: 50ms
+          delay_before_first_command: 50ms
 mqtt:
   client_id: mqtt_test
   broker:

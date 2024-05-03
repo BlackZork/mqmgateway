@@ -83,7 +83,9 @@
         "span": "cpp",
         "stdfloat": "cpp",
         "any": "cpp",
-        "forward_list": "cpp"
+        "forward_list": "cpp",
+        "ciso646": "cpp",
+        "*.inc": "cpp"
     },
     "cmake.configureOnOpen": true,
     "testMate.cpp.debug.configTemplate": {

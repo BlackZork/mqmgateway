@@ -14,7 +14,8 @@ class Log {
             error,
             warn,
             info,
-            debug
+            debug,
+            trace
         };
 
         static void init_logging(severity level);

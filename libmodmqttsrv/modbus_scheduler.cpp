@@ -3,9 +3,10 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> ModbusScheduler::log;
+
 std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>
 ModbusScheduler::getRegistersToPoll(
-    const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& registers,
     std::chrono::steady_clock::duration& outDuration,
     const std::chrono::time_point<std::chrono::steady_clock>& timePoint
 ) {
@@ -13,8 +14,9 @@ ModbusScheduler::getRegistersToPoll(
 
     //BOOST_LOG_SEV(log, Log::debug) << "initial outduration " << std::chrono::duration_cast<std::chrono::milliseconds>(outDuration).count();
 
-    for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = registers.begin();
-        slave != registers.end(); slave++)
+    outDuration = std::chrono::steady_clock::duration::max();
+    for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.begin();
+        slave != mRegisterMap.end(); slave++)
     {
         for(std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = slave->second.begin();
             reg_it != slave->second.end(); reg_it++)
@@ -33,6 +35,7 @@ ModbusScheduler::getRegistersToPoll(
             } else {
                 time_to_poll = reg.mRefresh - time_passed;
             }
+
             if (outDuration > time_to_poll) {
                 outDuration = time_to_poll;
                 BOOST_LOG_SEV(log, Log::debug) << "Wait duration set to " << std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll).count()
@@ -41,8 +44,24 @@ ModbusScheduler::getRegistersToPoll(
         }
     }
 
-
     return ret;
+}
+
+std::shared_ptr<RegisterPoll>
+ModbusScheduler::findRegisterPoll(const MsgRegisterValues& pValues) const {
+
+    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.find(pValues.mSlaveId);
+    if (slave != mRegisterMap.end()) {
+        std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = std::find_if(
+            slave->second.begin(), slave->second.end(),
+            [&pValues](const std::shared_ptr<RegisterPoll>& item) -> bool { return item->overlaps(pValues); }
+        );
+        if (reg_it != slave->second.end()) {
+            return *reg_it;
+        }
+    }
+
+    return std::shared_ptr<RegisterPoll>();
 }
 
 }

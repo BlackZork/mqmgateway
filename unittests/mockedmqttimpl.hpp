@@ -61,13 +61,14 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         virtual void on_log(int level, const char* message);
 
         //unit test tools
-        bool waitForPublish(const char* topic, std::chrono::milliseconds timeout = std::chrono::seconds(1));
+        bool waitForSubscription(const char* topic, std::chrono::milliseconds timeout);
+        bool waitForPublish(const char* topic, std::chrono::milliseconds timeout);
         std::string waitForFirstPublish(std::chrono::milliseconds timeout);
         int getPublishCount(const char* topic);
         bool hasTopic(const char* topic);
         std::string mqttValue(const char* topic);
         //returns current value on timeout
-        std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = std::chrono::seconds(1));
+        std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout);
         //clear all topics and simulate broker disconnection
         void resetBroker();
     private:

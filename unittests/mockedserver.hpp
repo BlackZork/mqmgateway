@@ -88,6 +88,14 @@ class MockedModMqttServerThread : public ModMqttServerThread {
             mServer.addConverterPath("../exprconv");
         };
 
+    void waitForSubscription(const char* topic, std::chrono::milliseconds timeout = defaultWaitTime()) {
+        INFO("Checking for subscription on " << topic);
+        bool is_subscribed = mMqtt->waitForSubscription(topic, timeout);
+        CAPTURE(topic);
+        REQUIRE(is_subscribed == true);
+    }
+
+
     void waitForPublish(const char* topic, std::chrono::milliseconds timeout = defaultWaitTime()) {
         INFO("Checking for publish on " << topic);
         bool is_published = mMqtt->waitForPublish(topic, timeout);
@@ -128,6 +136,11 @@ class MockedModMqttServerThread : public ModMqttServerThread {
 
     uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
         return mModbusFactory->getModbusRegisterValue(network, slaveId, regNum, regtype);
+    }
+
+    void waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout = defaultWaitTime()) {
+        uint16_t current_val = mModbusFactory->waitForModbusValue(network, slaveId, regNum, regType, val, timeout);
+        REQUIRE(current_val == val);
     }
 
     std::chrono::time_point<std::chrono::steady_clock>

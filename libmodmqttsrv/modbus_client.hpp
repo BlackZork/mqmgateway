@@ -30,10 +30,15 @@ class ModbusClient {
                 cmd.mRegister.mRegisterNumber,
                 reg_values
             );
+            // TODO add max queue size
+            // here or at mqtt level - add configurable global limit for all queues
+            // to i.e. 15Mb and cut the largest one after reaching this limit
             mToModbusQueue.enqueue(QueueItem::create(val));
         }
 
         void sendMqttNetworkIsUp(bool up) {
+            // TODO send all control messages at the front of queue, add time period
+            // after receiving shutdown request to empty write queues
             mToModbusQueue.enqueue(QueueItem::create(MsgMqttNetworkState(up)));
         }
 

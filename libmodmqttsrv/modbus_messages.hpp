@@ -5,7 +5,6 @@
 #include <chrono>
 #include <vector>
 
-#include "logging.hpp"
 #include "modbus_types.hpp"
 #include "libmodmqttconv/modbusregisters.hpp"
 #include "debugtools.hpp"
@@ -20,23 +19,23 @@ class MsgMqttCommand {
         int16_t mData;
 };
 
-class MsgRegisterMessageBase {
+class MsgRegisterMessageBase : public ModbusAddressRange {
     public:
-        MsgRegisterMessageBase(int slaveId, RegisterType regType, int registerNumber, int registerCount)
-            : mSlaveId(slaveId), mRegisterType(regType), mRegisterNumber(registerNumber), mCount(registerCount) {}
+        MsgRegisterMessageBase(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount)
+            : ModbusAddressRange(pRegisterNumber, pType, pCount),
+              mSlaveId(pSlaveId)
+        {}
+
         int mSlaveId;
-        RegisterType mRegisterType;
-        int mRegisterNumber;
-        int mCount;
 };
 
 class MsgRegisterValues : public MsgRegisterMessageBase {
     public:
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registers.getCount()),
+            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registers.getCount()),
               mRegisters(registers) {}
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registers.size()),
+            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registers.size()),
               mRegisters(registers) {}
 
         ModbusRegisters mRegisters;
@@ -45,23 +44,23 @@ class MsgRegisterValues : public MsgRegisterMessageBase {
 class MsgRegisterReadFailed : public MsgRegisterMessageBase {
     public:
         MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registerCount)
+            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registerCount)
         {}
 };
 
 class MsgRegisterWriteFailed : public MsgRegisterMessageBase {
     public:
         MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
-            : MsgRegisterMessageBase(slaveId, regType, registerNumber, registerCount)
+            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registerCount)
         {}
 };
 
 
-class MsgRegisterPoll {
+class MsgRegisterPoll : public MsgRegisterMessageBase {
     public:
         static constexpr std::chrono::milliseconds INVALID_REFRESH = std::chrono::milliseconds(-1);
-        MsgRegisterPoll(int registerNumber, int count=1)
-            : mRegister(registerNumber), mCount(count)
+        MsgRegisterPoll(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount=1)
+            : MsgRegisterMessageBase(pSlaveId, pRegisterNumber, pType, pCount)
         {
 #ifndef NDEBUG
             if (mRegister < 0)
@@ -71,25 +70,15 @@ class MsgRegisterPoll {
 #endif
         }
 
-        boost::log::sources::severity_logger<Log::severity> log;
-
-        int mSlaveId;
-        int mRegister;
-        int mCount;
-        RegisterType mRegisterType;
-        std::chrono::milliseconds mRefreshMsec = INVALID_REFRESH;
-
-        void merge(const MsgRegisterPoll& other);
-        bool overlaps(const MsgRegisterPoll& poll) const;
-        bool isConsecutiveOf(const MsgRegisterPoll& other) const;
         bool isSameAs(const MsgRegisterPoll& other) const;
-        int firstRegister() const { return mRegister; }
-        int lastRegister() const { return (mRegister + mCount) - 1; }
+        void merge(const MsgRegisterPoll& other);
+
+        std::chrono::milliseconds mRefreshMsec = INVALID_REFRESH;
 };
 
 class MsgRegisterPollSpecification {
     public:
-        boost::log::sources::severity_logger<Log::severity> log;
+        static boost::log::sources::severity_logger<Log::severity> log;
 
         MsgRegisterPollSpecification(const std::string& networkName) : mNetworkName(networkName) {}
 

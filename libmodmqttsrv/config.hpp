@@ -6,7 +6,8 @@
 #include <yaml-cpp/yaml.h>
 #include <boost/version.hpp>
 
-#include "libmodmqttsrv/exceptions.hpp"
+#include "exceptions.hpp"
+#include "logging.hpp"
 
 namespace modmqttd {
 
@@ -78,6 +79,8 @@ class ConfigTools {
 class ModbusNetworkConfig {
     static constexpr std::chrono::milliseconds MAX_RESPONSE_TIMEOUT = std::chrono::milliseconds(999);
 
+    static boost::log::sources::severity_logger<Log::severity> log;
+
     public:
         typedef enum {
             RTU,
@@ -103,7 +106,8 @@ class ModbusNetworkConfig {
         std::string mName = "";
         std::chrono::milliseconds mResponseTimeout = std::chrono::milliseconds(500);
         std::chrono::milliseconds mResponseDataTimeout = std::chrono::seconds(0);
-        std::chrono::milliseconds mMinDelayBeforePoll = std::chrono::seconds(0);
+        std::chrono::milliseconds mDelayBeforeCommand = std::chrono::seconds(0);
+        std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::seconds(0);
 
         //RTU only
         std::string mDevice = "";

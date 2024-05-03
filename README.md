@@ -130,10 +130,16 @@ Modbus network configuration parameters are listed below:
 
   A default timeout interval used to wait for data when reading response from modbus device. See modbus_set_byte_timeout(3) for details.
 
-* **min_delay_before_poll** (optional, default 0)
+* **delay_before_first_command** (timespan, optional, default 0ms)
 
-  After modbus read register reply is received from a slave, wait at least this time before issuing next read register request to the same or any other
-  slave on this newtork.
+  Required silence period before issuing first modbus command to a slave. This delay is applied only when gateway switches to a diffrent slave. 
+
+  This option is useful for RTU networks with a mix of very slow and fast responding slaves. Adding a delay before slow slave
+  can significantly reduce amount of read erorrs if mqmgateway is configured to poll very fast.
+
+* **delay_before_command** (timespan, optional, default 0ms)
+
+  Same as delay_before_first_command, but a delay is applied to every modbus command sent on this network.
 
 * RTU device settings
   For details, see modbus_new_rtu(3)
@@ -187,17 +193,13 @@ Modbus network configuration parameters are listed below:
 
       Modbus slave address 
 
-  * **min_delay_before_first_poll** (timespan, optional)
+  * **delay_before_first_command** (timespan, optional)
 
-      Required silence period before issuing first register(s) read call to this slave. This silence is required only if a register 
-      that was read in previous poll was from a different slave. 
+      Same as global *delay_before_first_command* but applies to this slave only.
 
-      This option is useful for RTU networks with a mix of very slow and fast responding slaves. Adding a delay before slow slave
-      can significantly reduce amount of read erorrs if mqmgateway is configured to poll very fast.
+  * **delay_before_command** (timespan, optional)
 
-  * **min_delay_before_poll** (timespan, optional)
-
-      Same as `min_delay_before_first_poll`, but silence period is required before every read call to any register from this slave.
+      Same as global *delay_before_command* but applies to this slave only.
 
   * **poll_groups** (optional)
 

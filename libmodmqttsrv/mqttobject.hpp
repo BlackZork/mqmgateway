@@ -39,7 +39,7 @@ class MqttObjectRegisterIdent {
         MqttObjectRegisterIdent(const std::string& network, const MsgRegisterMessageBase& slaveData)
           : mNetworkName(network),
             mSlaveId(slaveData.mSlaveId),
-            mRegisterNumber(slaveData.mRegisterNumber),
+            mRegisterNumber(slaveData.mRegister),
             mRegisterType(slaveData.mRegisterType)
         {}
 

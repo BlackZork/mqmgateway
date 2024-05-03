@@ -60,6 +60,8 @@ static void on_log_wrapper(struct mosquitto *mosq, void *userdata, int level, co
 	m->on_log(level, str);
 }
 
+boost::log::sources::severity_logger<Log::severity> Mosquitto::log;
+
 void
 Mosquitto::throwOnCriticalError(int code) {
     // copied from mosquittopp loop_forever()

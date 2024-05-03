@@ -1,13 +1,25 @@
-#include "libmodmqttsrv/modbus_slave.hpp"
-#include "libmodmqttsrv/yaml_converters.hpp"
+#include "modbus_slave.hpp"
+#include "yaml_converters.hpp"
 #include "config.hpp"
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> ModbusSlaveConfig::log;
+
 ModbusSlaveConfig::ModbusSlaveConfig(const YAML::Node& data) {
     mAddress = ConfigTools::readRequiredValue<int>(data, "address");
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(mDelayBeforePoll, data, "delay_before_poll");
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(mDelayBeforeFirstPoll, data, "delay_before_first_poll");
+
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(mDelayBeforeCommand, data, "delay_before_poll")) {
+        BOOST_LOG_SEV(log, Log::warn) << "'delay_before_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_command'";
+    }
+
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(mDelayBeforeFirstCommand, data, "delay_before_first_poll")) {
+        BOOST_LOG_SEV(log, Log::warn) << "'delay_before_first_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_first_command'";
+    }
+
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, data, "delay_before_command");
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeFirstCommand, data, "delay_before_first_command");
+
 }
 
 }

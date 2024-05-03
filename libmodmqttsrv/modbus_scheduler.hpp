@@ -13,6 +13,14 @@ namespace modmqttd {
 
     class ModbusScheduler {
         public:
+            void setPollSpecification(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisterMap) {
+                mRegisterMap = pRegisterMap;
+            }
+            const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& getPollSpecification() const {
+                return mRegisterMap;
+            }
+
+            std::shared_ptr<RegisterPoll> findRegisterPoll(const MsgRegisterValues& pValues) const;
             /**
              * Returns map of devices with list of registers, that
              * should be polled now.
@@ -22,12 +30,12 @@ namespace modmqttd {
              *
              * */
             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> getRegistersToPoll(
-                const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& registers,
                 std::chrono::steady_clock::duration& outDuration,
                 const std::chrono::time_point<std::chrono::steady_clock>& timePoint
             );
         private:
-            boost::log::sources::severity_logger<Log::severity> log;
+            std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisterMap;
+            static  boost::log::sources::severity_logger<Log::severity> log;
     };
 }
 

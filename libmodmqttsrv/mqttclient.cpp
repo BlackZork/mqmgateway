@@ -9,6 +9,8 @@
 
 namespace modmqttd {
 
+boost::log::sources::severity_logger<Log::severity> MqttClient::log;
+
 MqttClient::MqttClient(ModMqtt& modmqttd) : mOwner(modmqttd) {
     mMqttImpl.reset(new Mosquitto());
 };
@@ -137,8 +139,8 @@ MqttClient::processRegisterValues(const std::string& modbusNetworkName, const Ms
     {
         int regIndex = 0;
         AvailableFlag oldAvail = obj.getAvailableFlag();
-        int lastRegister = slaveData.mRegisterNumber + slaveData.mCount;
-        for(int regNumber = slaveData.mRegisterNumber; regNumber < lastRegister; regNumber++) {
+        int lastRegister = slaveData.mRegister + slaveData.mCount;
+        for(int regNumber = slaveData.mRegister; regNumber < lastRegister; regNumber++) {
             ident.mRegisterNumber = regNumber;
             uint16_t value = slaveData.mRegisters.getValue(regIndex++);
             if (!obj.updateRegisterValue(ident, value))
@@ -176,8 +178,8 @@ MqttClient::processRegistersOperationFailed(const std::string& modbusNetworkName
     {
         int regIndex = 0;
         AvailableFlag oldAvail = obj.getAvailableFlag();
-        int lastRegister = slaveData.mRegisterNumber + slaveData.mCount;
-        for(int regNumber = slaveData.mRegisterNumber; regNumber < lastRegister; regNumber++) {
+        int lastRegister = slaveData.mRegister + slaveData.mCount;
+        for(int regNumber = slaveData.mRegister; regNumber < lastRegister; regNumber++) {
             ident.mRegisterNumber = regNumber;
             if (!obj.updateRegisterReadFailed(ident))
                 continue;
