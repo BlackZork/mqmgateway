@@ -253,4 +253,30 @@ TEST_CASE("ModbusExecutor") {
         REQUIRE(executor.getCommandsLeft() == 2);
         REQUIRE(executor.allDone());
     }
+
+
+    SECTION("should switch slaves after WRITE_BATCH_SIZE writes in write only mode") {
+        modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
+        modbus_factory.setModbusRegisterValue("test",2,2,modmqttd::RegisterType::HOLDING, 20);
+
+        for (int i = 1; i <= modmqttd::ModbusExecutor::WRITE_BATCH_SIZE+1; i++) {
+            executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(1, i));
+        }
+        executor.addWriteCommand(2, ModbusExecutorTestRegisters::createWrite(2, 200));
+
+        for (int i = 0; i < modmqttd::ModbusExecutor::WRITE_BATCH_SIZE; i++) {
+            executor.pollNext(); //write to the first slave
+        }
+
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 1, modmqttd::RegisterType::HOLDING) == modmqttd::ModbusExecutor::WRITE_BATCH_SIZE);
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 2, 2, modmqttd::RegisterType::HOLDING) == 20);
+        REQUIRE(executor.getCommandsLeft() == 0);
+
+        executor.pollNext(); //write to the second slave
+
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 1, modmqttd::RegisterType::HOLDING) == modmqttd::ModbusExecutor::WRITE_BATCH_SIZE);
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 2, 2, modmqttd::RegisterType::HOLDING) == 200);
+        REQUIRE(executor.getCommandsLeft() == modmqttd::ModbusExecutor::WRITE_BATCH_SIZE-1);
+
+    }
 }

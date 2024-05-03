@@ -117,8 +117,10 @@ void
 ModbusExecutor::addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite>& pCommand) {
     auto& queue = mSlaveQueues[slaveId];
     queue.addWriteCommand(pCommand);
-    if (mCurrentSlaveQueue == mSlaveQueues.end())
+    if (mCurrentSlaveQueue == mSlaveQueues.end()) {
         mCurrentSlaveQueue = mSlaveQueues.begin();
+        resetCommandsCounter();
+    }
 }
 
 
