@@ -309,4 +309,21 @@ TEST_CASE("ModbusExecutor") {
         REQUIRE(executor.getWaitingRegister() == nullptr);
     }
 
+    SECTION("should set next queue to added poll item if queues are empty") {
+
+        registers.addPoll(1, 1);
+        registers.addPoll(2, 2);
+        registers.addPoll(3, 3);
+
+        executor.setupInitialPoll(registers);
+        executor.pollNext();
+        executor.pollNext();
+        executor.pollNext();
+        REQUIRE(executor.allDone());
+
+        registers.clear();
+        registers.addPoll(4,4);
+        executor.addPollList(registers);
+        executor.pollNext();
+    }
 }

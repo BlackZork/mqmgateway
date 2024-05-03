@@ -41,6 +41,7 @@ ModbusRequestsQueues::popNext() {
 template<typename T>
 std::shared_ptr<IRegisterCommand>
 ModbusRequestsQueues::popNext(T& queue) {
+    assert(!queue.empty());
     std::shared_ptr<IRegisterCommand> ret(queue.front());
     queue.pop_front();
     return ret;

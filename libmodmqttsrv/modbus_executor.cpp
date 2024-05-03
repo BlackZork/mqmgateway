@@ -1,4 +1,5 @@
 #include <iomanip>
+#include <cassert>
 
 #include "modbus_executor.hpp"
 #include "modbus_messages.hpp"
@@ -56,21 +57,22 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
         mPollStart = std::chrono::steady_clock::now();
     }
 
-    bool new_registers = false;
+    std::map<int, ModbusRequestsQueues>::iterator first_added = mSlaveQueues.end();
     for (auto& pit: pRegisters) {
-        auto& queue = mSlaveQueues[pit.first];
-        queue.addPollList(pit.second);
-        if (!queue.empty())
-            new_registers = true;
+        const auto [q_it, success] = mSlaveQueues.insert({pit.first, ModbusRequestsQueues()});
+        //auto& queue = mSlaveQueues[pit.first];
+        q_it->second.addPollList(pit.second);
+        if (!pit.second.empty() && first_added == mSlaveQueues.end())
+            first_added = q_it;
     }
 
     // we are already polling data or have nothing to do
     // so do not try to find what to read or write next
-    if (!setupQueues || !new_registers) {
+    if (!setupQueues || first_added == mSlaveQueues.end()) {
         return;
     }
 
-    mCurrentSlaveQueue = mSlaveQueues.begin();
+    mCurrentSlaveQueue = first_added;
 
     // scan register list for registers that have delay_before_poll set
     // and find the best one that fits in the last_silence_period
@@ -104,8 +106,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
     }
 
     //if there are no registers with delay set start from the first queue
-    if (currentDiff == std::chrono::steady_clock::duration::max()) {
-        mCurrentSlaveQueue = mSlaveQueues.begin();
+    if (mWaitingRegister == nullptr) {
         mWaitingRegister = mCurrentSlaveQueue->second.popNext();
     }
 
@@ -194,6 +195,7 @@ ModbusExecutor::writeRegisters(int slaveId, const RegisterWrite& cmd) {
 
 std::chrono::steady_clock::duration
 ModbusExecutor::pollNext() {
+    //assert(!allDone());
     if (mWaitingRegister != nullptr) {
         if (
             (mWaitingRegister->getDelay().delay_type == ModbusCommandDelay::DelayType::EVERYTIME)
