@@ -40,7 +40,7 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should immediately do initial poll for single register") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
 
-        auto reg = registers.add(1, 1);
+        auto reg = registers.addPoll(1, 1);
         executor.setupInitialPoll(registers);
         waitTime = executor.pollNext();
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
@@ -52,8 +52,8 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
         modbus_factory.setModbusRegisterValue("test",1,2,modmqttd::RegisterType::HOLDING, 6);
 
-        auto reg1 = registers.add(1, 1);
-        auto reg2 = registers.add(1, 2);
+        auto reg1 = registers.addPoll(1, 1);
+        auto reg2 = registers.addPoll(1, 2);
 
         executor.setupInitialPoll(registers);
         waitTime = executor.pollNext();
@@ -71,8 +71,8 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 60);
 
-        auto reg1 = registers.add(1, 1);
-        auto reg2 = registers.add(2, 20);
+        auto reg1 = registers.addPoll(1, 1);
+        auto reg2 = registers.addPoll(2, 20);
 
         executor.setupInitialPoll(registers);
         waitTime = executor.pollNext();
@@ -89,7 +89,7 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should not delay register read on initial poll") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
 
-        auto reg = registers.add(1, 1, std::chrono::milliseconds(5));
+        auto reg = registers.addPoll(1, 1, std::chrono::milliseconds(5));
         executor.setupInitialPoll(registers);
         waitTime = executor.pollNext();
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
@@ -100,7 +100,7 @@ TEST_CASE("ModbusExecutor") {
     SECTION("after doing initial poll for single register") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
 
-        auto reg = registers.addDelayed(1, 1, std::chrono::milliseconds(50));
+        auto reg = registers.addPollDelayed(1, 1, std::chrono::milliseconds(50));
         executor.setupInitialPoll(registers);
         waitTime = executor.pollNext();
         REQUIRE(executor.allDone());
@@ -144,8 +144,8 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 6);
 
-        auto reg1 = registers.add(1, 1);
-        auto reg2 = registers.addDelayed(2, 20, std::chrono::milliseconds(50));
+        auto reg1 = registers.addPoll(1, 1);
+        auto reg2 = registers.addPollDelayed(2, 20, std::chrono::milliseconds(50));
 
         executor.setupInitialPoll(registers);
         executor.pollNext(); // 2.20 is polled first because it requires silence
@@ -177,9 +177,9 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 20);
         modbus_factory.setModbusRegisterValue("test",2,21,modmqttd::RegisterType::HOLDING, 21);
 
-        auto reg1 = registers.add(1, 1);
-        auto reg2 = registers.add(2, 20);
-        auto reg3 = registers.addDelayed(2, 21, std::chrono::milliseconds(50));
+        auto reg1 = registers.addPoll(1, 1);
+        auto reg2 = registers.addPoll(2, 20);
+        auto reg3 = registers.addPollDelayed(2, 21, std::chrono::milliseconds(50));
 
         executor.setupInitialPoll(registers);
         executor.pollNext(); // 2.21 is polled first because it requires silence
@@ -190,5 +190,67 @@ TEST_CASE("ModbusExecutor") {
         REQUIRE(reg1->getValues()[0] == 1);
         REQUIRE(executor.allDone());
 
+    }
+
+    SECTION("should alternately poll and write to the same slave") {
+        modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
+        modbus_factory.setModbusRegisterValue("test",1,20,modmqttd::RegisterType::HOLDING, 10);
+        modbus_factory.setModbusRegisterValue("test",1,21,modmqttd::RegisterType::HOLDING, 20);
+        registers.addPoll(1, 1);
+        registers.addPoll(1, 10);
+        registers.addPoll(1, 20);
+
+        //mWaitingRegister is set to poll 1,1
+        executor.setupInitialPoll(registers);
+        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(1, 100));
+        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(10, 101));
+        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(20, 102));
+        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(1, 200));
+        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(10, 201));
+        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(20, 202));
+
+        REQUIRE(executor.getCommandsLeft() == 6);
+
+        executor.pollNext(); //poll 1,1
+        REQUIRE(fromModbusQueue.size_approx() == 1);
+        executor.pollNext(); //write 1,1
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 1, modmqttd::RegisterType::HOLDING) == 100);
+
+        executor.pollNext(); //poll 1,10
+        REQUIRE(fromModbusQueue.size_approx() == 2);
+        executor.pollNext(); //write 1,10
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 10, modmqttd::RegisterType::HOLDING) == 101);
+
+        executor.pollNext(); //poll 1,20
+        REQUIRE(fromModbusQueue.size_approx() == 3);
+        executor.pollNext(); //write 1,20
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 20, modmqttd::RegisterType::HOLDING) == 102);
+
+        // write only mode, start writing 20x values
+        executor.pollNext(); //write 1,1
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 1, modmqttd::RegisterType::HOLDING) == 200);
+
+        REQUIRE(executor.getCommandsLeft() == modmqttd::ModbusExecutor::WRITE_BATCH_SIZE - 1);
+
+        executor.pollNext(); //write 1,10
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 10, modmqttd::RegisterType::HOLDING) == 201);
+
+        //back to read/write mode, mWaiting register reset to 1,1
+        executor.addPollList(registers);
+        REQUIRE(executor.getCommandsLeft() == 6);
+
+        executor.pollNext(); //poll 1,1
+        REQUIRE(fromModbusQueue.size_approx() == 4);
+        executor.pollNext(); //write 1,20
+        REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 20, modmqttd::RegisterType::HOLDING) == 202);
+
+        executor.pollNext(); //poll 1,10
+        REQUIRE(fromModbusQueue.size_approx() == 5);
+        executor.pollNext(); //poll 1,20
+        REQUIRE(fromModbusQueue.size_approx() == 6);
+
+
+        REQUIRE(executor.getCommandsLeft() == 2);
+        REQUIRE(executor.allDone());
     }
 }

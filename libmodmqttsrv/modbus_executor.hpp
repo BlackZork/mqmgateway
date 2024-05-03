@@ -12,6 +12,8 @@ namespace modmqttd {
 
 class ModbusExecutor {
     public:
+        static constexpr short WRITE_BATCH_SIZE = 10;
+
         ModbusExecutor(
             moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue
@@ -39,6 +41,8 @@ class ModbusExecutor {
             return std::chrono::steady_clock::now() - mPollStart;
         }
         bool isInitial() const { return mInitialPoll; }
+
+        int getCommandsLeft() const { return mCommandsLeft; }
     private:
         static  boost::log::sources::severity_logger<Log::severity> log;
 
@@ -51,11 +55,9 @@ class ModbusExecutor {
 
         // max number of requests to single slave after
         // we switch to next one. Used to avoid
-        // execution starvation if setPollList
+        // execution starvation if addWriteCommand
         // is called faster than executor is able to handle them.
-
-        int mCommandsLeft = 1;
-        int mBatchSize = 1;
+        int mCommandsLeft = 0;
 
         std::chrono::steady_clock::time_point mLastPollTime;
 
@@ -70,7 +72,7 @@ class ModbusExecutor {
         void writeRegisters(int slaveId, const RegisterWrite& cmd);
         void sendMessage(const QueueItem& item);
         void handleRegisterReadError(int slaveId, RegisterPoll& reg, const char* errorMessage);
-        void setBatchSize(int size);
+        void resetCommandsCounter();
 };
 
 }

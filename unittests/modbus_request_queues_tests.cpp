@@ -12,7 +12,7 @@ TEST_CASE("ModbusRequestQueues") {
     ModbusExecutorTestRegisters registers;
 
     SECTION("should merge poll list with elements already in queue") {
-        registers.add(1,1);
+        registers.addPoll(1,1);
         queue.addPollList(registers[1]);
         queue.addPollList(registers[1]);
 
@@ -20,22 +20,22 @@ TEST_CASE("ModbusRequestQueues") {
     }
 
     SECTION("should add elements to waiting list if they are not queued") {
-        registers.add(1,1);
+        registers.addPoll(1,1);
 
         queue.addPollList(registers[1]);
 
         registers[1].clear();
-        registers.add(1,2);
-        registers.add(1,3);
+        registers.addPoll(1,2);
+        registers.addPoll(1,3);
 
         queue.addPollList(registers[1]);
         REQUIRE(queue.mPollQueue.size() == 3);
     }
 
     SECTION("should return best fit for delayed register") {
-        registers.addDelayed(1,1, std::chrono::milliseconds(50));
-        registers.addDelayed(1,2, std::chrono::milliseconds(100));
-        registers.add(1,3);
+        registers.addPollDelayed(1,1, std::chrono::milliseconds(50));
+        registers.addPollDelayed(1,2, std::chrono::milliseconds(100));
+        registers.addPoll(1,3);
 
         queue.addPollList(registers[1]);
 
@@ -51,9 +51,9 @@ TEST_CASE("ModbusRequestQueues") {
     }
 
     SECTION("should return best fit for delayed register ignoring first_request delays") {
-        registers.addDelayed(1,1, std::chrono::milliseconds(50));
-        registers.addDelayed(1,2, std::chrono::milliseconds(100), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
-        registers.add(1,3);
+        registers.addPollDelayed(1,1, std::chrono::milliseconds(50));
+        registers.addPollDelayed(1,2, std::chrono::milliseconds(100), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
+        registers.addPoll(1,3);
 
         queue.addPollList(registers[1]);
 

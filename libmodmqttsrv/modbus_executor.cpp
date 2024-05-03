@@ -10,6 +10,10 @@ namespace modmqttd {
 
 boost::log::sources::severity_logger<Log::severity> ModbusExecutor::log;
 
+#if __cplusplus < 201703L
+    constexpr std::chrono::milliseconds ModbusExecutor::WRITE_BATCH_SIZE;
+#endif
+
 ModbusExecutor::ModbusExecutor(
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue
@@ -38,7 +42,7 @@ ModbusExecutor::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr
 void
 ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
 
-    bool setupQueues = allDone();
+    bool setupQueues = pollDone();
 
     if (mInitialPoll) {
         if (!pollDone()) {
@@ -52,17 +56,14 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
         mPollStart = std::chrono::steady_clock::now();
     }
 
-    bool hasRegisters = false;
     for (auto& pit: pRegisters) {
         auto& queue = mSlaveQueues[pit.first];
         queue.addPollList(pit.second);
-        if (!queue.empty())
-            hasRegisters = true;
     }
 
-    // we are already sending requests or have nothing to do
+    // we are already polling data or have nothing to do
     // so do not try to find what to read or write next
-    if (!setupQueues || !hasRegisters) {
+    if (!setupQueues || allDone()) {
         return;
     }
 
@@ -75,18 +76,12 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
     BOOST_LOG_SEV(log, Log::trace) << "Starting election for silence period " << std::chrono::duration_cast<std::chrono::milliseconds>(last_silence_period).count() << "ms";
 
     mWaitingRegister = nullptr;
-    u_int16_t maxQueueSize = 0;
 
     auto currentDiff = std::chrono::steady_clock::duration::max();
 
     for(auto sit = mSlaveQueues.begin(); sit != mSlaveQueues.end(); sit++) {
-        if (sit->second.mPollQueue.size() > maxQueueSize)
-            maxQueueSize = sit->second.mPollQueue.size();
-
         bool ignore_first_read = (sit == mCurrentSlaveQueue);
 
-        // we cannot break loop
-        // becaue maxQueueSize may be set incorrectly
         if (currentDiff != std::chrono::steady_clock::duration::zero()) {
             ModbusCommandDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
 
@@ -98,9 +93,14 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
                 BOOST_LOG_SEV(log, Log::trace) << "Electing next register to poll as " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister()
                     << ", delay=" << std::chrono::duration_cast<std::chrono::milliseconds>(reg_delay).count() << "ms"
                     << ", diff=" << std::chrono::duration_cast<std::chrono::milliseconds>(currentDiff).count() << "ms";
+                if (reg_delay.count() == 0)
+                    break;
             }
         }
     }
+
+    resetCommandsCounter();
+
 
     //if there are no registers with delay set start from the first queue
     if (currentDiff == std::chrono::steady_clock::duration::max()) {
@@ -108,8 +108,8 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
         mWaitingRegister = mCurrentSlaveQueue->second.popNext();
     }
 
-    BOOST_LOG_SEV(log, Log::trace) << "Next register to poll set to " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister() << ", mBatchSize=" << maxQueueSize;
-    setBatchSize(maxQueueSize);
+
+    BOOST_LOG_SEV(log, Log::trace) << "Next register to poll set to " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister() << ", commands_left=" << mCommandsLeft;
 }
 
 
@@ -232,7 +232,7 @@ ModbusExecutor::pollNext() {
                 if (mCurrentSlaveQueue != nextQueue || !mCurrentSlaveQueue->second.empty()) {
                     mCurrentSlaveQueue = nextQueue;
                     mWaitingRegister = mCurrentSlaveQueue->second.popNext();
-                    mCommandsLeft = mBatchSize;
+                    resetCommandsCounter();
                 } else {
                     //nothing to do
                     return std::chrono::steady_clock::duration::max();
@@ -309,9 +309,11 @@ ModbusExecutor::pollDone() const {
 }
 
 void
-ModbusExecutor::setBatchSize(int size) {
-    mBatchSize = size;
-    mCommandsLeft = size;
+ModbusExecutor::resetCommandsCounter() {
+    if (mCurrentSlaveQueue->second.mPollQueue.empty())
+        mCommandsLeft = WRITE_BATCH_SIZE;
+    else
+        mCommandsLeft = mCurrentSlaveQueue->second.mPollQueue.size() * 2;
 }
 
 

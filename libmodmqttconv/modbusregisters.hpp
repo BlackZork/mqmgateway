@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <cassert>
 
 class ModbusRegisters {
     public:
@@ -10,7 +11,12 @@ class ModbusRegisters {
         ModbusRegisters(const std::vector<uint16_t>& values) : mRegisters(values) {}
         int getCount() const { return mRegisters.size(); }
         uint16_t getValue(int idx) const { return mRegisters[idx]; }
-        void setValue(int idx, uint16_t val) { mRegisters[idx] = val; }
+        void setValue(uint32_t idx, uint16_t val) {
+#ifndef NDEBUG
+            assert(idx < mRegisters.size());
+#endif
+            mRegisters[idx] = val;
+        }
         const std::vector<uint16_t>& values() const { return mRegisters; }
 
         [[deprecated]]
