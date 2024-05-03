@@ -43,6 +43,7 @@ class ModbusExecutor {
         bool isInitial() const { return mInitialPoll; }
 
         int getCommandsLeft() const { return mCommandsLeft; }
+        const std::shared_ptr<IRegisterCommand>& getWaitingRegister() const { return mWaitingRegister; }
     private:
         static  boost::log::sources::severity_logger<Log::severity> log;
 

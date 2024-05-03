@@ -172,7 +172,7 @@ TEST_CASE("ModbusExecutor") {
         }
     }
 
-    SECTION("after initial poll of three registers") {
+    SECTION("should poll slave that was polled before due to election with biggest delay") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 20);
         modbus_factory.setModbusRegisterValue("test",2,21,modmqttd::RegisterType::HOLDING, 21);
@@ -184,7 +184,7 @@ TEST_CASE("ModbusExecutor") {
         executor.setupInitialPoll(registers);
         executor.pollNext(); // 2.21 is polled first because it requires silence
         REQUIRE(reg3->getValues()[0] == 21);
-        executor.pollNext(); // 2.20 is polled next because w group reads by slave
+        executor.pollNext(); // 2.20 is polled next because we group reads by slave
         REQUIRE(reg2->getValues()[0] == 20);
         executor.pollNext();
         REQUIRE(reg1->getValues()[0] == 1);
@@ -279,4 +279,34 @@ TEST_CASE("ModbusExecutor") {
         REQUIRE(executor.getCommandsLeft() == modmqttd::ModbusExecutor::WRITE_BATCH_SIZE-1);
 
     }
+
+    SECTION("should not reelect mWaitingRegister poll is not finished") {
+        modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
+        modbus_factory.setModbusRegisterValue("test",1,20,modmqttd::RegisterType::HOLDING, 10);
+        modbus_factory.setModbusRegisterValue("test",1,21,modmqttd::RegisterType::HOLDING, 20);
+        registers.addPoll(1, 1);
+        registers.addPollDelayed(1, 2, std::chrono::milliseconds(50));
+        registers.addPoll(1, 3);
+
+        // do initial poll
+        executor.setupInitialPoll(registers);
+        REQUIRE(executor.getCommandsLeft() == 6);
+        executor.pollNext(); //1,2
+        executor.pollNext(); //1,1 or 1,3
+        executor.pollNext(); //1,1 or 1,3
+
+        // elect 1.2 after enough silence
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        executor.addPollList(registers);
+        REQUIRE(executor.getCommandsLeft() == 6);
+        REQUIRE(executor.getWaitingRegister()->getRegister() == 1);
+        executor.pollNext(); //1,1
+
+        // still polling, should not relect 1,2
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        executor.addPollList(registers);
+        REQUIRE(executor.getCommandsLeft() == 5);
+        REQUIRE(executor.getWaitingRegister() == nullptr);
+    }
+
 }

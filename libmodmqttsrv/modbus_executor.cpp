@@ -79,6 +79,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
     BOOST_LOG_SEV(log, Log::trace) << "Starting election for silence period " << std::chrono::duration_cast<std::chrono::milliseconds>(last_silence_period).count() << "ms";
 
     mWaitingRegister = nullptr;
+    resetCommandsCounter();
 
     auto currentDiff = std::chrono::steady_clock::duration::max();
 
@@ -101,9 +102,6 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
             }
         }
     }
-
-    resetCommandsCounter();
-
 
     //if there are no registers with delay set start from the first queue
     if (currentDiff == std::chrono::steady_clock::duration::max()) {
