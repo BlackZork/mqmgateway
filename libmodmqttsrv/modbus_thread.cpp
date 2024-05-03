@@ -245,7 +245,7 @@ ModbusThread::run() {
                 idleWaitDuration = std::chrono::steady_clock::duration::max();
             }
 
-            //register polling can change mShouldRun flag, do not wait
+            //dispatchMessages can change mShouldRun flag, do not wait
             //for next poll if we are exiting
             if (mShouldRun) {
                 QueueItem item;
