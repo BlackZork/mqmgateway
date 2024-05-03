@@ -31,8 +31,8 @@ modbus:
       #rtu_rts_mode: down
 
       #rtu_rts_delay: 100   in microseconds
-      # set minimum delay between polls      
-      min_delay_before_poll: 15ms
+      # set minimum delay before sending next command
+      delay_before_command: 15ms
 
     - name: tcptest
       # if address is defined then this is a ModbusTCP network
@@ -43,7 +43,7 @@ modbus:
         - address: 1
           # force 50ms silence before poll 
           # if last poll was from different slave
-          delay_before_first_poll: 50ms
+          delay_before_first_command: 50ms
           # Modbus polling optimalization
           # poll group will force a single modbus multiple registers read call 
           # for isma_switch_1 and isma_switch_2 MQTT topics defined below

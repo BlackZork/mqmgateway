@@ -43,8 +43,7 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mModbus = ModMqtt::getModbusFactory().getContext(config.mName);
     mModbus->init(config);
     mExecutor.init(mModbus);
-    // if you experience read timeouts on RTU then increase
-    // min_delay_before_poll config value
+
     mDelayBeforeCommand = config.mDelayBeforeCommand;
     mDelayBeforeFirstCommand = config.mDelayBeforeFirstCommand;
     if (mDelayBeforeCommand.count() != 0 || mDelayBeforeFirstCommand.count() != 0) {
