@@ -174,7 +174,7 @@ constructIdleWaitMessage(const std::chrono::steady_clock::duration& idleWaitDura
     } else {
         out << "Waiting for messages";
         if (idleWaitDuration != std::chrono::steady_clock::duration::max()) {
-            out << ", next poll in " <<  std::chrono::duration_cast<std::chrono::milliseconds>(idleWaitDuration).count() << "ms";
+            out << " for  " <<  std::chrono::duration_cast<std::chrono::milliseconds>(idleWaitDuration).count() << "ms";
         }
     }
     return out.str();

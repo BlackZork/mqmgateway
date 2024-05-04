@@ -190,7 +190,6 @@ MqttClient::processRegistersOperationFailed(const std::string& modbusNetworkName
 
     for(auto& obj_it: modified) {
         MqttObject& obj(*(obj_it.first));
-        publishState(obj);
         AvailableFlag newAvail = obj.getAvailableFlag();
         if (obj_it.second != newAvail)
             publishAvailabilityChange(obj);

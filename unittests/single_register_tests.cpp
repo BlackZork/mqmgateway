@@ -83,6 +83,21 @@ mqtt:
         server.stop();
     }
 
+    TEST_CASE ("When registers cannot be read state should not be updated") {
+        MockedModMqttServerThread server(config);
+
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
+        server.disconnectModbusSlave("tcptest", 1);
+        server.start();
+
+        //max 5 sec for three register read attempts
+        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        REQUIRE(server.mqttValue("test_switch/availability") == "0");
+        server.stop();
+
+        server.requirePublishCount("test_switch/state", 0);
+    }
+
     TEST_CASE ("If broker is restarted all mqtt objects should be republished") {
         MockedModMqttServerThread server(config);
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
