@@ -71,7 +71,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
         std::tuple<int,int> getLastReadRegisterAddress() const {
-            return std::tuple(mLastPolledSlave, mLastPolledRegister+1);
+            return std::tuple<int,int>(mLastPolledSlave, mLastPolledRegister+1);
         }
         const std::chrono::time_point<std::chrono::steady_clock>& getLastPollTime() const {
             return mLastPolTime;

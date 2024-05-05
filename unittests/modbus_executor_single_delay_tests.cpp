@@ -47,10 +47,10 @@ TEST_CASE("ModbusExecutor for single delay config") {
 
         executor.setupInitialPoll(registers);
         waitTime = executor.pollNext();
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(1,1));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(1,1));
 
         waitTime = executor.pollNext();
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(2,20));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(2,20));
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
         REQUIRE(executor.allDone());
 
@@ -68,12 +68,12 @@ TEST_CASE("ModbusExecutor for single delay config") {
         //poll of reg1 after silence
         waitTime = executor.pollNext();
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(1,1));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(1,1));
         REQUIRE(!executor.allDone());
         // poll of reg2
         waitTime = executor.pollNext();
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(2,20));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(2,20));
         REQUIRE(executor.allDone());
     }
 
@@ -84,7 +84,7 @@ TEST_CASE("ModbusExecutor for single delay config") {
         //initial poll selects reg2 due to longer delay needed
         executor.setupInitialPoll(registers);
         waitTime = executor.pollNext();
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(2,20));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(2,20));
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
         REQUIRE(!executor.allDone());
 
@@ -92,7 +92,7 @@ TEST_CASE("ModbusExecutor for single delay config") {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
         waitTime = executor.pollNext();
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(1,1));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(1,1));
         REQUIRE(executor.allDone());
 
         //make silence that can acomodate both delays
@@ -102,7 +102,7 @@ TEST_CASE("ModbusExecutor for single delay config") {
         waitTime = executor.pollNext();
         REQUIRE(waitTime == std::chrono::milliseconds::zero());
         //we choose to poll slave 2 because it better fits into available delay
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(2,20));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(2,20));
         REQUIRE(!executor.allDone());
 
         //reg1 needs silence due to slave change
@@ -114,7 +114,7 @@ TEST_CASE("ModbusExecutor for single delay config") {
         std::this_thread::sleep_for(std::chrono::milliseconds(15));
 
         waitTime = executor.pollNext();
-        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple(1,1));
+        REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(1,1));
         REQUIRE(executor.allDone());
     }
 }

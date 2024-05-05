@@ -12,7 +12,7 @@ namespace modmqttd {
 boost::log::sources::severity_logger<Log::severity> ModbusExecutor::log;
 
 #if __cplusplus < 201703L
-    constexpr std::chrono::milliseconds ModbusExecutor::WRITE_BATCH_SIZE;
+    constexpr short ModbusExecutor::WRITE_BATCH_SIZE;
 #endif
 
 ModbusExecutor::ModbusExecutor(
@@ -59,11 +59,10 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
     std::map<int, ModbusRequestsQueues>::iterator first_added = mSlaveQueues.end();
     for (auto& pit: pRegisters) {
-        const auto [q_it, success] = mSlaveQueues.insert({pit.first, ModbusRequestsQueues()});
-        //auto& queue = mSlaveQueues[pit.first];
-        q_it->second.addPollList(pit.second);
+        const std::pair<std::map<int, ModbusRequestsQueues>::iterator, bool> item = mSlaveQueues.insert({pit.first, ModbusRequestsQueues()});
+        item.first->second.addPollList(pit.second);
         if (!pit.second.empty() && first_added == mSlaveQueues.end())
-            first_added = q_it;
+            first_added = item.first;
     }
 
     // we are already polling data or have nothing to do
