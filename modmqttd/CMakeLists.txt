@@ -7,7 +7,7 @@ add_executable(modmqttd
 #TODO cmake find for mosquitto libraries
 target_link_libraries(modmqttd 
     modmqttsrv
-    mosquitto 
+    ${MOSQUITTO_LIBRARIES}
     yaml-cpp
     ${Boost_LIBRARIES} 
     ${LIBMODBUS_LIBRARIES} 

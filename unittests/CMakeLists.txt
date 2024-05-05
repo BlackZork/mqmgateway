@@ -62,8 +62,7 @@ add_executable(tests
 
 target_link_libraries(tests
     modmqttsrv
-    mosquittopp
-    mosquitto
+    ${MOSQUITTO_LIBRARIES}
     Catch2::Catch2
     yaml-cpp
     ${Boost_LIBRARIES}

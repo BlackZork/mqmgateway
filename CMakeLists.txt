@@ -15,6 +15,7 @@ set(BOOST_ALL_DYN_LINK           ON)
 
 find_package(PkgConfig)
 pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
+pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
 
 find_package(Threads)
 
