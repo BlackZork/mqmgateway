@@ -38,7 +38,7 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
     }
 
     if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, source, "min_delay_before_poll")) {
-            BOOST_LOG_SEV(log, Log::warn) << "'min_delay_before_poll' is deprecated and will be removed in future releases. Rename it to 'min_delay_before_command'";
+            BOOST_LOG_SEV(log, Log::warn) << "'min_delay_before_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_command'";
     }
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, source, "delay_before_command");
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeFirstCommand, source, "delay_before_first_command");
