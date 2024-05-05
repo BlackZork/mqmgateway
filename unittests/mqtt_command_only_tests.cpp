@@ -5,12 +5,15 @@
 static const std::string config = R"(
 modmqttd:
 modbus:
-  delay_before_command: 5ms
   networks:
     - name: tcptest
       address: localhost
       port: 501
-      delay_before_command: 500ms
+      delay_before_first_command: 5ms
+      slaves:
+        - address: 1
+          delay_before_first_command: 500ms
+
 mqtt:
   client_id: mqtt_test
   broker:
