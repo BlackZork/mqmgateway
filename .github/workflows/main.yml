@@ -11,6 +11,7 @@ on:
       - 'docker-compose.yml'
       - 'modmqttd.service'
       - 'modmqttd/config.template.yaml'
+      - 'buildtests/*'
   release:
     types: [published]
   workflow_dispatch:
