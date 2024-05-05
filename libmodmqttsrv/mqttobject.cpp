@@ -351,6 +351,12 @@ MqttObject::updateRegisterValue(const MqttObjectRegisterIdent& regIdent, uint16_
     if (stateChanged || availChanged) {
         updateAvailablityFlag();
         return true;
+    } else if (!mIsAvailable) {
+        // read was successfull, so availability flag
+        // may need to be updated if it depends only on state register data
+        // avaiablity.
+        updateAvailablityFlag();
+        return mIsAvailable;
     }
     return false;
 }

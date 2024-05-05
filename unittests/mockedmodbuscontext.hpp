@@ -115,6 +115,7 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
             return *(it->second);
         }
         void disconnectModbusSlave(const char* network, int slaveId);
+        void connectModbusSlave(const char* network, int slaveId);
 
         uint16_t waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout);
     private:

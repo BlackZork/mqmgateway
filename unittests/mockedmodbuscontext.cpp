@@ -195,7 +195,7 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
 
 
     if (mInternalOperation)
-        BOOST_LOG_SEV(log, modmqttd::Log::info) << "MODBUS: " << mNetworkName
+        BOOST_LOG_SEV(log, modmqttd::Log::info) << "TEST: modbus " << mNetworkName
             << "." << it->second.mId << "." << regData.mRegister
             << " READ: " << modmqttd::DebugTools::registersToStr(ret);
 
@@ -217,7 +217,7 @@ MockedModbusContext::writeModbusRegisters(int pSlaveId, const modmqttd::Register
     std::map<int, Slave>::iterator it = findOrCreateSlave(pSlaveId);
 
     if (mInternalOperation)
-        BOOST_LOG_SEV(log, modmqttd::Log::info) << "MODBUS: " << mNetworkName
+        BOOST_LOG_SEV(log, modmqttd::Log::info) << "TEST: modbus: " << mNetworkName
             << "." << it->second.mId << "." << msg.mRegister
             << " WRITE: " << modmqttd::DebugTools::registersToStr(msg.mValues.values());
     it->second.write(msg, mInternalOperation);
@@ -264,7 +264,7 @@ MockedModbusContext::getModbusRegisterValue(int slaveId, int regNum, modmqttd::R
 
 uint16_t
 MockedModbusContext::waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout) {
-    BOOST_LOG_SEV(log, modmqttd::Log::info) << "Waiting " << timeout.count() << "ms for value " << val << " in register " << slaveId << "." << regNum << ", type=" << std::to_string(regType);
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "TEST: Waiting " << timeout.count() << "ms for value " << val << " in register " << slaveId << "." << regNum << ", type=" << std::to_string(regType);
 
     std::mutex m;
     std::unique_lock<std::mutex> lck(m);
@@ -351,6 +351,13 @@ MockedModbusFactory::disconnectModbusSlave(const char* network, int slaveId) {
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
     ctx->getSlave(slaveId).setDisconnected();
 }
+
+void
+MockedModbusFactory::connectModbusSlave(const char* network, int slaveId) {
+    std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
+    ctx->getSlave(slaveId).setDisconnected(false);
+}
+
 
 std::tuple<int, int>
 MockedModbusFactory::getLastReadRegisterAddress(const char* network) const {

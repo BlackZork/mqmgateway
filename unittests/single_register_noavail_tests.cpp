@@ -63,4 +63,32 @@ mqtt:
         server.stop();
     }
 
+
+    TEST_CASE ("Availability flag should be set after reconnect") {
+        int secs = 500;
+
+        MockedModMqttServerThread server(config);
+        server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, false);
+
+        server.start();
+
+
+        server.waitForPublish("test_switch/availability");
+        server.waitForPublish("test_switch/state");
+        REQUIRE(server.mqttValue("test_switch/state") == "0");
+
+        server.disconnectModbusSlave("tcptest", 1);
+
+        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        REQUIRE(server.mqttValue("test_switch/availability") == "0");
+
+        //server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
+        server.connectModbusSlave("tcptest", 1);
+
+        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        REQUIRE(server.mqttValue("test_switch/availability") == "1");
+
+        server.stop();
+    }
+
 //TODO TEST_CASE for order: value first, availablity then
