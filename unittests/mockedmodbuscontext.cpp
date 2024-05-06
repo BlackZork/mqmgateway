@@ -216,9 +216,26 @@ MockedModbusContext::init(const modmqttd::ModbusNetworkConfig& config) {
         std::replace(fname.begin(), fname.end(), '/', '_');
         std::filesystem::path p = std::filesystem::temp_directory_path() / fname;
         mDeviceName = p;
-        connectSerialPort();
+        createRTUDevice();
     }
 }
+
+void
+MockedModbusContext::connect() {
+    mConnectionCount++;
+    mDeviceFile.open(mDeviceName);
+}
+
+bool
+MockedModbusContext::isConnected() const {
+    return mDeviceFile.is_open();
+}
+
+void
+MockedModbusContext::disconnect() {
+    mDeviceFile.close();
+}
+
 
 void
 MockedModbusContext::writeModbusRegisters(int pSlaveId, const modmqttd::RegisterWrite& msg) {

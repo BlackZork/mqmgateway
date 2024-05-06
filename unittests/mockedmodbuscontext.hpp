@@ -64,9 +64,9 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         }
 
         virtual void init(const modmqttd::ModbusNetworkConfig& config);
-        virtual void connect() { mIsConnected = true; mConnectionCount ++; }
-        virtual bool isConnected() const { return mIsConnected; }
-        virtual void disconnect() { mIsConnected = false; }
+        virtual void connect();
+        virtual bool isConnected() const;
+        virtual void disconnect();
 
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(int slaveId, const modmqttd::RegisterWrite& msg);
@@ -80,8 +80,11 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         int getWriteCount(int slaveId) const;
         int getConnectionCount() const { return mConnectionCount; }
 
-        void disconnectSerialPort() { mDeviceFile.close(); }
-        void connectSerialPort() { mDeviceFile.open(mDeviceName, std::fstream::out); }
+        void removeRTUDevice() { std::remove(mDeviceName.c_str()); }
+
+        //we do not need to simulate linux
+        //incremental naming (/dev/ttyUSBx) here for now
+        void createRTUDevice() { std::ofstream(mDeviceFile); }
 
         std::tuple<int,int> getLastReadRegisterAddress() const {
             return std::tuple<int,int>(mLastPolledSlave, mLastPolledRegister+1);
@@ -92,7 +95,6 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
         Slave& getSlave(int slaveId);
 
-        bool mIsConnected = false;
         bool mInternalOperation = false;
         std::string mNetworkName;
         std::filesystem::path mDeviceName;

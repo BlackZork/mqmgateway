@@ -157,7 +157,7 @@ class MockedModMqttServerThread : public ModMqttServerThread {
     }
 
     void disconnectSerialPortFor(const char* networkName) {
-        mModbusFactory->getMockedModbusContext(networkName).disconnectSerialPort();
+        mModbusFactory->getMockedModbusContext(networkName).removeRTUDevice();
     }
 
 
