@@ -75,6 +75,10 @@ class ConfigTools {
         }
 };
 
+class ModbusWatchdogConfig {
+    public:
+        std::chrono::milliseconds mWatchPeriod = std::chrono::seconds(10);       
+};
 
 class ModbusNetworkConfig {
     static constexpr std::chrono::milliseconds MAX_RESPONSE_TIMEOUT = std::chrono::milliseconds(999);
@@ -122,6 +126,8 @@ class ModbusNetworkConfig {
         //TCP only
         std::string mAddress = "";
         int mPort = 0;
+
+        ModbusWatchdogConfig mWatchdogConfig;
 };
 
 class MqttBrokerConfig {
