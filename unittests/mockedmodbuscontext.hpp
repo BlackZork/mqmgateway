@@ -6,11 +6,16 @@
 #include <mutex>
 #include <tuple>
 #include <condition_variable>
+#include <filesystem>
+#include <fstream>
+#include <cstdio>
 
 #include "libmodmqttsrv/imodbuscontext.hpp"
 #include "libmodmqttsrv/modbus_types.hpp"
 #include "libmodmqttsrv/logging.hpp"
 #include "libmodmqttsrv/config.hpp"
+
+#include "mockedmodbuswatchdog.hpp"
 
 class MockedModbusContext : public modmqttd::IModbusContext {
     public:
@@ -62,15 +67,21 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual void connect() { mIsConnected = true; mConnectionCount ++; }
         virtual bool isConnected() const { return mIsConnected; }
         virtual void disconnect() { mIsConnected = false; }
+
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(int slaveId, const modmqttd::RegisterWrite& msg);
         virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
         virtual uint16_t waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout);
         virtual uint16_t getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype);
 
+
+        MockedModbusWatchdog& getWatchdog();
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
         int getConnectionCount() const { return mConnectionCount; }
+
+        void disconnectSerialPort() { mDeviceFile.close(); }
+        void connectSerialPort() { mDeviceFile.open(mDeviceName, std::fstream::out); }
 
         std::tuple<int,int> getLastReadRegisterAddress() const {
             return std::tuple<int,int>(mLastPolledSlave, mLastPolledRegister+1);
@@ -84,6 +95,13 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         bool mIsConnected = false;
         bool mInternalOperation = false;
         std::string mNetworkName;
+        std::filesystem::path mDeviceName;
+        std::fstream mDeviceFile;
+
+        ~MockedModbusContext() {
+            mDeviceFile.close();
+            std::remove(mDeviceName.c_str());
+        }
     private:
         boost::log::sources::severity_logger<modmqttd::Log::severity> log;
         std::mutex mMutex;
@@ -119,6 +137,8 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
         }
         void disconnectModbusSlave(const char* network, int slaveId);
         void connectModbusSlave(const char* network, int slaveId);
+
+        void disconnectSerialPortFor(const char* network);
 
         uint16_t waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout);
     private:

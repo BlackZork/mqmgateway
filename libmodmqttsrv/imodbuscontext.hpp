@@ -11,6 +11,10 @@ class RegisterPoll;
 class RegisterWrite;
 class MsgRegisterValues;
 
+class IModbusWatchdog {
+    //TODO
+};
+
 /**
     Abstract base class for modbus communication library implementation
 */

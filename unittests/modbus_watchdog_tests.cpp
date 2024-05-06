@@ -64,7 +64,52 @@ mqtt:
         REQUIRE(server.getMockedModbusContext("tcptest").getConnectionCount() == 1);
     }
 
+}
 
-} //SECTION
+SECTION("on RTU network") {
+static const std::string config = R"(
+modbus:
+  networks:
+    - name: rtutest
+      device: /dev/ttyUSB0
+      baud: 9600
+      parity: E
+      data_bit: 8
+      stop_bit: 1
+      watchdog:
+        watch_period: 1s
+mqtt:
+  client_id: mqtt_test
+  refresh: 100ms
+  broker:
+    host: localhost
+  objects:
+    - topic: slave1
+      state:
+        register: tcptest.1.1
+    - topic: slave2
+      state:
+        register: tcptest.2.2
+)";
+
+    SECTION("should close usb serial port if unplugged") {
+        MockedModMqttServerThread server(config);
+        server.start();
+
+        server.waitForPublish("slave2/availability");
+        REQUIRE(server.mqttValue("slave2/availability") == "1");
+
+        server.disconnectSerialPortFor("rtutest");
+
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        server.stop();
+
+//        REQUIRE(server.getMockedModbusContext("rtutest").getWatchdog().getFailedSerialPortCheckCount() > 0);
+        //at least one attempt to reconnect
+        REQUIRE(server.getMockedModbusContext("rtutest").getConnectionCount() >= 2);
+    }
+
+
+}
 
 } //CASE

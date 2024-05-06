@@ -156,6 +156,11 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         mModbusFactory->connectModbusSlave(network, slaveId);
     }
 
+    void disconnectSerialPortFor(const char* networkName) {
+        mModbusFactory->getMockedModbusContext(networkName).disconnectSerialPort();
+    }
+
+
     void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
         mModbusFactory->setModbusRegisterReadError(network, slaveId, regNum, regtype);
     }

@@ -1,13 +1,14 @@
 #include "mockedmodbuscontext.hpp"
 
+#include <thread>
+#include <iostream>
+
+#include "catch2/catch_all.hpp"
+
 #include "libmodmqttsrv/modbus_messages.hpp"
 #include "libmodmqttsrv/modbus_context.hpp"
 #include "libmodmqttsrv/debugtools.hpp"
 #include "libmodmqttsrv/register_poll.hpp"
-#include "catch2/catch_all.hpp"
-
-#include <thread>
-#include <iostream>
 
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveReadTime = std::chrono::milliseconds(5);
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveWriteTime = std::chrono::milliseconds(10);
@@ -209,6 +210,14 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
 void
 MockedModbusContext::init(const modmqttd::ModbusNetworkConfig& config) {
     mNetworkName = config.mName;
+    if (config.mType == modmqttd::ModbusNetworkConfig::Type::RTU) {
+        std::string fname = config.mDevice;
+        fname.insert(0, "mqmgateway_test");
+        std::replace(fname.begin(), fname.end(), '/', '_');
+        std::filesystem::path p = std::filesystem::temp_directory_path() / fname;
+        mDeviceName = p;
+        connectSerialPort();
+    }
 }
 
 void
@@ -295,9 +304,6 @@ MockedModbusFactory::getOrCreateContext(const char* network) {
     std::shared_ptr<MockedModbusContext> ctx;
     if (it == mModbusNetworks.end()) {
         ctx.reset(new MockedModbusContext());
-        modmqttd::ModbusNetworkConfig c;
-        c.mName = network;
-        ctx->init(c);
         mModbusNetworks[network] = ctx;
     } else {
         ctx = it->second;
