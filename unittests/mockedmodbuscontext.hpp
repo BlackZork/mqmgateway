@@ -59,7 +59,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         }
 
         virtual void init(const modmqttd::ModbusNetworkConfig& config);
-        virtual void connect() { mIsConnected = true; }
+        virtual void connect() { mIsConnected = true; mConnectionCount ++; }
         virtual bool isConnected() const { return mIsConnected; }
         virtual void disconnect() { mIsConnected = false; }
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
@@ -70,6 +70,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
+        int getConnectionCount() const { return mConnectionCount; }
+
         std::tuple<int,int> getLastReadRegisterAddress() const {
             return std::tuple<int,int>(mLastPolledSlave, mLastPolledRegister+1);
         }
@@ -91,6 +93,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         std::chrono::time_point<std::chrono::steady_clock> mLastPolTime;
         int mLastPolledSlave;
         int mLastPolledRegister;
+        int mConnectionCount = 0;
 
         std::map<int, MockedModbusContext::Slave>::iterator findOrCreateSlave(int id);
 

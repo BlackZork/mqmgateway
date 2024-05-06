@@ -160,6 +160,10 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         mModbusFactory->setModbusRegisterReadError(network, slaveId, regNum, regtype);
     }
 
+    MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
+        return mModbusFactory->getMockedModbusContext(networkName);
+    }
+
     std::shared_ptr<MockedModbusFactory> mModbusFactory;
     std::shared_ptr<MockedMqttImpl> mMqtt;
 };
