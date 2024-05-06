@@ -24,7 +24,7 @@ Main features:
   * support for custom conversion plugins
   * support for conversion in both directions
 * Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
-* Out of the box compatibility with [HomeAssistant](https://www.home-assistant.io/) MQTT interface
+* Out of the box compatibility with [HomeAssistant](https://www.home-assistant.io/integrations/mqtt/) and [OpenHAB](https://www.openhab.org/addons/bindings/mqtt.generic/) interfaces
 
 MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosquitto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](CMakeLists.txt) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
 
