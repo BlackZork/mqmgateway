@@ -30,6 +30,7 @@ class MqttClient {
         bool isConnected() const { return mConnectionState == State::CONNECTED; }
         void reconnect() { mMqttImpl->reconnect(); }
         void setObjects(const std::vector<MqttObject> objects) { mObjects = objects; };
+        void addCommand(const MqttObjectCommand& pCommand);
 
         //publish all data after broker is reconnected
         void publishAll();
@@ -66,6 +67,8 @@ class MqttClient {
         State mConnectionState = State::DISCONNECTED;
         bool mIsStarted = false;
         std::vector<MqttObject> mObjects;
+        std::map<std::string, MqttObjectCommand> mCommands;
+
         DefaultCommandConverter mDefaultConverter;
 };
 

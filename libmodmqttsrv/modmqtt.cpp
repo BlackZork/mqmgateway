@@ -432,12 +432,9 @@ ModMqtt::readObjectState(
 }
 
 MqttObjectCommand
-ModMqtt::readObjectCommand(const YAML::Node& node, const std::string& default_network, int default_slave) {
+ModMqtt::readObjectCommand(const std::string& pTopicPrefix, const YAML::Node& node, const std::string& default_network, int default_slave) {
     std::string name = ConfigTools::readRequiredString(node, "name");
-    // TODO add "registers" section
-    // that will store multiple registers
-    // and allow to update modbus slaves register by register
-    // same as in state
+    std::string topic = pTopicPrefix + "/" + name;
     RegisterConfigName rname(node, default_network, default_slave);
     RegisterType rType = parseRegisterType(node);
     MqttObjectCommand::PayloadType pType = parsePayloadType(node);
@@ -445,7 +442,7 @@ ModMqtt::readObjectCommand(const YAML::Node& node, const std::string& default_ne
     ConfigTools::readOptionalValue<int>(count, node, "count");
 
     MqttObjectCommand cmd(
-        name,
+        topic,
         MqttObjectRegisterIdent(
             rname.mNetworkName,
             rname.mSlaveId,
@@ -568,19 +565,20 @@ ModMqtt::readObjectAvailability(
 
 void
 ModMqtt::readObjectCommands(
-    MqttObject& object,
+    const std::string& pTopicPrefix,
+    const YAML::Node& commands,
     const std::string& default_network,
-    int default_slave,
-    const YAML::Node& commands
+    int default_slave
+
 ) {
     if (!commands.IsDefined())
         return;
     if (commands.IsMap()) {
-        object.mCommands.push_back(readObjectCommand(commands, default_network, default_slave));
+        mMqtt->addCommand(readObjectCommand(pTopicPrefix, commands, default_network, default_slave));
     } else if (commands.IsSequence()) {
         for(size_t i = 0; i < commands.size(); i++) {
             const YAML::Node& cmddata = commands[i];
-            object.mCommands.push_back(readObjectCommand(cmddata, default_network, default_slave));
+            mMqtt->addCommand(readObjectCommand(pTopicPrefix, cmddata, default_network, default_slave));
         }
     }
 }
@@ -624,7 +622,7 @@ ModMqtt::initObjects(const YAML::Node& config)
 
         readObjectState(object, default_network, default_slave, specs_out, currentRefresh, objdata["state"]);
         readObjectAvailability(object, default_network, default_slave, specs_out, currentRefresh, objdata["availability"]);
-        readObjectCommands(object, default_network, default_slave, objdata["commands"]);
+        readObjectCommands(object.getTopic(), objdata["commands"], default_network, default_slave);
 
         if (hasObjectRefresh)
             currentRefresh.pop();

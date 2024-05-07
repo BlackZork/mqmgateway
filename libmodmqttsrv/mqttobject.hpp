@@ -54,9 +54,9 @@ class MqttObjectCommand {
         enum PayloadType {
             STRING = 1
         };
-        MqttObjectCommand(const std::string& name, const MqttObjectRegisterIdent& ident, PayloadType ptype, int register_count = 1)
-            : mName(name), mRegister(ident), mPayloadType(ptype), mCount(register_count) {}
-        std::string mName;
+        MqttObjectCommand(const std::string& topic, const MqttObjectRegisterIdent& ident, PayloadType ptype, int register_count = 1)
+            : mTopic(topic), mRegister(ident), mPayloadType(ptype), mCount(register_count) {}
+        std::string mTopic;
         PayloadType mPayloadType;
         MqttObjectRegisterIdent mRegister;
         int mCount;
@@ -168,9 +168,7 @@ class MqttObject {
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
         std::string createStateMessage();
         AvailableFlag getAvailableFlag() const { return mIsAvailable; }
-        bool hasCommand(const std::string& name) const;
 
-        std::vector<MqttObjectCommand> mCommands;
         MqttObjectState mState;
         MqttObjectAvailability mAvailability;
 

@@ -401,14 +401,5 @@ MqttObject::updateAvailablityFlag() {
     }
 }
 
-bool
-MqttObject::hasCommand(const std::string& name) const {
-    std::vector<MqttObjectCommand>::const_iterator it = std::find_if(
-        mCommands.begin(), mCommands.end(),
-        [&name](const MqttObjectCommand& item) -> bool { return item.mName == name; }
-    );
-
-    return it != mCommands.end();
-}
 
 } //namespace
