@@ -17,6 +17,7 @@ void
 MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mWriteTime);
+        mWriteCount++;
         if (mDisconnected) {
             errno = EIO;
             throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
@@ -50,7 +51,6 @@ MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool inter
     }
 
     if (!internalOperation) {
-        mWriteCount++;
         mIOCondition->notify_all();
     }
 }
@@ -59,6 +59,7 @@ std::vector<uint16_t>
 MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mReadTime);
+        mReadCount++;
         if (mDisconnected) {
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + " failed");
@@ -67,7 +68,6 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("register read fn ") + std::to_string(regData.mRegister) + " failed");
         }
-        mReadCount++;
     }
     switch(regData.mRegisterType) {
         case modmqttd::RegisterType::COIL:

@@ -30,6 +30,7 @@ void
 MockedMqttImpl::subscribe(const char* topic) {
     std::unique_lock<std::mutex> lck(mMutex);
     mSubscriptions.insert(topic);
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "TEST: subscribe " << topic;
     mCondition.notify_all();
 }
 

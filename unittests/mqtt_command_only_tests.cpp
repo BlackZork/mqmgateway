@@ -12,7 +12,7 @@ modbus:
       delay_before_first_command: 5ms
       slaves:
         - address: 1
-          delay_before_first_command: 500ms
+          delay_before_first_command: 100ms
 
 mqtt:
   client_id: mqtt_test
@@ -52,11 +52,10 @@ TEST_CASE ("Write should respect slave delay_before_command") {
     server.waitForModbusValue("tcptest",1,2, modmqttd::RegisterType::HOLDING, 0x8, std::chrono::milliseconds(700));
     auto after = std::chrono::steady_clock::now();
     //global is ignored
-    REQUIRE(after - now >= std::chrono::milliseconds(500));
+    REQUIRE(after - now >= std::chrono::milliseconds(100));
 
     server.stop();
 }
-
 
 TEST_CASE ("When network delay") {
 
