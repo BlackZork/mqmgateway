@@ -8,16 +8,18 @@ namespace modmqttd {
 
 class ModbusWatchdog : IModbusWatchdog {
     public:
-        void init(const ModbusWatchdogConfig& conf, const std::shared_ptr<IModbusContext>& modbus);
+        void init(const ModbusWatchdogConfig& conf);
 
         void inspectCommand(const RegisterCommand& command);
         void reset();
         bool isReconnectRequired() const;
+        std::chrono::steady_clock::time_point getLastSuccessfulCommandTime() const;
+        std::chrono::steady_clock::duration getCurrentErrorPeriod() const {
+            return std::chrono::steady_clock::now() - mLastSuccessfulCommandTime;
+        }
 
     private:
-        static  boost::log::sources::severity_logger<Log::severity> log;
-
-        std::shared_ptr<IModbusContext> mModbus;
+        static boost::log::sources::severity_logger<Log::severity> log;
 
         ModbusWatchdogConfig mConfig;
         std::chrono::steady_clock::time_point mLastSuccessfulCommandTime;

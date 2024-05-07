@@ -14,7 +14,7 @@ modbus:
       address: localhost
       port: 501
       watchdog:
-        - watch_period: 1s
+        watch_period: 300ms
 mqtt:
   client_id: mqtt_test
   refresh: 100ms
@@ -40,10 +40,10 @@ mqtt:
         server.disconnectModbusSlave("tcptest", 1);
         server.disconnectModbusSlave("tcptest", 2);
 
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         server.stop();
 
-        //one or two attempts to connect
+        //one or two attempts to reconnect
         REQUIRE(server.getMockedModbusContext("tcptest").getConnectionCount() >= 2);
         REQUIRE(server.getMockedModbusContext("tcptest").getConnectionCount() <= 3);
     }
@@ -57,10 +57,10 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         server.stop();
 
-        //no reconnections, slave1 is alive
+        //no reconnections, slave1 was alive all the time
         REQUIRE(server.getMockedModbusContext("tcptest").getConnectionCount() == 1);
     }
 

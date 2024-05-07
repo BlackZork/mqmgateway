@@ -64,6 +64,10 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
     } else {
         throw ConfigurationException(source.Mark(), "Cannot determine modbus network type: missing 'device' or 'address'");
     }
+
+    if (source["watchdog"]) {
+        ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mWatchdogConfig.mWatchPeriod, source["watchdog"], "watch_period");
+    }
 }
 
 MqttBrokerConfig::MqttBrokerConfig(const YAML::Node& source) {
