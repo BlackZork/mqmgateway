@@ -10,7 +10,7 @@ class ModbusWatchdog : IModbusWatchdog {
     public:
         void init(const ModbusWatchdogConfig& conf, const std::shared_ptr<IModbusContext>& modbus);
 
-        void inspectCommand(const IRegisterCommand& command);
+        void inspectCommand(const RegisterCommand& command);
         void reset();
         bool isReconnectRequired() const;
 

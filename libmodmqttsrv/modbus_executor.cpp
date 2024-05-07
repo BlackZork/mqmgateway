@@ -93,7 +93,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
             ModbusCommandDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
 
             if (reg_delay < currentDiff) {
-                std::shared_ptr<IRegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
+                std::shared_ptr<RegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
                 mWaitingCommand = reg;
                 mCurrentSlaveQueue = sit;
                 currentDiff = reg_delay;
@@ -293,6 +293,11 @@ ModbusExecutor::executeNext() {
 void
 ModbusExecutor::sendCommand() {
     bool retry = false;
+    if (mWaitingCommand != mLastCommand) {
+        setMaxReadRetryCount(mWaitingCommand->mMaxReadRetryCount);
+        setMaxWriteRetryCount(mWaitingCommand->mMaxWriteRetryCount);
+    }
+
 
     if (typeid(*mWaitingCommand) == typeid(RegisterPoll)) {
         RegisterPoll& pollcmd(static_cast<RegisterPoll&>(*mWaitingCommand));

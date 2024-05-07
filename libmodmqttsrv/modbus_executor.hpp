@@ -41,12 +41,12 @@ class ModbusExecutor {
 
         int getCommandsLeft() const { return mCommandsLeft; }
 
-        const std::shared_ptr<IRegisterCommand>& getWaitingCommand() const { return mWaitingCommand; }
+        const std::shared_ptr<RegisterCommand>& getWaitingCommand() const { return mWaitingCommand; }
         /*
             Returns last command executed by executeNext or nullptr if executeNext()
             returns non-zero duration
         */
-        const std::shared_ptr<IRegisterCommand>& getLastCommand() const { return mLastCommand; }
+        const std::shared_ptr<RegisterCommand>& getLastCommand() const { return mLastCommand; }
 
         void setMaxReadRetryCount(short val) { mMaxReadRetryCount = mReadRetryCount = val; }
         void setMaxWriteRetryCount(short val) { mMaxWriteRetryCount = mWriteRetryCount = val; }
@@ -67,7 +67,7 @@ class ModbusExecutor {
         int mCommandsLeft = 0;
 
         short mMaxReadRetryCount = 0;
-        short mMaxWriteRetryCount = 3;
+        short mMaxWriteRetryCount = 0;
         short mWriteRetryCount;
         short mReadRetryCount;
 
@@ -75,8 +75,8 @@ class ModbusExecutor {
 
         //used to determine if we have to respect delay of RegisterPoll::ReadDelayType::ON_SLAVE_CHANGE
         std::map<int, ModbusRequestsQueues>::iterator mLastQueue;
-        std::shared_ptr<IRegisterCommand> mWaitingCommand;
-        std::shared_ptr<IRegisterCommand> mLastCommand;
+        std::shared_ptr<RegisterCommand> mWaitingCommand;
+        std::shared_ptr<RegisterCommand> mLastCommand;
 
         bool mInitialPoll;
         std::chrono::time_point<std::chrono::steady_clock> mInitialPollStart;

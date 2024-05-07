@@ -9,7 +9,7 @@
 namespace modmqttd {
 
 void
-setCommandDelays(IRegisterCommand& cmd, const std::chrono::milliseconds& everyTime, const std::chrono::milliseconds& onChange) {
+setCommandDelays(RegisterCommand& cmd, const std::chrono::milliseconds& everyTime, const std::chrono::milliseconds& onChange) {
     ModbusCommandDelay delay;
     if (everyTime != std::chrono::milliseconds::zero()) {
         delay = everyTime;
@@ -20,7 +20,6 @@ setCommandDelays(IRegisterCommand& cmd, const std::chrono::milliseconds& everyTi
     }
     cmd.setDelay(delay);
 }
-
 
 void
 ModbusThread::sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item) {
@@ -53,6 +52,9 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
             << ", delay when slave changes "
             << std::chrono::duration_cast<std::chrono::milliseconds>(mDelayBeforeFirstCommand).count() << "ms";
     }
+
+    mMaxReadRetryCount = config.mMaxReadRetryCount;
+    mMaxWriteRetryCount = config.mMaxWriteRetryCount;
 }
 
 void
@@ -68,9 +70,12 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
 
             setCommandDelays(*reg, mDelayBeforeCommand, mDelayBeforeFirstCommand);
+            reg->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
 
-            if (slave_cfg != mSlaves.end())
+            if (slave_cfg != mSlaves.end()) {
                 setCommandDelays(*reg, slave_cfg->second.mDelayBeforeCommand, slave_cfg->second.mDelayBeforeFirstCommand);
+                reg->setMaxRetryCounts(slave_cfg->second.mMaxReadRetryCount, slave_cfg->second.mMaxWriteRetryCount);
+            }
 
             registerMap[it->mSlaveId].push_back(reg);
         }
@@ -108,9 +113,11 @@ ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
     }
 
     setCommandDelays(*cmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
+    cmd->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
     std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(msg->mSlaveId);
     if (it != mSlaves.end()) {
         setCommandDelays(*cmd, it->second.mDelayBeforeCommand, it->second.mDelayBeforeFirstCommand);
+        cmd->setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
     }
 
 
@@ -162,6 +169,7 @@ ModbusThread::updateFromSlaveConfig(const ModbusSlaveConfig& pConfig) {
     if (slave_registers != registers.end()) {
         for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
             setCommandDelays(**it, pConfig.mDelayBeforeCommand, pConfig.mDelayBeforeFirstCommand);
+            (*it)->setMaxRetryCounts(pConfig.mMaxReadRetryCount, pConfig.mMaxWriteRetryCount);
         }
     }
 }

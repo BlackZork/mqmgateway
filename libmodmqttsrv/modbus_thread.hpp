@@ -30,6 +30,8 @@ class ModbusThread {
         std::string mNetworkName;
         std::chrono::milliseconds mDelayBeforeCommand = std::chrono::milliseconds::zero();
         std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::milliseconds::zero();
+        short mMaxReadRetryCount;
+        short mMaxWriteRetryCount;
 
         // slave config
         std::map<int, ModbusSlaveConfig> mSlaves;

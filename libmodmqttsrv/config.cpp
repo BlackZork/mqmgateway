@@ -43,6 +43,9 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, source, "delay_before_command");
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeFirstCommand, source, "delay_before_first_command");
 
+    ConfigTools::readOptionalValue<unsigned short>(this->mMaxWriteRetryCount, source, "write_retries");
+    ConfigTools::readOptionalValue<unsigned short>(this->mMaxReadRetryCount, source, "read_retries");
+
 
     if (source["device"]) {
         mType = Type::RTU;

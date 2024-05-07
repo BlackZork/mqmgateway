@@ -20,6 +20,8 @@ ModbusSlaveConfig::ModbusSlaveConfig(const YAML::Node& data) {
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, data, "delay_before_command");
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeFirstCommand, data, "delay_before_first_command");
 
+    ConfigTools::readOptionalValue<unsigned short>(this->mMaxWriteRetryCount, data, "write_retries");
+    ConfigTools::readOptionalValue<unsigned short>(this->mMaxReadRetryCount, data, "read_retries");
 }
 
 }

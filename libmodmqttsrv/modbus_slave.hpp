@@ -16,6 +16,9 @@ class ModbusSlaveConfig {
         int mAddress;
         std::chrono::milliseconds mDelayBeforeCommand = std::chrono::milliseconds::zero();
         std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::milliseconds::zero();
+
+        unsigned short mMaxWriteRetryCount = 0;
+        unsigned short mMaxReadRetryCount = 0;
 };
 
 }

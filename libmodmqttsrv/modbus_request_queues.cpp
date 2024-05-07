@@ -16,9 +16,9 @@ ModbusRequestsQueues::addPollList(const std::vector<std::shared_ptr<RegisterPoll
     }
 }
 
-std::shared_ptr<IRegisterCommand>
+std::shared_ptr<RegisterCommand>
 ModbusRequestsQueues::popNext() {
-    std::shared_ptr<IRegisterCommand> ret;
+    std::shared_ptr<RegisterCommand> ret;
     if (mPopFromPoll) {
         if (mPollQueue.empty()) {
             ret = popNext(mWriteQueue);
@@ -39,10 +39,10 @@ ModbusRequestsQueues::popNext() {
 
 
 template<typename T>
-std::shared_ptr<IRegisterCommand>
+std::shared_ptr<RegisterCommand>
 ModbusRequestsQueues::popNext(T& queue) {
     assert(!queue.empty());
-    std::shared_ptr<IRegisterCommand> ret(queue.front());
+    std::shared_ptr<RegisterCommand> ret(queue.front());
     queue.pop_front();
     return ret;
 }
@@ -75,9 +75,9 @@ ModbusRequestsQueues::findForSilencePeriod(std::chrono::steady_clock::duration p
     return ret;
 }
 
-std::shared_ptr<IRegisterCommand>
+std::shared_ptr<RegisterCommand>
 ModbusRequestsQueues::popFirstWithDelay(std::chrono::steady_clock::duration pPeriod, bool ignore_first_read) {
-    auto ret = std::shared_ptr<IRegisterCommand>();
+    auto ret = std::shared_ptr<RegisterCommand>();
 check_cache:
     if (mLastPollFound != mPollQueue.end()) {
         ret = *mLastPollFound;

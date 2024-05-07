@@ -10,22 +10,35 @@
 
 namespace modmqttd {
 
-class IRegisterCommand {
+class RegisterCommand : public ModbusAddressRange {
     public:
+        RegisterCommand(int pRegister, RegisterType pRegisterType, int pCount)
+            : ModbusAddressRange(pRegister, pRegisterType, pCount)
+        {}
+
         virtual int getRegister() const = 0;
-        virtual const ModbusCommandDelay& getDelay() const = 0;
         const bool hasDelay() const {
-            return getDelay() != std::chrono::steady_clock::duration::zero();
+            return mDelay != std::chrono::steady_clock::duration::zero();
         }
-        virtual void setDelay(const ModbusCommandDelay& pDelay) = 0;
         virtual int getCount() const = 0;
         virtual const std::vector<uint16_t>& getValues() const = 0;
 
         virtual bool executedOk() const = 0;
+
+        const ModbusCommandDelay& getDelay() const { return mDelay; }
+        void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
+
+        void setMaxRetryCounts(short pMaxRead, short pMaxWrite, bool pForce = false);
+
+        short mMaxReadRetryCount;
+        short mMaxWriteRetryCount;
+    protected:
+        ModbusCommandDelay mDelay = std::chrono::steady_clock::duration::zero();
+
 };
 
 
-class RegisterPoll : public ModbusAddressRange, public IRegisterCommand {
+class RegisterPoll : public RegisterCommand {
     public:
         static constexpr std::chrono::steady_clock::duration DurationBetweenLogError = std::chrono::minutes(5);
         // if we cannot read register in this time MsgRegisterReadFailed is sent
@@ -36,8 +49,6 @@ class RegisterPoll : public ModbusAddressRange, public IRegisterCommand {
         virtual int getRegister() const { return mRegister; };
         virtual int getCount() const { return mLastValues.size(); }
         virtual const std::vector<uint16_t>& getValues() const { return mLastValues; }
-        virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
-        virtual void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
         virtual bool executedOk() const { return mLastReadOk; };
 
 
@@ -52,12 +63,9 @@ class RegisterPoll : public ModbusAddressRange, public IRegisterCommand {
         std::chrono::steady_clock::time_point mFirstErrorTime;
     private:
         std::vector<uint16_t> mLastValues;
-
-        // delay before poll
-        ModbusCommandDelay mDelay;
 };
 
-class RegisterWrite : public ModbusAddressRange, public IRegisterCommand {
+class RegisterWrite : public RegisterCommand {
     public:
         RegisterWrite(const MsgRegisterValues& msg)
             : RegisterWrite(msg.mRegister,
@@ -66,16 +74,13 @@ class RegisterWrite : public ModbusAddressRange, public IRegisterCommand {
               )
         {}
         RegisterWrite(int pRegister, RegisterType pType, const ModbusRegisters& pValues)
-            : ModbusAddressRange(pRegister, pType, pValues.getCount()),
-              mValues(pValues),
-              mDelay(std::chrono::milliseconds::zero())
+            : RegisterCommand(pRegister, pType, pValues.getCount()),
+              mValues(pValues)
         {}
 
         virtual int getRegister() const { return mRegister; };
-        virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
         virtual int getCount() const { return mValues.getCount(); };
         virtual const std::vector<uint16_t>& getValues() const { return mValues.values(); }
-        virtual void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
         virtual bool executedOk() const { return mLastWriteOk; };
 
         ModbusRegisters mValues;
@@ -83,8 +88,6 @@ class RegisterWrite : public ModbusAddressRange, public IRegisterCommand {
         bool mLastWriteOk = false;
 
         std::shared_ptr<MsgRegisterValues> mReturnMessage;
-    private:
-        ModbusCommandDelay mDelay;
 };
 
 } //namespace

@@ -42,7 +42,7 @@ TEST_CASE("ModbusRequestQueues") {
         auto dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), true);
         REQUIRE(dur == std::chrono::milliseconds(100));
 
-        std::shared_ptr<modmqttd::IRegisterCommand> reg = queue.popFirstWithDelay(std::chrono::milliseconds(100), true);
+        std::shared_ptr<modmqttd::RegisterCommand> reg = queue.popFirstWithDelay(std::chrono::milliseconds(100), true);
         REQUIRE(reg->getRegister() == 1);
 
         dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), false);
