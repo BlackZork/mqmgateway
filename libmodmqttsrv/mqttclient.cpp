@@ -97,9 +97,9 @@ void
 MqttClient::onConnect() {
 	BOOST_LOG_SEV(log, Log::info) << "Mqtt connected, sending subscriptions…";
 
-    for(std::vector<MqttObject>::const_iterator obj = mObjects.begin(); obj != mObjects.end(); obj++)
-        for(std::vector<MqttObjectCommand>::const_iterator it = obj->mCommands.begin(); it != obj->mCommands.end(); it++)
-            subscribeToCommandTopic(obj->getTopic(), *it);
+    for(auto cmd: mCommands) {
+        mMqttImpl->subscribe(cmd.second.mTopic.c_str());
+    }
 
     mConnectionState = State::CONNECTED;
 
@@ -115,12 +115,6 @@ MqttClient::onConnect() {
     }
 
 	BOOST_LOG_SEV(log, Log::info) << "Mqtt ready to process messages";
-}
-
-void
-MqttClient::subscribeToCommandTopic(const std::string& objectTopic, const MqttObjectCommand& cmd) {
-    std::string topic = objectTopic + "/" + cmd.mName;
-    mMqttImpl->subscribe(topic.c_str());
 }
 
 void
@@ -281,32 +275,17 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
     }
 }
 
+void
+MqttClient::addCommand(const MqttObjectCommand& pCommand) {
+    mCommands.insert(std::pair(pCommand.mTopic, pCommand));
+}
+
+
 const MqttObjectCommand&
 MqttClient::findCommand(const char* topic) const {
-    std::string objectName;
-    std::string commandName;
-    const char *ptr = strrchr(topic, '/');
-    if(ptr) {
-       objectName = std::string(topic, ptr);
-       commandName = std::string(ptr+1);
-    } else {
-        //should never happen because we force commands to have a name
-        objectName = topic;
-    }
-
-
-    std::vector<MqttObject>::const_iterator obj = std::find_if(
-        mObjects.begin(), mObjects.end(),
-        [&objectName](const MqttObject& item) -> bool { return item.getTopic() == objectName; }
-    );
-    if (obj != mObjects.end()) {
-        std::vector<MqttObjectCommand>::const_iterator cmd = std::find_if(
-            obj->mCommands.begin(), obj->mCommands.end(),
-            [&commandName](const MqttObjectCommand& item) -> bool { return item.mName == commandName; }
-        );
-        if (cmd != obj->mCommands.end())
-            return *cmd;
-    }
+    auto cmd = mCommands.find(topic);
+    if (cmd != mCommands.end())
+        return cmd->second;
     throw ObjectCommandNotFoundException(topic);
 }
 

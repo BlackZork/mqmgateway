@@ -76,6 +76,8 @@ TEST_CASE ("Mqtt invalid value should not crash server") {
 }
 
 
+TEST_CASE ("Command topic") {
+
 static const std::string config_subpath = R"(
 modbus:
   networks:
@@ -96,7 +98,8 @@ mqtt:
         register: tcptest.1.2
         register_type: holding
 )";
-TEST_CASE ("Valid write to subpath topic") {
+
+SECTION("with subpath should map to valid object") {
     MockedModMqttServerThread server(config_subpath);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
@@ -111,6 +114,28 @@ TEST_CASE ("Valid write to subpath topic") {
     REQUIRE(server.mqttValue("some/subpath/test_switch/state") == "32");
 
     server.stop();
+}
+
+SECTION("with path in command name should map to valid object") {
+    std::string config = std::regex_replace(config_subpath, std::regex("- name: set"), "- name: command/set");
+
+    MockedModMqttServerThread server(config);
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+    server.start();
+
+    server.waitForPublish("some/subpath/test_switch/availability");
+    REQUIRE(server.mqttValue("some/subpath/test_switch/availability") == "1");
+    server.waitForPublish("some/subpath/test_switch/state");
+
+    server.publish("some/subpath/test_switch/command/set", "32");
+
+    server.waitForPublish("some/subpath/test_switch/state");
+    REQUIRE(server.mqttValue("some/subpath/test_switch/state") == "32");
+
+    server.stop();
+}
+
+
 }
 
 
