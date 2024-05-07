@@ -303,8 +303,10 @@ ModbusExecutor::sendCommand() {
         RegisterPoll& pollcmd(static_cast<RegisterPoll&>(*mWaitingCommand));
         pollRegisters(mCurrentSlaveQueue->first, pollcmd, mInitialPoll);
         if (!pollcmd.mLastReadOk) {
-            if (mReadRetryCount-- != 0)
+            if (mReadRetryCount != 0) {
                 retry = true;
+                mReadRetryCount--;
+            }
         } else {
             mReadRetryCount = mMaxReadRetryCount;
         }
@@ -312,8 +314,10 @@ ModbusExecutor::sendCommand() {
         RegisterWrite& writecmd(static_cast<RegisterWrite&>(*mWaitingCommand));
         writeRegisters(mCurrentSlaveQueue->first, writecmd);
         if (!writecmd.mLastWriteOk) {
-            if (mWriteRetryCount-- != 0)
+            if (mWriteRetryCount != 0) {
                 retry = true;
+                mWriteRetryCount--;
+            }
         } else {
             mWriteRetryCount = mMaxWriteRetryCount;
         }
