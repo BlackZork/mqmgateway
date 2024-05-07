@@ -237,7 +237,7 @@ ModbusThread::run() {
                             idleWaitDuration = (nextPollTimePoint - now);
                         } else {
                             idleWaitDuration = mExecutor.executeNext();
-                            if (idleWaitDuration == std::chrono::steady_clock::duration::max()) {
+                            if (idleWaitDuration == std::chrono::steady_clock::duration::zero()) {
                                 mWatchdog.inspectCommand(*mExecutor.getLastCommand());
                             }
                         }
@@ -261,10 +261,10 @@ ModbusThread::run() {
             //for next poll if we are exiting
             if (mShouldRun) {
                 if (mModbus && mWatchdog.isReconnectRequired()) {
-                    mWatchdog.reset();
                     BOOST_LOG_SEV(log, Log::error) << "Cannot execute any command in last "
                         << std::chrono::duration_cast<std::chrono::seconds>(mWatchdog.getCurrentErrorPeriod()).count() << "s"
                         << ", reconnecting";
+                    mWatchdog.reset();
                     mModbus->disconnect();
                 } else {
                     QueueItem item;

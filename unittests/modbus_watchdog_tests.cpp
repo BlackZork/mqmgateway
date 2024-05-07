@@ -57,7 +57,7 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         server.stop();
 
         //no reconnections, slave1 was alive all the time
