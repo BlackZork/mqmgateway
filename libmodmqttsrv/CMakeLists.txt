@@ -31,6 +31,8 @@ add_library(modmqttsrv
     modbus_thread.hpp
     modbus_types.cpp
     modbus_types.hpp
+    modbus_watchdog.cpp
+    modbus_watchdog.hpp
     modmqtt.cpp 
     modmqtt.hpp 
     mosquitto.cpp

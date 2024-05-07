@@ -43,6 +43,7 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mModbus = ModMqtt::getModbusFactory().getContext(config.mName);
     mModbus->init(config);
     mExecutor.init(mModbus);
+    mWatchdog.init(config.mWatchdogConfig, mModbus);
 
     mDelayBeforeCommand = config.mDelayBeforeCommand;
     mDelayBeforeFirstCommand = config.mDelayBeforeFirstCommand;
@@ -200,7 +201,7 @@ ModbusThread::run() {
                         sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, true)));
                         // if modbus network was disconnected
                         // we need to refresh everything
-                        if (!mExecutor.isInitial()) {
+                        if (!mExecutor.isInitialPollInProgress()) {
                             mExecutor.setupInitialPoll(mScheduler.getPollSpecification());
                         }
                     }
@@ -214,7 +215,7 @@ ModbusThread::run() {
                     if (mMqttConnected) {
 
                         auto now = std::chrono::steady_clock::now();
-                        if (!mExecutor.isInitial() && nextPollTimePoint < now) {
+                        if (!mExecutor.isInitialPollInProgress() && nextPollTimePoint < now) {
                             std::chrono::steady_clock::duration schedulerWaitDuration;
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(schedulerWaitDuration, now);
                             nextPollTimePoint = now + schedulerWaitDuration;
@@ -226,7 +227,7 @@ ModbusThread::run() {
                         if (mExecutor.allDone()) {
                             idleWaitDuration = (nextPollTimePoint - now);
                         } else {
-                            idleWaitDuration = mExecutor.pollNext();
+                            idleWaitDuration = mExecutor.executeNext();
                         }
                     } else {
                         if (!mMqttConnected)

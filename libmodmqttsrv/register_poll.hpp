@@ -20,6 +20,8 @@ class IRegisterCommand {
         virtual void setDelay(const ModbusCommandDelay& pDelay) = 0;
         virtual int getCount() const = 0;
         virtual const std::vector<uint16_t>& getValues() const = 0;
+
+        virtual bool executedOk() const = 0;
 };
 
 
@@ -36,12 +38,14 @@ class RegisterPoll : public ModbusAddressRange, public IRegisterCommand {
         virtual const std::vector<uint16_t>& getValues() const { return mLastValues; }
         virtual const ModbusCommandDelay& getDelay() const { return mDelay; }
         virtual void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
+        virtual bool executedOk() const { return mLastReadOk; };
+
 
         void update(const std::vector<uint16_t> newValues) { mLastValues = newValues; mCount = newValues.size(); }
 
         std::chrono::steady_clock::duration mRefresh;
 
-
+        bool mLastReadOk = false;
         std::chrono::steady_clock::time_point mLastRead;
 
         int mReadErrors;
@@ -72,8 +76,11 @@ class RegisterWrite : public ModbusAddressRange, public IRegisterCommand {
         virtual int getCount() const { return mValues.getCount(); };
         virtual const std::vector<uint16_t>& getValues() const { return mValues.values(); }
         virtual void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
+        virtual bool executedOk() const { return mLastWriteOk; };
 
         ModbusRegisters mValues;
+
+        bool mLastWriteOk = false;
 
         std::shared_ptr<MsgRegisterValues> mReturnMessage;
     private:

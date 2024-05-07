@@ -23,7 +23,7 @@ MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool inter
         }
         if (hasError(msg.mRegister, msg.mRegisterType, msg.getCount())) {
             errno = EIO;
-            throw modmqttd::ModbusReadException(std::string("register write fn ") + std::to_string(msg.mRegister) + " failed");
+            throw modmqttd::ModbusWriteException(std::string("register write fn ") + std::to_string(msg.mRegister) + " failed");
         }
     }
 
@@ -210,15 +210,23 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
 void
 MockedModbusContext::init(const modmqttd::ModbusNetworkConfig& config) {
     mNetworkName = config.mName;
-    if (config.mType == modmqttd::ModbusNetworkConfig::Type::RTU) {
-        std::string fname = config.mDevice;
-        fname.insert(0, "mqmgateway_test");
-        std::replace(fname.begin(), fname.end(), '/', '_');
-        std::filesystem::path p = std::filesystem::temp_directory_path() / fname;
-        mDeviceName = p;
-        createRTUDevice();
-    }
+    std::string fname = std::string("_") + mNetworkName;
+    if (config.mType == modmqttd::ModbusNetworkConfig::Type::RTU)
+        fname = config.mDevice;
+
+    fname.insert(0, "mqmgateway_test");
+    std::replace(fname.begin(), fname.end(), '/', '_');
+    std::filesystem::path p = std::filesystem::temp_directory_path() / fname;
+    mDeviceName = p;
+    createFakeDevice();
 }
+
+void
+MockedModbusContext::createFakeDevice() {
+    std::ofstream s(mDeviceName);
+    s.close();
+}
+
 
 void
 MockedModbusContext::connect() {
@@ -321,6 +329,7 @@ MockedModbusFactory::getOrCreateContext(const char* network) {
     std::shared_ptr<MockedModbusContext> ctx;
     if (it == mModbusNetworks.end()) {
         ctx.reset(new MockedModbusContext());
+        ctx->mNetworkName = network;
         mModbusNetworks[network] = ctx;
     } else {
         ctx = it->second;
@@ -368,6 +377,13 @@ MockedModbusFactory::setModbusRegisterReadError(const char* network, int slaveId
     s.setError(regNum, regType);
 }
 
+void
+MockedModbusFactory::setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType) {
+    regNum--;
+    std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
+    MockedModbusContext::Slave& s(ctx->getSlave(slaveId));
+    s.setError(regNum, regType);
+}
 
 void
 MockedModbusFactory::disconnectModbusSlave(const char* network, int slaveId) {

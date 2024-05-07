@@ -2,12 +2,13 @@
 
 #include "imodbuscontext.hpp"
 #include "modbus_messages.hpp"
+#include "register_poll.hpp"
 
 namespace modmqttd {
 
 class ModbusWatchdog : IModbusWatchdog {
     public:
-        void init(const ModbusWatchdogConfig& conf, const std::shared_ptr<IModbusContext>& modbus)
+        void init(const ModbusWatchdogConfig& conf, const std::shared_ptr<IModbusContext>& modbus);
 
         void inspectCommand(const IRegisterCommand& command);
         void reset();

@@ -22,10 +22,12 @@ ModbusExecutor::ModbusExecutor(
     : mFromModbusQueue(fromModbusQueue), mToModbusQueue(toModbusQueue)
 {
     //some random past value, not using steady_clock:min() due to overflow
-    mLastPollTime = std::chrono::steady_clock::now() - std::chrono::hours(100000);
+    mLastCommandTime = std::chrono::steady_clock::now() - std::chrono::hours(100000);
     mLastQueue = mSlaveQueues.end();
     mCurrentSlaveQueue = mSlaveQueues.end();
     mInitialPoll = false;
+    mReadRetryCount = mMaxReadRetryCount;
+    mWriteRetryCount = mMaxWriteRetryCount;
 }
 
 void
@@ -54,7 +56,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
     if (initialPoll) {
         mInitialPoll = initialPoll;
-        mPollStart = std::chrono::steady_clock::now();
+        mInitialPollStart = std::chrono::steady_clock::now();
     }
 
     std::map<int, ModbusRequestsQueues>::iterator first_added = mSlaveQueues.end();
@@ -75,11 +77,11 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
     // scan register list for registers that have delay_before_poll set
     // and find the best one that fits in the last_silence_period
-    auto last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
+    auto last_silence_period = std::chrono::steady_clock::now() - mLastCommandTime;
 
     BOOST_LOG_SEV(log, Log::trace) << "Starting election for silence period " << std::chrono::duration_cast<std::chrono::milliseconds>(last_silence_period).count() << "ms";
 
-    mWaitingRegister = nullptr;
+    mWaitingCommand = nullptr;
     resetCommandsCounter();
 
     auto currentDiff = std::chrono::steady_clock::duration::max();
@@ -92,10 +94,10 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
             if (reg_delay < currentDiff) {
                 std::shared_ptr<IRegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
-                mWaitingRegister = reg;
+                mWaitingCommand = reg;
                 mCurrentSlaveQueue = sit;
                 currentDiff = reg_delay;
-                BOOST_LOG_SEV(log, Log::trace) << "Electing next register to poll as " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister()
+                BOOST_LOG_SEV(log, Log::trace) << "Electing next register to poll as " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister()
                     << ", delay=" << std::chrono::duration_cast<std::chrono::milliseconds>(reg_delay).count() << "ms"
                     << ", diff=" << std::chrono::duration_cast<std::chrono::milliseconds>(currentDiff).count() << "ms";
                 if (reg_delay.count() == 0)
@@ -105,12 +107,12 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
     }
 
     //if there are no registers with delay set start from the first queue
-    if (mWaitingRegister == nullptr) {
-        mWaitingRegister = mCurrentSlaveQueue->second.popNext();
+    if (mWaitingCommand == nullptr) {
+        mWaitingCommand = mCurrentSlaveQueue->second.popNext();
     }
 
 
-    BOOST_LOG_SEV(log, Log::trace) << "Next register to poll set to " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister() << ", commands_left=" << mCommandsLeft;
+    BOOST_LOG_SEV(log, Log::trace) << "Next register to poll set to " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister() << ", commands_left=" << mCommandsLeft;
 }
 
 
@@ -129,8 +131,9 @@ void
 ModbusExecutor::pollRegisters(int slaveId, RegisterPoll& reg, bool forceSend) {
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
         std::vector<uint16_t> newValues(mModbus->readModbusRegisters(slaveId, reg));
-        mLastPollTime = reg.mLastRead = std::chrono::steady_clock::now();
+        reg.mLastReadOk = true;
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
@@ -147,12 +150,19 @@ ModbusExecutor::pollRegisters(int slaveId, RegisterPoll& reg, bool forceSend) {
     } catch (const ModbusReadException& ex) {
         handleRegisterReadError(slaveId, reg, ex.what());
     }
+    // set mLastRead regardless if modbus command was successful or not
+    // ModbusScheduler should not reschedule again after failed read
+    // This will cause endless readModbusRegisters if register always
+    // returns read error
+    mLastCommandTime = reg.mLastRead = std::chrono::steady_clock::now();
 };
 
 void
 ModbusExecutor::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const char* errorMessage) {
     // avoid flooding logs with register read error messages - log last error every 5 minutes
     regPoll.mReadErrors++;
+    regPoll.mLastReadOk = false;
+
     if (regPoll.mReadErrors == 1 || (std::chrono::steady_clock::now() - regPoll.mFirstErrorTime > RegisterPoll::DurationBetweenLogError)) {
         BOOST_LOG_SEV(log, Log::error) << regPoll.mReadErrors << " error(s) when reading register "
             << slaveId << "." << regPoll.mRegister << ", last error: " << errorMessage;
@@ -169,11 +179,11 @@ ModbusExecutor::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, cons
 }
 
 void
-ModbusExecutor::writeRegisters(int slaveId, const RegisterWrite& cmd) {
+ModbusExecutor::writeRegisters(int slaveId, RegisterWrite& cmd) {
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
         mModbus->writeModbusRegisters(slaveId, cmd);
-        mLastPollTime = std::chrono::steady_clock::now();
+        cmd.mLastWriteOk = true;
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << cmd.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << cmd.mRegister << ")"
@@ -186,34 +196,36 @@ ModbusExecutor::writeRegisters(int slaveId, const RegisterWrite& cmd) {
     } catch (const ModbusWriteException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "error writing register "
             << slaveId << "." << cmd.mRegister << ": " << ex.what();
+        cmd.mLastWriteOk = false;
         MsgRegisterWriteFailed msg(slaveId, cmd.mRegisterType, cmd.mRegister, cmd.getCount());
         sendMessage(QueueItem::create(msg));
     }
+    mLastCommandTime = std::chrono::steady_clock::now();
 }
 
 
 std::chrono::steady_clock::duration
-ModbusExecutor::pollNext() {
+ModbusExecutor::executeNext() {
     //assert(!allDone());
-    if (mWaitingRegister != nullptr) {
+    if (mWaitingCommand != nullptr) {
         if (
-            (mWaitingRegister->getDelay().delay_type == ModbusCommandDelay::DelayType::EVERYTIME)
+            (mWaitingCommand->getDelay().delay_type == ModbusCommandDelay::DelayType::EVERYTIME)
             ||
             (
-                mWaitingRegister->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE
+                mWaitingCommand->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE
                 && mLastQueue != mSlaveQueues.end()
                 && mCurrentSlaveQueue->first != mLastQueue->first
             )
         ) {
-            auto delay_passed = std::chrono::steady_clock::now() - mLastPollTime;
-            auto delay_left = mWaitingRegister->getDelay() - delay_passed;
+            auto delay_passed = std::chrono::steady_clock::now() - mLastCommandTime;
+            auto delay_left = mWaitingCommand->getDelay() - delay_passed;
             if (delay_left > std::chrono::steady_clock::duration::zero()) {
-                BOOST_LOG_SEV(log, Log::trace) << "Command for " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister()
+                BOOST_LOG_SEV(log, Log::trace) << "Command for " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister()
                     << " need to wait " << std::chrono::duration_cast<std::chrono::milliseconds>(delay_left).count() << "ms";
                 return delay_left;
             }
         }
-        //mWaitingRegister is ready to be read or written
+        //mWaitingCommand is ready to be read or written
         sendCommand();
     } else {
         // find next non empty queue and start sending requests from it
@@ -235,28 +247,28 @@ ModbusExecutor::pollNext() {
                 // nextQueue could point at it again after doing full circle
                 if (mCurrentSlaveQueue != nextQueue || !mCurrentSlaveQueue->second.empty()) {
                     mCurrentSlaveQueue = nextQueue;
-                    mWaitingRegister = mCurrentSlaveQueue->second.popNext();
+                    mWaitingCommand = mCurrentSlaveQueue->second.popNext();
                     resetCommandsCounter();
                 } else {
                     //nothing to do
                     return std::chrono::steady_clock::duration::max();
                 }
             } else {
-                mWaitingRegister = mCurrentSlaveQueue->second.popNext();
+                mWaitingCommand = mCurrentSlaveQueue->second.popNext();
             }
         }
 
-        if (mWaitingRegister != nullptr) {
-            if (mWaitingRegister->getDelay() != std::chrono::steady_clock::duration::zero()) {
+        if (mWaitingCommand != nullptr) {
+            if (mWaitingCommand->getDelay() != std::chrono::steady_clock::duration::zero()) {
                 // setup and return needed delay
                 // or pull register if there was enough silence
                 // after previous command
-                auto last_silence_period = std::chrono::steady_clock::now() - mLastPollTime;
-                if (last_silence_period < mWaitingRegister->getDelay()) {
-                    auto delay_left = mWaitingRegister->getDelay() - last_silence_period;
+                auto last_silence_period = std::chrono::steady_clock::now() - mLastCommandTime;
+                if (last_silence_period < mWaitingCommand->getDelay()) {
+                    auto delay_left = mWaitingCommand->getDelay() - last_silence_period;
 
-                    BOOST_LOG_SEV(log, Log::trace) << "Next register set to " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister()
-                        << ", delay=" << std::chrono::duration_cast<std::chrono::milliseconds>(mWaitingRegister->getDelay()).count() << "ms"
+                    BOOST_LOG_SEV(log, Log::trace) << "Next register set to " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister()
+                        << ", delay=" << std::chrono::duration_cast<std::chrono::milliseconds>(mWaitingCommand->getDelay()).count() << "ms"
                         << ", left=" << std::chrono::duration_cast<std::chrono::milliseconds>(delay_left).count() << "ms";
                     return delay_left;
                 }
@@ -270,7 +282,7 @@ ModbusExecutor::pollNext() {
             BOOST_LOG_SEV(log, Log::info) << "Nothing to do for initial poll";
         } else {
             auto end = std::chrono::steady_clock::now();
-            BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mPollStart).count() << "ms";
+            BOOST_LOG_SEV(log, Log::info) << "Initial poll done in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - mInitialPollStart).count() << "ms";
             mInitialPoll = false;
         }
     }
@@ -280,20 +292,42 @@ ModbusExecutor::pollNext() {
 
 void
 ModbusExecutor::sendCommand() {
-    if (typeid(*mWaitingRegister) == typeid(RegisterPoll)) {
-        pollRegisters(mCurrentSlaveQueue->first, static_cast<RegisterPoll&>(*mWaitingRegister), mInitialPoll);
+    bool retry = false;
+
+    if (typeid(*mWaitingCommand) == typeid(RegisterPoll)) {
+        RegisterPoll& pollcmd(static_cast<RegisterPoll&>(*mWaitingCommand));
+        pollRegisters(mCurrentSlaveQueue->first, pollcmd, mInitialPoll);
+        if (!pollcmd.mLastReadOk) {
+            if (mReadRetryCount-- != 0)
+                retry = true;
+        } else {
+            mReadRetryCount = mMaxReadRetryCount;
+        }
     } else {
-        writeRegisters(mCurrentSlaveQueue->first, static_cast<RegisterWrite&>(*mWaitingRegister));
+        RegisterWrite& writecmd(static_cast<RegisterWrite&>(*mWaitingCommand));
+        writeRegisters(mCurrentSlaveQueue->first, writecmd);
+        if (!writecmd.mLastWriteOk) {
+            if (mWriteRetryCount-- != 0)
+                retry = true;
+        } else {
+            mWriteRetryCount = mMaxWriteRetryCount;
+        }
     }
     mLastQueue = mCurrentSlaveQueue;
-    mWaitingRegister.reset();
-    mCommandsLeft--;
+    mLastCommand = mWaitingCommand;
+
+    // to retry just leave mCurrentCommand
+    // for next executeNext() call
+    if (!retry) {
+        mWaitingCommand.reset();
+        mCommandsLeft--;
+    }
 }
 
 
 bool
 ModbusExecutor::allDone() const {
-    if (mWaitingRegister != nullptr)
+    if (mWaitingCommand != nullptr)
         return false;
 
     auto non_empty = std::find_if(mSlaveQueues.begin(), mSlaveQueues.end(),

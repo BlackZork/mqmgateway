@@ -7,6 +7,7 @@
 #include "modbus_scheduler.hpp"
 #include "modbus_slave.hpp"
 #include "modbus_executor.hpp"
+#include "modbus_watchdog.hpp"
 
 #include "imodbuscontext.hpp"
 
@@ -41,6 +42,7 @@ class ModbusThread {
         std::shared_ptr<IModbusContext> mModbus;
         ModbusScheduler mScheduler;
         ModbusExecutor mExecutor;
+        ModbusWatchdog mWatchdog;
 
         void configure(const ModbusNetworkConfig& config);
         void setPollSpecification(const MsgRegisterPollSpecification& spec);

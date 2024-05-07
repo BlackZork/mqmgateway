@@ -80,11 +80,11 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         int getWriteCount(int slaveId) const;
         int getConnectionCount() const { return mConnectionCount; }
 
-        void removeRTUDevice() { std::remove(mDeviceName.c_str()); }
+        void removeFakeDevice() { std::remove(mDeviceName.c_str()); }
 
         //we do not need to simulate linux
         //incremental naming (/dev/ttyUSBx) here for now
-        void createRTUDevice() { std::ofstream(mDeviceFile); }
+        void createFakeDevice();
 
         std::tuple<int,int> getLastReadRegisterAddress() const {
             return std::tuple<int,int>(mLastPolledSlave, mLastPolledRegister+1);
@@ -132,6 +132,7 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
         void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val);
         uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
         void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
+        void setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
 
         MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
             auto it = mModbusNetworks.find(networkName);
