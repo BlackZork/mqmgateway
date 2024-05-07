@@ -332,8 +332,9 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should retry last write command mMaxWriteRetryCount times if failed") {
         modbus_factory.setModbusRegisterWriteError("test", 1, 1, modmqttd::RegisterType::HOLDING);
 
-        executor.setMaxWriteRetryCount(1);
-        executor.addWriteCommand(1, registers.createWrite(1, 0x3));
+        auto cmd(registers.createWrite(1, 0x3));
+        cmd->setMaxRetryCounts(0,1);
+        executor.addWriteCommand(1, cmd);
 
         executor.executeNext();
         REQUIRE(!executor.allDone());
@@ -348,8 +349,9 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should delay retry of last write command") {
         modbus_factory.setModbusRegisterWriteError("test", 1, 1, modmqttd::RegisterType::HOLDING);
 
-        executor.setMaxWriteRetryCount(1);
-        executor.addWriteCommand(1, registers.createWriteDelayed(1, 0x3, std::chrono::milliseconds(10)));
+        auto cmd(registers.createWriteDelayed(1, 0x3, std::chrono::milliseconds(10)));
+        cmd->setMaxRetryCounts(0,1);
+        executor.addWriteCommand(1, cmd);
 
         executor.executeNext();
         REQUIRE(!executor.allDone());

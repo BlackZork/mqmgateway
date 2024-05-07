@@ -48,8 +48,6 @@ class ModbusExecutor {
         */
         const std::shared_ptr<RegisterCommand>& getLastCommand() const { return mLastCommand; }
 
-        void setMaxReadRetryCount(short val) { mMaxReadRetryCount = mReadRetryCount = val; }
-        void setMaxWriteRetryCount(short val) { mMaxWriteRetryCount = mWriteRetryCount = val; }
     private:
         static  boost::log::sources::severity_logger<Log::severity> log;
 
@@ -87,6 +85,9 @@ class ModbusExecutor {
         void sendMessage(const QueueItem& item);
         void handleRegisterReadError(int slaveId, RegisterPoll& reg, const char* errorMessage);
         void resetCommandsCounter();
+
+        void setMaxReadRetryCount(short val) { mMaxReadRetryCount = mReadRetryCount = val; }
+        void setMaxWriteRetryCount(short val) { mMaxWriteRetryCount = mWriteRetryCount = val; }
 };
 
 }
