@@ -78,6 +78,7 @@ class ConfigTools {
 class ModbusWatchdogConfig {
     public:
         std::chrono::milliseconds mWatchPeriod = std::chrono::seconds(10);
+        std::string mDevicePath;
 };
 
 class ModbusNetworkConfig {
@@ -115,7 +116,7 @@ class ModbusNetworkConfig {
         std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::seconds(0);
 
         unsigned short mMaxWriteRetryCount = 2;
-        unsigned short mMaxReadRetryCount = 0;
+        unsigned short mMaxReadRetryCount = 1;
 
 
         //RTU only

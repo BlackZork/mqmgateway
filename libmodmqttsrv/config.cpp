@@ -57,6 +57,8 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
         ConfigTools::readOptionalValue<RtuSerialMode>(this->mRtuSerialMode, source, "rtu_serial_mode");
         ConfigTools::readOptionalValue<RtuRtsMode>(this->mRtsMode, source, "rtu_rts_mode");
         ConfigTools::readOptionalValue<int>(this->mRtsDelayUs, source, "rtu_rts_delay_us");
+
+        mWatchdogConfig.mDevicePath = mDevice;
     } else if (source["address"]) {
         mType = Type::TCPIP;
         mAddress = ConfigTools::readRequiredString(source, "address");
