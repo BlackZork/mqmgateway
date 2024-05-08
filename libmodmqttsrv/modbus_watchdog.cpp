@@ -5,6 +5,10 @@ namespace modmqttd {
 
 boost::log::sources::severity_logger<Log::severity> ModbusWatchdog::log;
 
+#if __cplusplus < 201703L
+constexpr std::chrono::milliseconds ModbusWatchdog::sDeviceCheckPeriod;
+#endif
+
 void
 ModbusWatchdog::init(const ModbusWatchdogConfig& conf) {
     mConfig = conf;

@@ -7,7 +7,7 @@ namespace modmqttd {
 boost::log::sources::severity_logger<Log::severity> ModbusNetworkConfig::log;
 
 #if __cplusplus < 201703L
-    constexpr std::chrono::milliseconds ModbusNetworkConfig::MAX_RESPONSE_TIMEOUT;
+constexpr std::chrono::milliseconds ModbusNetworkConfig::MAX_RESPONSE_TIMEOUT;
 #endif
 
 ConfigurationException::ConfigurationException(const YAML::Mark& mark, const char* what) {

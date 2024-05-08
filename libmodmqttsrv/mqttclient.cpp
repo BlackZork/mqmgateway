@@ -277,7 +277,7 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
 
 void
 MqttClient::addCommand(const MqttObjectCommand& pCommand) {
-    mCommands.insert(std::pair(pCommand.mTopic, pCommand));
+    mCommands.insert(std::pair<std::string, MqttObjectCommand>(pCommand.mTopic, pCommand));
 }
 
 

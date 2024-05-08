@@ -92,7 +92,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
         bool mInternalOperation = false;
         std::string mNetworkName;
-        std::filesystem::path mDeviceName;
+        std::string mDeviceName;
         std::fstream mDeviceFile;
 
         ~MockedModbusContext() {
