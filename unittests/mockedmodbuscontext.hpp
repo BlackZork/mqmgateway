@@ -15,8 +15,6 @@
 #include "libmodmqttsrv/logging.hpp"
 #include "libmodmqttsrv/config.hpp"
 
-#include "mockedmodbuswatchdog.hpp"
-
 class MockedModbusContext : public modmqttd::IModbusContext {
     public:
         static const std::chrono::milliseconds sDefaultSlaveReadTime;
@@ -75,15 +73,12 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual uint16_t getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype);
 
 
-        MockedModbusWatchdog& getWatchdog();
         int getReadCount(int slaveId) const;
         int getWriteCount(int slaveId) const;
         int getConnectionCount() const { return mConnectionCount; }
 
         void removeFakeDevice() { std::remove(mDeviceName.c_str()); }
 
-        //we do not need to simulate linux
-        //incremental naming (/dev/ttyUSBx) here for now
         void createFakeDevice();
 
         std::tuple<int,int> getLastReadRegisterAddress() const {

@@ -12,7 +12,6 @@ add_executable(tests
     main.cpp
     mockedmodbuscontext.cpp
     mockedmodbuscontext.hpp
-    mockedmodbuswatchdog.hpp
     mockedmqttimpl.cpp
     mockedmqttimpl.hpp
     mockedserver.hpp

@@ -71,13 +71,13 @@ static const std::string config = R"(
 modbus:
   networks:
     - name: rtutest
-      device: /dev/ttyUSB0
+      device: /tmp/watchdog_test
       baud: 9600
       parity: E
       data_bit: 8
       stop_bit: 1
       watchdog:
-        watch_period: 1s
+        watch_period: 10s
 mqtt:
   client_id: mqtt_test
   refresh: 100ms
@@ -86,10 +86,10 @@ mqtt:
   objects:
     - topic: slave1
       state:
-        register: tcptest.1.1
+        register: rtutest.1.1
     - topic: slave2
       state:
-        register: tcptest.2.2
+        register: rtutest.2.2
 )";
 
     SECTION("should close usb serial port if unplugged") {
@@ -99,12 +99,14 @@ mqtt:
         server.waitForPublish("slave2/availability");
         REQUIRE(server.mqttValue("slave2/availability") == "1");
 
+        //simulate USB unplug
         server.disconnectSerialPortFor("rtutest");
+        server.disconnectModbusSlave("rtutest", 1);
+        server.disconnectModbusSlave("rtutest", 2);
 
         std::this_thread::sleep_for(std::chrono::seconds(2));
         server.stop();
 
-//        REQUIRE(server.getMockedModbusContext("rtutest").getWatchdog().getFailedSerialPortCheckCount() > 0);
         //at least one attempt to reconnect
         REQUIRE(server.getMockedModbusContext("rtutest").getConnectionCount() >= 2);
     }

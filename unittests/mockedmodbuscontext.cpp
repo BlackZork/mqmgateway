@@ -214,10 +214,7 @@ MockedModbusContext::init(const modmqttd::ModbusNetworkConfig& config) {
     if (config.mType == modmqttd::ModbusNetworkConfig::Type::RTU)
         fname = config.mDevice;
 
-    fname.insert(0, "mqmgateway_test");
-    std::replace(fname.begin(), fname.end(), '/', '_');
-    std::filesystem::path p = std::filesystem::temp_directory_path() / fname;
-    mDeviceName = p;
+    mDeviceName = fname;
     createFakeDevice();
 }
 
