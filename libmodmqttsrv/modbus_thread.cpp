@@ -260,12 +260,17 @@ ModbusThread::run() {
             //dispatchMessages can change mShouldRun flag, do not wait
             //for next poll if we are exiting
             if (mShouldRun) {
-                if (mModbus && mWatchdog.isReconnectRequired()) {
-                    BOOST_LOG_SEV(log, Log::error) << "Cannot execute any command in last "
-                        << std::chrono::duration_cast<std::chrono::seconds>(mWatchdog.getCurrentErrorPeriod()).count() << "s"
-                        << ", reconnecting";
+                if (mModbus && mModbus->isConnected() && mWatchdog.isReconnectRequired()) {
+                    if (mWatchdog.isDeviceRemoved()) {
+                        BOOST_LOG_SEV(log, Log::error) << "Device " << mWatchdog.getDevicePath() << " was removed, forcing reconnect";
+                    } else {
+                        BOOST_LOG_SEV(log, Log::error) << "Cannot execute any command in last "
+                            << std::chrono::duration_cast<std::chrono::seconds>(mWatchdog.getCurrentErrorPeriod()).count() << "s"
+                            << ", reconnecting";
+                    }
                     mWatchdog.reset();
                     mModbus->disconnect();
+                    sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, false)));
                 } else {
                     QueueItem item;
                     BOOST_LOG_SEV(log, Log::debug) << constructIdleWaitMessage(idleWaitDuration);
