@@ -35,15 +35,19 @@ class ModbusExecutor {
          *
          * If queues are empty return duration=max
          */
-        std::chrono::steady_clock::duration pollNext();
+        std::chrono::steady_clock::duration executeNext();
 
-        std::chrono::steady_clock::duration getTotalPollDuration() const {
-            return std::chrono::steady_clock::now() - mPollStart;
-        }
-        bool isInitial() const { return mInitialPoll; }
+        bool isInitialPollInProgress() const { return mInitialPoll; }
 
         int getCommandsLeft() const { return mCommandsLeft; }
-        const std::shared_ptr<IRegisterCommand>& getWaitingRegister() const { return mWaitingRegister; }
+
+        const std::shared_ptr<RegisterCommand>& getWaitingCommand() const { return mWaitingCommand; }
+        /*
+            Returns last command executed by executeNext or nullptr if executeNext()
+            returns non-zero duration
+        */
+        const std::shared_ptr<RegisterCommand>& getLastCommand() const { return mLastCommand; }
+
     private:
         static  boost::log::sources::severity_logger<Log::severity> log;
 
@@ -60,20 +64,30 @@ class ModbusExecutor {
         // is called faster than executor is able to handle them.
         int mCommandsLeft = 0;
 
-        std::chrono::steady_clock::time_point mLastPollTime;
+        short mMaxReadRetryCount = 0;
+        short mMaxWriteRetryCount = 0;
+        short mWriteRetryCount;
+        short mReadRetryCount;
+
+        std::chrono::steady_clock::time_point mLastCommandTime;
 
         //used to determine if we have to respect delay of RegisterPoll::ReadDelayType::ON_SLAVE_CHANGE
         std::map<int, ModbusRequestsQueues>::iterator mLastQueue;
-        std::shared_ptr<IRegisterCommand> mWaitingRegister;
+        std::shared_ptr<RegisterCommand> mWaitingCommand;
+        std::shared_ptr<RegisterCommand> mLastCommand;
+
         bool mInitialPoll;
-        std::chrono::time_point<std::chrono::steady_clock> mPollStart;
+        std::chrono::time_point<std::chrono::steady_clock> mInitialPollStart;
 
         void sendCommand();
         void pollRegisters(int slaveId, RegisterPoll& reg_ptr, bool forceSend);
-        void writeRegisters(int slaveId, const RegisterWrite& cmd);
+        void writeRegisters(int slaveId, RegisterWrite& cmd);
         void sendMessage(const QueueItem& item);
         void handleRegisterReadError(int slaveId, RegisterPoll& reg, const char* errorMessage);
         void resetCommandsCounter();
+
+        void setMaxReadRetryCount(short val) { mMaxReadRetryCount = mReadRetryCount = val; }
+        void setMaxWriteRetryCount(short val) { mMaxWriteRetryCount = mWriteRetryCount = val; }
 };
 
 }

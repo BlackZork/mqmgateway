@@ -1,13 +1,14 @@
 #include "mockedmodbuscontext.hpp"
 
+#include <thread>
+#include <iostream>
+
+#include "catch2/catch_all.hpp"
+
 #include "libmodmqttsrv/modbus_messages.hpp"
 #include "libmodmqttsrv/modbus_context.hpp"
 #include "libmodmqttsrv/debugtools.hpp"
 #include "libmodmqttsrv/register_poll.hpp"
-#include "catch2/catch_all.hpp"
-
-#include <thread>
-#include <iostream>
 
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveReadTime = std::chrono::milliseconds(5);
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveWriteTime = std::chrono::milliseconds(10);
@@ -16,13 +17,14 @@ void
 MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mWriteTime);
+        mWriteCount++;
         if (mDisconnected) {
             errno = EIO;
             throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
         }
         if (hasError(msg.mRegister, msg.mRegisterType, msg.getCount())) {
             errno = EIO;
-            throw modmqttd::ModbusReadException(std::string("register write fn ") + std::to_string(msg.mRegister) + " failed");
+            throw modmqttd::ModbusWriteException(std::string("register write fn ") + std::to_string(msg.mRegister) + " failed");
         }
     }
 
@@ -49,7 +51,6 @@ MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool inter
     }
 
     if (!internalOperation) {
-        mWriteCount++;
         mIOCondition->notify_all();
     }
 }
@@ -58,6 +59,7 @@ std::vector<uint16_t>
 MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mReadTime);
+        mReadCount++;
         if (mDisconnected) {
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + " failed");
@@ -66,7 +68,6 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("register read fn ") + std::to_string(regData.mRegister) + " failed");
         }
-        mReadCount++;
     }
     switch(regData.mRegisterType) {
         case modmqttd::RegisterType::COIL:
@@ -209,7 +210,37 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
 void
 MockedModbusContext::init(const modmqttd::ModbusNetworkConfig& config) {
     mNetworkName = config.mName;
+    std::string fname = std::string("_") + mNetworkName;
+    if (config.mType == modmqttd::ModbusNetworkConfig::Type::RTU)
+        fname = config.mDevice;
+
+    mDeviceName = fname;
+    createFakeDevice();
 }
+
+void
+MockedModbusContext::createFakeDevice() {
+    std::ofstream s(mDeviceName);
+    s.close();
+}
+
+
+void
+MockedModbusContext::connect() {
+    mConnectionCount++;
+    mDeviceFile.open(mDeviceName);
+}
+
+bool
+MockedModbusContext::isConnected() const {
+    return mDeviceFile.is_open();
+}
+
+void
+MockedModbusContext::disconnect() {
+    mDeviceFile.close();
+}
+
 
 void
 MockedModbusContext::writeModbusRegisters(int pSlaveId, const modmqttd::RegisterWrite& msg) {
@@ -295,9 +326,7 @@ MockedModbusFactory::getOrCreateContext(const char* network) {
     std::shared_ptr<MockedModbusContext> ctx;
     if (it == mModbusNetworks.end()) {
         ctx.reset(new MockedModbusContext());
-        modmqttd::ModbusNetworkConfig c;
-        c.mName = network;
-        ctx->init(c);
+        ctx->mNetworkName = network;
         mModbusNetworks[network] = ctx;
     } else {
         ctx = it->second;
@@ -345,6 +374,13 @@ MockedModbusFactory::setModbusRegisterReadError(const char* network, int slaveId
     s.setError(regNum, regType);
 }
 
+void
+MockedModbusFactory::setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType) {
+    regNum--;
+    std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
+    MockedModbusContext::Slave& s(ctx->getSlave(slaveId));
+    s.setError(regNum, regType);
+}
 
 void
 MockedModbusFactory::disconnectModbusSlave(const char* network, int slaveId) {

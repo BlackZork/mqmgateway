@@ -7,7 +7,7 @@ namespace modmqttd {
 boost::log::sources::severity_logger<Log::severity> MsgRegisterPollSpecification::log;
 
 #if __cplusplus < 201703L
-    constexpr std::chrono::milliseconds MsgRegisterPoll::INVALID_REFRESH;
+constexpr std::chrono::milliseconds MsgRegisterPoll::INVALID_REFRESH;
 #endif
 
 void

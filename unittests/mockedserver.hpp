@@ -156,8 +156,17 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         mModbusFactory->connectModbusSlave(network, slaveId);
     }
 
+    void disconnectSerialPortFor(const char* networkName) {
+        mModbusFactory->getMockedModbusContext(networkName).removeFakeDevice();
+    }
+
+
     void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
         mModbusFactory->setModbusRegisterReadError(network, slaveId, regNum, regtype);
+    }
+
+    MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
+        return mModbusFactory->getMockedModbusContext(networkName);
     }
 
     std::shared_ptr<MockedModbusFactory> mModbusFactory;

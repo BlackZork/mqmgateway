@@ -7,6 +7,7 @@
 #include "modbus_scheduler.hpp"
 #include "modbus_slave.hpp"
 #include "modbus_executor.hpp"
+#include "modbus_watchdog.hpp"
 
 #include "imodbuscontext.hpp"
 
@@ -29,6 +30,8 @@ class ModbusThread {
         std::string mNetworkName;
         std::chrono::milliseconds mDelayBeforeCommand = std::chrono::milliseconds::zero();
         std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::milliseconds::zero();
+        short mMaxReadRetryCount;
+        short mMaxWriteRetryCount;
 
         // slave config
         std::map<int, ModbusSlaveConfig> mSlaves;
@@ -41,6 +44,7 @@ class ModbusThread {
         std::shared_ptr<IModbusContext> mModbus;
         ModbusScheduler mScheduler;
         ModbusExecutor mExecutor;
+        ModbusWatchdog mWatchdog;
 
         void configure(const ModbusNetworkConfig& config);
         void setPollSpecification(const MsgRegisterPollSpecification& spec);

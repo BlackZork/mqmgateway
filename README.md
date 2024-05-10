@@ -141,7 +141,16 @@ Modbus network configuration parameters are listed below:
 
   Same as delay_before_first_command, but a delay is applied to every modbus command sent on this network.
 
-* RTU device settings
+* **read_retries** (optional, default 1)
+
+  A number of retries after a modbus read command fails.
+
+* **write_retries** (optional, default 2)
+
+  A number of retries after a modbus write command fails.
+
+* **RTU device settings**
+
   For details, see modbus_new_rtu(3)
 
   * **device** (required)
@@ -176,7 +185,7 @@ Modbus network configuration parameters are listed below:
 
     modbus Request To Send delay period in microseconds. See modbus_rtu_set_rts_delay(3)
 
-* TCP/IP device settings
+* **TCP/IP device settings**
 
   * **address**
 
@@ -185,6 +194,16 @@ Modbus network configuration parameters are listed below:
   * **port**
 
     TCP port of a device
+
+* **watchdog** (optional)    
+
+  An optional configuration section for modbus connection watchdog. Watchdog monitors modbus command errors. If there is no successful command execution in *watch_period*, then it restarts the modbus connection.
+
+  Additionally for RTU network the *device* path is checked on the first error and then in small (300ms) time periods. If modbus RTU device is unplugged, then connection is restarted.
+
+  * **watch_period** (optional, timespan, default=10s)
+    
+  The amount of time after which the connection should be reestablished if there has been no successful execution of a modbus command.
 
 * **slaves** (optional)
   An optional slave list with modbus specific configuration like register groups to poll (see poll groups below) and timing constraints
@@ -200,6 +219,14 @@ Modbus network configuration parameters are listed below:
   * **delay_before_command** (timespan, optional)
 
       Same as global *delay_before_command* but applies to this slave only.
+
+  * **read_retries** (optional)
+
+    A number of retries after a modbus read command to this slave fails. Uses the global *read_retries* if not defined.
+
+  * **write_retries** (optional)
+
+    A number of retries after a modbus write command to this slave fails. Uses the global *write_retries* if not defined.
 
   * **poll_groups** (optional)
 

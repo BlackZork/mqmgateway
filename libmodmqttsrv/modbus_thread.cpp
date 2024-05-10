@@ -9,7 +9,7 @@
 namespace modmqttd {
 
 void
-setCommandDelays(IRegisterCommand& cmd, const std::chrono::milliseconds& everyTime, const std::chrono::milliseconds& onChange) {
+setCommandDelays(RegisterCommand& cmd, const std::chrono::milliseconds& everyTime, const std::chrono::milliseconds& onChange) {
     ModbusCommandDelay delay;
     if (everyTime != std::chrono::milliseconds::zero()) {
         delay = everyTime;
@@ -20,7 +20,6 @@ setCommandDelays(IRegisterCommand& cmd, const std::chrono::milliseconds& everyTi
     }
     cmd.setDelay(delay);
 }
-
 
 void
 ModbusThread::sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item) {
@@ -43,6 +42,7 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mModbus = ModMqtt::getModbusFactory().getContext(config.mName);
     mModbus->init(config);
     mExecutor.init(mModbus);
+    mWatchdog.init(config.mWatchdogConfig);
 
     mDelayBeforeCommand = config.mDelayBeforeCommand;
     mDelayBeforeFirstCommand = config.mDelayBeforeFirstCommand;
@@ -52,6 +52,9 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
             << ", delay when slave changes "
             << std::chrono::duration_cast<std::chrono::milliseconds>(mDelayBeforeFirstCommand).count() << "ms";
     }
+
+    mMaxReadRetryCount = config.mMaxReadRetryCount;
+    mMaxWriteRetryCount = config.mMaxWriteRetryCount;
 }
 
 void
@@ -67,9 +70,12 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
 
             setCommandDelays(*reg, mDelayBeforeCommand, mDelayBeforeFirstCommand);
+            reg->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
 
-            if (slave_cfg != mSlaves.end())
+            if (slave_cfg != mSlaves.end()) {
                 setCommandDelays(*reg, slave_cfg->second.mDelayBeforeCommand, slave_cfg->second.mDelayBeforeFirstCommand);
+                reg->setMaxRetryCounts(slave_cfg->second.mMaxReadRetryCount, slave_cfg->second.mMaxWriteRetryCount);
+            }
 
             registerMap[it->mSlaveId].push_back(reg);
         }
@@ -107,11 +113,12 @@ ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
     }
 
     setCommandDelays(*cmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
+    cmd->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
     std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(msg->mSlaveId);
     if (it != mSlaves.end()) {
         setCommandDelays(*cmd, it->second.mDelayBeforeCommand, it->second.mDelayBeforeFirstCommand);
+        cmd->setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
     }
-
 
     mExecutor.addWriteCommand(msg->mSlaveId, cmd);
 }
@@ -161,6 +168,7 @@ ModbusThread::updateFromSlaveConfig(const ModbusSlaveConfig& pConfig) {
     if (slave_registers != registers.end()) {
         for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
             setCommandDelays(**it, pConfig.mDelayBeforeCommand, pConfig.mDelayBeforeFirstCommand);
+            (*it)->setMaxRetryCounts(pConfig.mMaxReadRetryCount, pConfig.mMaxWriteRetryCount);
         }
     }
 }
@@ -197,10 +205,11 @@ ModbusThread::run() {
                     mModbus->connect();
                     if (mModbus->isConnected()) {
                         BOOST_LOG_SEV(log, Log::info) << "modbus: connected";
+                        mWatchdog.reset();
                         sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, true)));
                         // if modbus network was disconnected
                         // we need to refresh everything
-                        if (!mExecutor.isInitial()) {
+                        if (!mExecutor.isInitialPollInProgress()) {
                             mExecutor.setupInitialPoll(mScheduler.getPollSpecification());
                         }
                     }
@@ -214,7 +223,7 @@ ModbusThread::run() {
                     if (mMqttConnected) {
 
                         auto now = std::chrono::steady_clock::now();
-                        if (!mExecutor.isInitial() && nextPollTimePoint < now) {
+                        if (!mExecutor.isInitialPollInProgress() && nextPollTimePoint < now) {
                             std::chrono::steady_clock::duration schedulerWaitDuration;
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(schedulerWaitDuration, now);
                             nextPollTimePoint = now + schedulerWaitDuration;
@@ -226,7 +235,10 @@ ModbusThread::run() {
                         if (mExecutor.allDone()) {
                             idleWaitDuration = (nextPollTimePoint - now);
                         } else {
-                            idleWaitDuration = mExecutor.pollNext();
+                            idleWaitDuration = mExecutor.executeNext();
+                            if (idleWaitDuration == std::chrono::steady_clock::duration::zero()) {
+                                mWatchdog.inspectCommand(*mExecutor.getLastCommand());
+                            }
                         }
                     } else {
                         if (!mMqttConnected)
@@ -247,13 +259,26 @@ ModbusThread::run() {
             //dispatchMessages can change mShouldRun flag, do not wait
             //for next poll if we are exiting
             if (mShouldRun) {
-                QueueItem item;
-                BOOST_LOG_SEV(log, Log::debug) << constructIdleWaitMessage(idleWaitDuration);
-                if (!mToModbusQueue.wait_dequeue_timed(item, idleWaitDuration))
-                    continue;
-                dispatchMessages(item);
-                while(mToModbusQueue.try_dequeue(item))
+                if (mModbus && mModbus->isConnected() && mWatchdog.isReconnectRequired()) {
+                    if (mWatchdog.isDeviceRemoved()) {
+                        BOOST_LOG_SEV(log, Log::error) << "Device " << mWatchdog.getDevicePath() << " was removed, forcing reconnect";
+                    } else {
+                        BOOST_LOG_SEV(log, Log::error) << "Cannot execute any command in last "
+                            << std::chrono::duration_cast<std::chrono::seconds>(mWatchdog.getCurrentErrorPeriod()).count() << "s"
+                            << ", reconnecting";
+                    }
+                    mWatchdog.reset();
+                    mModbus->disconnect();
+                    sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, false)));
+                } else {
+                    QueueItem item;
+                    BOOST_LOG_SEV(log, Log::trace) << constructIdleWaitMessage(idleWaitDuration);
+                    if (!mToModbusQueue.wait_dequeue_timed(item, idleWaitDuration))
+                        continue;
                     dispatchMessages(item);
+                    while(mToModbusQueue.try_dequeue(item))
+                        dispatchMessages(item);
+                }
             }
         };
         if (mModbus && mModbus->isConnected())

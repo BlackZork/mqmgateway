@@ -7,7 +7,7 @@ namespace modmqttd {
 boost::log::sources::severity_logger<Log::severity> ModbusNetworkConfig::log;
 
 #if __cplusplus < 201703L
-    constexpr std::chrono::milliseconds ModbusNetworkConfig::MAX_RESPONSE_TIMEOUT;
+constexpr std::chrono::milliseconds ModbusNetworkConfig::MAX_RESPONSE_TIMEOUT;
 #endif
 
 ConfigurationException::ConfigurationException(const YAML::Mark& mark, const char* what) {
@@ -43,6 +43,9 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, source, "delay_before_command");
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeFirstCommand, source, "delay_before_first_command");
 
+    ConfigTools::readOptionalValue<unsigned short>(this->mMaxWriteRetryCount, source, "write_retries");
+    ConfigTools::readOptionalValue<unsigned short>(this->mMaxReadRetryCount, source, "read_retries");
+
 
     if (source["device"]) {
         mType = Type::RTU;
@@ -54,12 +57,18 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
         ConfigTools::readOptionalValue<RtuSerialMode>(this->mRtuSerialMode, source, "rtu_serial_mode");
         ConfigTools::readOptionalValue<RtuRtsMode>(this->mRtsMode, source, "rtu_rts_mode");
         ConfigTools::readOptionalValue<int>(this->mRtsDelayUs, source, "rtu_rts_delay_us");
+
+        mWatchdogConfig.mDevicePath = mDevice;
     } else if (source["address"]) {
         mType = Type::TCPIP;
         mAddress = ConfigTools::readRequiredString(source, "address");
         mPort = ConfigTools::readRequiredValue<int>(source, "port");
     } else {
         throw ConfigurationException(source.Mark(), "Cannot determine modbus network type: missing 'device' or 'address'");
+    }
+
+    if (source["watchdog"]) {
+        ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mWatchdogConfig.mWatchPeriod, source["watchdog"], "watch_period");
     }
 }
 

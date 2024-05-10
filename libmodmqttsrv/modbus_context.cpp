@@ -117,6 +117,7 @@ ModbusContext::connect() {
 void
 ModbusContext::disconnect() {
     modbus_close(mCtx);
+    mIsConnected = false;
 }
 
 std::vector<uint16_t>
