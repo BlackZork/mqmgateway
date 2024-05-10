@@ -34,7 +34,9 @@ ModbusWatchdog::inspectCommand(const RegisterCommand& command) {
             if (!mDeviceRemoved && (mLastCommandOk || (now - mLastDeviceCheckTime) > sDeviceCheckPeriod)) {
                 mDeviceRemoved = !boost::filesystem::exists(mConfig.mDevicePath.c_str());
                 mLastDeviceCheckTime = now;
-                BOOST_LOG_SEV(log, Log::debug) << "Detected device" << mConfig.mDevicePath << " removal";
+                if (mDeviceRemoved) {
+                    BOOST_LOG_SEV(log, Log::warning) << "Detected device " << mConfig.mDevicePath << " removal";
+                }
             }
         }
     }

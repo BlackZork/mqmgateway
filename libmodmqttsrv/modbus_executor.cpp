@@ -118,7 +118,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
 void
 ModbusExecutor::addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite>& pCommand) {
-    auto& queue = mSlaveQueues[slaveId];
+    ModbusRequestsQueues& queue = mSlaveQueues[slaveId];
     queue.addWriteCommand(pCommand);
     if (mCurrentSlaveQueue == mSlaveQueues.end()) {
         mCurrentSlaveQueue = mSlaveQueues.begin();
@@ -136,15 +136,20 @@ ModbusExecutor::pollRegisters(int slaveId, RegisterPoll& reg, bool forceSend) {
         reg.mLastReadOk = true;
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
+        BOOST_LOG_SEV(log, Log::trace) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
                         << " polled in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
         if ((reg.getValues() != newValues) || forceSend || (reg.mReadErrors != 0)) {
             MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValues);
             sendMessage(QueueItem::create(val));
             reg.update(newValues);
+            if (reg.mReadErrors != 0) {
+                BOOST_LOG_SEV(log, Log::debug) << "Register "
+                    << slaveId << "." << reg.mRegister 
+                    << " read ok after " << reg.mReadErrors << " error(s)";
+            }
             reg.mReadErrors = 0;
-            BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << reg.mRegister
+            BOOST_LOG_SEV(log, Log::trace) << "Register " << slaveId << "." << reg.mRegister
                 << " values sent, data=" << DebugTools::registersToStr(reg.getValues());
         };
     } catch (const ModbusReadException& ex) {
