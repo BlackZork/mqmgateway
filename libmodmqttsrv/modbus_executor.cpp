@@ -45,7 +45,7 @@ ModbusExecutor::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr
 void
 ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
 
-    bool setupQueues = pollDone();
+    bool setupQueues = allDone();
 
     if (mInitialPoll) {
         if (!pollDone()) {
@@ -81,7 +81,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
     BOOST_LOG_SEV(log, Log::trace) << "Starting election for silence period " << std::chrono::duration_cast<std::chrono::milliseconds>(last_silence_period).count() << "ms";
 
-    mWaitingCommand = nullptr;
+    assert(mWaitingCommand == nullptr);
     resetCommandsCounter();
 
     auto currentDiff = std::chrono::steady_clock::duration::max();
@@ -110,7 +110,6 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
     if (mWaitingCommand == nullptr) {
         mWaitingCommand = mCurrentSlaveQueue->second.popNext();
     }
-
 
     BOOST_LOG_SEV(log, Log::trace) << "Next register to poll set to " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister() << ", commands_left=" << mCommandsLeft;
 }
@@ -145,7 +144,7 @@ ModbusExecutor::pollRegisters(int slaveId, RegisterPoll& reg, bool forceSend) {
             reg.update(newValues);
             if (reg.mReadErrors != 0) {
                 BOOST_LOG_SEV(log, Log::debug) << "Register "
-                    << slaveId << "." << reg.mRegister 
+                    << slaveId << "." << reg.mRegister
                     << " read ok after " << reg.mReadErrors << " error(s)";
             }
             reg.mReadErrors = 0;
@@ -353,6 +352,9 @@ ModbusExecutor::allDone() const {
 
 bool
 ModbusExecutor::pollDone() const {
+    if (mWaitingCommand != nullptr && typeid(*mWaitingCommand) == typeid(RegisterPoll))
+        return false;
+
     auto non_empty = std::find_if(mSlaveQueues.begin(), mSlaveQueues.end(),
         [](const auto& queue) -> bool { return !(queue.second.mPollQueue.empty()); }
     );

@@ -117,4 +117,23 @@ TEST_CASE("ModbusExecutor for first delay config") {
         REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(1,1));
         REQUIRE(executor.allDone());
     }
+
+    SECTION("should not wipe current command when adding next pollList with command that needs to wait") {
+        // execute poll to clean silence period
+        auto reg1 = registers.addPoll(1, 1);
+        executor.setupInitialPoll(registers);
+        executor.executeNext();
+
+        // add write about to be executed
+        auto write = registers.createWriteDelayed(1,0x15, std::chrono::milliseconds(30));
+        executor.addWriteCommand(1, write);
+        waitTime = executor.executeNext();
+        REQUIRE(executor.getWaitingCommand() == write);
+
+        // bug - should not drop waiting command when adding new command that needs wait
+        reg1 = registers.addPoll(1, 1, std::chrono::milliseconds(50));
+        executor.setupInitialPoll(registers);
+        REQUIRE(executor.getWaitingCommand() == write);
+    }
+
 }

@@ -10,7 +10,7 @@ Main features:
 * Flexible MQTT state topic configuration:
   * single modbus register published as string value
   * multiple modbus registers as JSON object
-  * multiple modubs registers as JSON list
+  * multiple modbus registers as JSON list
   * registers from different slaves combined as single JSON list/object
 * Full control over modbus data polling
   * read multiple register values once for multiple topics
