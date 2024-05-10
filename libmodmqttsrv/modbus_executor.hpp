@@ -80,10 +80,10 @@ class ModbusExecutor {
         std::chrono::time_point<std::chrono::steady_clock> mInitialPollStart;
 
         void sendCommand();
-        void pollRegisters(int slaveId, RegisterPoll& reg_ptr, bool forceSend);
-        void writeRegisters(int slaveId, RegisterWrite& cmd);
+        void pollRegisters(RegisterPoll& reg_ptr, bool forceSend);
+        void writeRegisters(RegisterWrite& cmd);
         void sendMessage(const QueueItem& item);
-        void handleRegisterReadError(int slaveId, RegisterPoll& reg, const char* errorMessage);
+        void handleRegisterReadError(RegisterPoll& reg, const char* errorMessage);
         void resetCommandsCounter();
 
         void setMaxReadRetryCount(short val) { mMaxReadRetryCount = mReadRetryCount = val; }
