@@ -43,7 +43,7 @@ ModbusExecutor::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr
 void
 ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool initialPoll) {
 
-    bool setupQueues = pollDone();
+    bool setupQueues = allDone();
 
     if (mInitialPoll) {
         if (!pollDone()) {
@@ -79,6 +79,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
     BOOST_LOG_SEV(log, Log::trace) << "Starting election for silence period " << std::chrono::duration_cast<std::chrono::milliseconds>(last_silence_period).count() << "ms";
 
+    assert(mWaitingRegister == nullptr);
     mWaitingRegister = nullptr;
     resetCommandsCounter();
 
@@ -108,7 +109,6 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
     if (mWaitingRegister == nullptr) {
         mWaitingRegister = mCurrentSlaveQueue->second.popNext();
     }
-
 
     BOOST_LOG_SEV(log, Log::trace) << "Next register to poll set to " << mCurrentSlaveQueue->first << "." << mWaitingRegister->getRegister() << ", commands_left=" << mCommandsLeft;
 }
@@ -305,6 +305,9 @@ ModbusExecutor::allDone() const {
 
 bool
 ModbusExecutor::pollDone() const {
+    if (mWaitingRegister != nullptr && typeid(*mWaitingRegister) == typeid(RegisterPoll))
+        return false;
+
     auto non_empty = std::find_if(mSlaveQueues.begin(), mSlaveQueues.end(),
         [](const auto& queue) -> bool { return !(queue.second.mPollQueue.empty()); }
     );

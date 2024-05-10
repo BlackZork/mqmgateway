@@ -235,9 +235,11 @@ TEST_CASE("ModbusExecutor") {
         executor.pollNext(); //write 1,10
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 10, modmqttd::RegisterType::HOLDING) == 201);
 
-        //back to read/write mode, mWaiting register reset to 1,1
+        //back to read/write mode, queues are not setup because we still have something to write
+        //now we have more commands that poll size due to WRITE_BATCH_SIZE set in write only period
+        //TODO maybe allow to set commandsLeft to lower value to align with new poll size?
         executor.addPollList(registers);
-        REQUIRE(executor.getCommandsLeft() == 6);
+        REQUIRE(executor.getCommandsLeft() == 8);
 
         executor.pollNext(); //poll 1,1
         REQUIRE(fromModbusQueue.size_approx() == 4);
@@ -250,7 +252,7 @@ TEST_CASE("ModbusExecutor") {
         REQUIRE(fromModbusQueue.size_approx() == 6);
 
 
-        REQUIRE(executor.getCommandsLeft() == 2);
+        REQUIRE(executor.getCommandsLeft() == 4);
         REQUIRE(executor.allDone());
     }
 
@@ -305,6 +307,8 @@ TEST_CASE("ModbusExecutor") {
         // still polling, should not relect 1,2
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         executor.addPollList(registers);
+        //we do not increase commands left to avoid queue lock if
+        //scheduler adds registers quickly
         REQUIRE(executor.getCommandsLeft() == 5);
         REQUIRE(executor.getWaitingRegister() == nullptr);
     }
