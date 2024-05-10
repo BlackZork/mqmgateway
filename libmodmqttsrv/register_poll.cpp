@@ -12,12 +12,12 @@ RegisterCommand::setMaxRetryCounts(short pMaxRead, short pMaxWrite, bool pForce)
         mMaxWriteRetryCount = pMaxWrite;
 }
 
-RegisterPoll::RegisterPoll(int regNum, RegisterType regType, int regCount, std::chrono::milliseconds refreshMsec)
-    : RegisterCommand(regNum, regType, regCount),
+RegisterPoll::RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int pRegCount, std::chrono::milliseconds pRefreshMsec)
+    : RegisterCommand(pSlaveId, pRegNum, pRegType, pRegCount),
       mLastRead(std::chrono::steady_clock::now() - std::chrono::hours(24)),
-      mLastValues(regCount)
+      mLastValues(pRegCount)
 {
-    mRefresh = refreshMsec;
+    mRefresh = pRefreshMsec;
     mReadErrors = 0;
     mFirstErrorTime = std::chrono::steady_clock::now();
     mDelay = std::chrono::milliseconds::zero();

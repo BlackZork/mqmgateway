@@ -116,8 +116,8 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
 
 void
-ModbusExecutor::addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite>& pCommand) {
-    ModbusRequestsQueues& queue = mSlaveQueues[slaveId];
+ModbusExecutor::addWriteCommand(const std::shared_ptr<RegisterWrite>& pCommand) {
+    ModbusRequestsQueues& queue = mSlaveQueues[pCommand->mSlaveId];
     queue.addWriteCommand(pCommand);
     if (mCurrentSlaveQueue == mSlaveQueues.end()) {
         mCurrentSlaveQueue = mSlaveQueues.begin();

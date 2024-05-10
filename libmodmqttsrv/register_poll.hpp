@@ -12,8 +12,9 @@ namespace modmqttd {
 
 class RegisterCommand : public ModbusAddressRange {
     public:
-        RegisterCommand(int pRegister, RegisterType pRegisterType, int pCount)
-            : ModbusAddressRange(pRegister, pRegisterType, pCount)
+        RegisterCommand(int pSlaveId, int pRegister, RegisterType pRegisterType, int pCount)
+            : ModbusAddressRange(pRegister, pRegisterType, pCount),
+              mSlaveId(pSlaveId)
         {}
 
         virtual int getRegister() const = 0;
@@ -30,6 +31,8 @@ class RegisterCommand : public ModbusAddressRange {
 
         void setMaxRetryCounts(short pMaxRead, short pMaxWrite, bool pForce = false);
 
+        int mSlaveId;
+
         short mMaxReadRetryCount;
         short mMaxWriteRetryCount;
     protected:
@@ -44,7 +47,7 @@ class RegisterPoll : public RegisterCommand {
         // if we cannot read register in this time MsgRegisterReadFailed is sent
         static constexpr int DefaultReadErrorCount = 3;
 
-        RegisterPoll(int regNum, RegisterType regType, int regCount, std::chrono::milliseconds refreshMsec);
+        RegisterPoll(int pSlaveId, int regNum, RegisterType regType, int regCount, std::chrono::milliseconds refreshMsec);
 
         virtual int getRegister() const { return mRegister; };
         virtual int getCount() const { return mLastValues.size(); }
@@ -68,13 +71,14 @@ class RegisterPoll : public RegisterCommand {
 class RegisterWrite : public RegisterCommand {
     public:
         RegisterWrite(const MsgRegisterValues& msg)
-            : RegisterWrite(msg.mRegister,
+            : RegisterWrite(msg.mSlaveId,
+              msg.mRegister,
               msg.mRegisterType,
               msg.mRegisters
               )
         {}
-        RegisterWrite(int pRegister, RegisterType pType, const ModbusRegisters& pValues)
-            : RegisterCommand(pRegister, pType, pValues.getCount()),
+        RegisterWrite(int pSlaveId, int pRegister, RegisterType pType, const ModbusRegisters& pValues)
+            : RegisterCommand(pSlaveId, pRegister, pType, pValues.getCount()),
               mValues(pValues)
         {}
 

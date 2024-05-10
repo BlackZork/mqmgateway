@@ -66,8 +66,8 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
         // do not poll a poll group declared in modbus config section
         // that was not merged with any mqtt register declaration
         if (it->mRefreshMsec != MsgRegisterPoll::INVALID_REFRESH) {
-            std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
-            std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(it->mSlaveId);
+            std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mSlaveId, it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
+            std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(reg->mSlaveId);
 
             setCommandDelays(*reg, mDelayBeforeCommand, mDelayBeforeFirstCommand);
             reg->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
@@ -77,7 +77,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
                 reg->setMaxRetryCounts(slave_cfg->second.mMaxReadRetryCount, slave_cfg->second.mMaxWriteRetryCount);
             }
 
-            registerMap[it->mSlaveId].push_back(reg);
+            registerMap[reg->mSlaveId].push_back(reg);
         }
     }
 
@@ -120,7 +120,7 @@ ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
         cmd->setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
     }
 
-    mExecutor.addWriteCommand(msg->mSlaveId, cmd);
+    mExecutor.addWriteCommand(cmd);
 }
 
 void
