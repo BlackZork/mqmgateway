@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <sys/stat.h>
 #include <string>
 #include <ostream>
 #include <fstream>
@@ -31,8 +32,8 @@ std::ostream& operator<< (std::ostream& strm, Log::severity level)
     {
         "CRITICAL",
         "ERROR",
-        "WARNING",
-        "INFO",
+        "WARN ",
+        "INFO ",
         "DEBUG",
         "TRACE"
     };
@@ -53,12 +54,48 @@ void Log::init_logging(severity level) {
     boost::shared_ptr< std::ostream > stream(&std::clog, boost::null_deleter());
     sink->locked_backend()->add_stream(stream);
 
+    boost::log::formatter formatter;
+
+    bool log_timestamp = true;
+
+    //check JOURNAL_STREAM indoe vs stderr inode
+    const char* js = std::getenv("JOURNAL_STREAM");
+    if (js != nullptr) {
+        std::string jstr(js);
+        size_t t = jstr.find(':');
+        if (jstr.size() > 2 &&  t > 0) {
+            std::string env_inode(jstr.substr(t+1));
+            if (!env_inode.empty()) {
+                struct stat file_stat;
+                int ret, inode;
+                ret = fstat (2, &file_stat);
+                if (ret >= 0) {
+                    inode = file_stat.st_ino;
+                    if (std::to_string(inode) == env_inode)
+                        log_timestamp = false;
+                }
+            };
+        }
+    }
+
+    auto ts_format = expr::stream << expr::attr<boost::posix_time::ptime>("TimeStamp") << ": ";
+    auto log_format = expr::stream << "[" << log_severity << "] " << expr::smessage;
+
+    if (log_timestamp) {
+        //TODO how to use log_format ?
+        auto format = ts_format << "[" << log_severity << "] " << expr::smessage;
+        formatter = format;
+    } else {
+        formatter = log_format;
+    }
+
     sink->set_formatter
     (
-        expr::stream
-            << expr::attr<boost::posix_time::ptime>("TimeStamp")
-            << ": [" << log_severity << "]\t"
-            << expr::smessage
+        formatter
+        // expr::stream
+        //     << expr::attr<boost::posix_time::ptime>("TimeStamp")
+        //     << ": [" << log_severity << "]\t"
+        //     << expr::smessage
     );
 
     sink->set_filter(log_severity <= level);
