@@ -71,14 +71,13 @@ class RegisterPoll : public RegisterCommand {
 class RegisterWrite : public RegisterCommand {
     public:
         RegisterWrite(const MsgRegisterValues& msg)
-            : RegisterWrite(msg.mSlaveId,
-              msg.mRegister,
-              msg.mRegisterType,
-              msg.mRegisters
-              )
+            : RegisterCommand(msg.mSlaveId, msg.mRegister, msg.mRegisterType, msg.mRegisters.getCount()),
+              mCreationTime(msg.mCreationTime),
+              mValues(msg.mRegisters)
         {}
         RegisterWrite(int pSlaveId, int pRegister, RegisterType pType, const ModbusRegisters& pValues)
             : RegisterCommand(pSlaveId, pRegister, pType, pValues.getCount()),
+              mCreationTime(std::chrono::steady_clock::now()),
               mValues(pValues)
         {}
 
@@ -90,6 +89,7 @@ class RegisterWrite : public RegisterCommand {
         ModbusRegisters mValues;
 
         bool mLastWriteOk = false;
+        std::chrono::steady_clock::time_point mCreationTime;
 
         std::shared_ptr<MsgRegisterValues> mReturnMessage;
 };

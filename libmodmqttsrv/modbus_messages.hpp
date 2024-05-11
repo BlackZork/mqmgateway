@@ -33,11 +33,16 @@ class MsgRegisterValues : public MsgRegisterMessageBase {
     public:
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers)
             : MsgRegisterMessageBase(slaveId, registerNumber, regType, registers.getCount()),
-              mRegisters(registers) {}
+              mRegisters(registers),
+              mCreationTime(std::chrono::steady_clock::now())
+            {}
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers)
             : MsgRegisterMessageBase(slaveId, registerNumber, regType, registers.size()),
-              mRegisters(registers) {}
+              mRegisters(registers), 
+              mCreationTime(std::chrono::steady_clock::now())
+            {}
 
+        std::chrono::steady_clock::time_point mCreationTime;
         ModbusRegisters mRegisters;
 };
 
