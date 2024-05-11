@@ -64,6 +64,8 @@ class ModbusExecutor {
         // is called faster than executor is able to handle them.
         int mCommandsLeft = 0;
 
+        int mWriteCommandsQueued = 0;
+
         short mMaxReadRetryCount = 0;
         short mMaxWriteRetryCount = 0;
         short mWriteRetryCount;

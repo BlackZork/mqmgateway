@@ -117,12 +117,29 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
 void
 ModbusExecutor::addWriteCommand(const std::shared_ptr<RegisterWrite>& pCommand) {
-    ModbusRequestsQueues& queue = mSlaveQueues[pCommand->mSlaveId];
-    queue.addWriteCommand(pCommand);
-    if (mCurrentSlaveQueue == mSlaveQueues.end()) {
-        mCurrentSlaveQueue = mSlaveQueues.begin();
+    if (mWriteCommandsQueued == 0) {
+        // skip queuing for if there is no queued write commands.
+        // This improves write latency in use case, where there is a lot of polling 
+        // and sporadic write. I belive this is main use case for this gateway. 
+
+        // TODO this could leat to poll queue starvation when write commands
+        // arive in sync with slave execution time. Maybe there should be a 
+        // configuration switch to turn it off? 
+        if (mWaitingCommand != nullptr) 
+            mSlaveQueues[pCommand->mSlaveId].readdCommand(mWaitingCommand);
+
+        mWaitingCommand = pCommand;
+        mCurrentSlaveQueue = mSlaveQueues.find(pCommand->mSlaveId);
         resetCommandsCounter();
+    } else {
+        ModbusRequestsQueues& queue = mSlaveQueues[pCommand->mSlaveId];
+        queue.addWriteCommand(pCommand);
+        if (mCurrentSlaveQueue == mSlaveQueues.end()) {
+            mCurrentSlaveQueue = mSlaveQueues.find(pCommand->mSlaveId);
+            resetCommandsCounter();
+        }
     }
+    mWriteCommandsQueued++;
 }
 
 
@@ -325,6 +342,8 @@ ModbusExecutor::sendCommand() {
             }
         } else {
             mWriteRetryCount = mMaxWriteRetryCount;
+            mWriteCommandsQueued--;
+            assert(mWriteCommandsQueued >= 0);
         }
     }
     mLastQueue = mCurrentSlaveQueue;

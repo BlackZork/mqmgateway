@@ -17,6 +17,8 @@ class ModbusRequestsQueues {
         // to count and log write errors in 5min timeframes
         void addWriteCommand(const std::shared_ptr<RegisterWrite>& pReq);
 
+        void readdCommand(const std::shared_ptr<RegisterCommand>& pCmd);
+
         // find the smallest positive difference between silence_period and delay need for register in queue.
         std::chrono::steady_clock::duration findForSilencePeriod(std::chrono::steady_clock::duration pPeriod, bool ignore_first_read);
 

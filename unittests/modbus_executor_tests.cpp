@@ -211,20 +211,21 @@ TEST_CASE("ModbusExecutor") {
 
         REQUIRE(executor.getCommandsLeft() == 6);
 
-        executor.executeNext(); //poll 1,1
-        REQUIRE(fromModbusQueue.size_approx() == 1);
+        //first write prioirty kicks in
         executor.executeNext(); //write 1,1
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 1, modmqttd::RegisterType::HOLDING) == 100);
+        executor.executeNext(); //poll 1,1
+        REQUIRE(fromModbusQueue.size_approx() == 1);
 
-        executor.executeNext(); //poll 1,10
-        REQUIRE(fromModbusQueue.size_approx() == 2);
         executor.executeNext(); //write 1,10
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 10, modmqttd::RegisterType::HOLDING) == 101);
+        executor.executeNext(); //poll 1,10
+        REQUIRE(fromModbusQueue.size_approx() == 2);
 
-        executor.executeNext(); //poll 1,20
-        REQUIRE(fromModbusQueue.size_approx() == 3);
         executor.executeNext(); //write 1,20
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 20, modmqttd::RegisterType::HOLDING) == 102);
+        executor.executeNext(); //poll 1,20
+        REQUIRE(fromModbusQueue.size_approx() == 3);
 
         // write only mode, start writing 20x values
         executor.executeNext(); //write 1,1
