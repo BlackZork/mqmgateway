@@ -95,4 +95,15 @@ ModbusRequestsQueues::addWriteCommand(const std::shared_ptr<RegisterWrite>& pReq
 }
 
 
+void 
+ModbusRequestsQueues::readdCommand(const std::shared_ptr<RegisterCommand>& pCmd) {
+    if (typeid(*pCmd) == typeid(RegisterPoll)) {
+        mPollQueue.push_front(std::static_pointer_cast<RegisterPoll>(pCmd));
+        mPopFromPoll = true;
+    } else {
+        mWriteQueue.push_front(std::static_pointer_cast<RegisterWrite>(pCmd));
+        mPopFromPoll = false;
+    }
+}
+
 }

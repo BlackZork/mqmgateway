@@ -12,7 +12,7 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
             std::chrono::milliseconds refresh = std::chrono::milliseconds(10)
         ) {
             //TODO no check if already on list
-            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
+            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(slave, number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
             (*this)[slave].push_back(reg);
             return reg;
         }
@@ -25,7 +25,7 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
             std::chrono::milliseconds refresh = std::chrono::milliseconds(10)
         ) {
             //TODO no check if already on list
-            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
+            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(slave, number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
             modmqttd::ModbusCommandDelay md(delay);
             md.delay_type = delayType;
             reg->setDelay(md);
@@ -35,20 +35,22 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
 
 
         static std::shared_ptr<modmqttd::RegisterWrite> createWrite(
+            int slave,
             int number,
             uint16_t value
         ) {
-            std::shared_ptr<modmqttd::RegisterWrite> reg(new modmqttd::RegisterWrite(number-1, modmqttd::RegisterType::HOLDING, value));
+            std::shared_ptr<modmqttd::RegisterWrite> reg(new modmqttd::RegisterWrite(slave, number-1, modmqttd::RegisterType::HOLDING, value));
             return reg;
         }
 
         static std::shared_ptr<modmqttd::RegisterWrite> createWriteDelayed (
+            int slave,
             int number,
             uint16_t value,
             std::chrono::steady_clock::duration delay = std::chrono::milliseconds::zero(),
             modmqttd::ModbusCommandDelay::DelayType delayType = modmqttd::ModbusCommandDelay::DelayType::EVERYTIME
         ) {
-            std::shared_ptr<modmqttd::RegisterWrite> reg(new modmqttd::RegisterWrite(number-1, modmqttd::RegisterType::HOLDING, value));
+            std::shared_ptr<modmqttd::RegisterWrite> reg(new modmqttd::RegisterWrite(slave, number-1, modmqttd::RegisterType::HOLDING, value));
             modmqttd::ModbusCommandDelay md(delay);
             md.delay_type = delayType;
             reg->setDelay(md);

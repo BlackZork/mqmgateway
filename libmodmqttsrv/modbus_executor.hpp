@@ -24,7 +24,7 @@ class ModbusExecutor {
         bool pollDone() const;
 
         void addPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool mInitialPoll = false);
-        void addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite>& pCommand);
+        void addWriteCommand(const std::shared_ptr<RegisterWrite>& pCommand);
         /**
          *  Get next request R to send from modbus queues
          *  If R needs delay then return how much time we should wait before
@@ -64,6 +64,8 @@ class ModbusExecutor {
         // is called faster than executor is able to handle them.
         int mCommandsLeft = 0;
 
+        int mWriteCommandsQueued = 0;
+
         short mMaxReadRetryCount = 0;
         short mMaxWriteRetryCount = 0;
         short mWriteRetryCount;
@@ -80,10 +82,10 @@ class ModbusExecutor {
         std::chrono::time_point<std::chrono::steady_clock> mInitialPollStart;
 
         void sendCommand();
-        void pollRegisters(int slaveId, RegisterPoll& reg_ptr, bool forceSend);
-        void writeRegisters(int slaveId, RegisterWrite& cmd);
+        void pollRegisters(RegisterPoll& reg_ptr, bool forceSend);
+        void writeRegisters(RegisterWrite& cmd);
         void sendMessage(const QueueItem& item);
-        void handleRegisterReadError(int slaveId, RegisterPoll& reg, const char* errorMessage);
+        void handleRegisterReadError(RegisterPoll& reg, const char* errorMessage);
         void resetCommandsCounter();
 
         void setMaxReadRetryCount(short val) { mMaxReadRetryCount = mReadRetryCount = val; }

@@ -202,29 +202,30 @@ TEST_CASE("ModbusExecutor") {
 
         //mWaitingCommand is set to poll 1,1
         executor.setupInitialPoll(registers);
-        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(1, 100));
-        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(10, 101));
-        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(20, 102));
-        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(1, 200));
-        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(10, 201));
-        executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(20, 202));
+        executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(1, 1, 100));
+        executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(1, 10, 101));
+        executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(1, 20, 102));
+        executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(1, 1, 200));
+        executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(1, 10, 201));
+        executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(1, 20, 202));
 
         REQUIRE(executor.getCommandsLeft() == 6);
 
-        executor.executeNext(); //poll 1,1
-        REQUIRE(fromModbusQueue.size_approx() == 1);
+        //first write prioirty kicks in
         executor.executeNext(); //write 1,1
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 1, modmqttd::RegisterType::HOLDING) == 100);
+        executor.executeNext(); //poll 1,1
+        REQUIRE(fromModbusQueue.size_approx() == 1);
 
-        executor.executeNext(); //poll 1,10
-        REQUIRE(fromModbusQueue.size_approx() == 2);
         executor.executeNext(); //write 1,10
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 10, modmqttd::RegisterType::HOLDING) == 101);
+        executor.executeNext(); //poll 1,10
+        REQUIRE(fromModbusQueue.size_approx() == 2);
 
-        executor.executeNext(); //poll 1,20
-        REQUIRE(fromModbusQueue.size_approx() == 3);
         executor.executeNext(); //write 1,20
         REQUIRE(modbus_factory.getModbusRegisterValue("test", 1, 20, modmqttd::RegisterType::HOLDING) == 102);
+        executor.executeNext(); //poll 1,20
+        REQUIRE(fromModbusQueue.size_approx() == 3);
 
         // write only mode, start writing 20x values
         executor.executeNext(); //write 1,1
@@ -262,9 +263,9 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",2,2,modmqttd::RegisterType::HOLDING, 20);
 
         for (int i = 1; i <= modmqttd::ModbusExecutor::WRITE_BATCH_SIZE+1; i++) {
-            executor.addWriteCommand(1, ModbusExecutorTestRegisters::createWrite(1, i));
+            executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(1, 1, i));
         }
-        executor.addWriteCommand(2, ModbusExecutorTestRegisters::createWrite(2, 200));
+        executor.addWriteCommand(ModbusExecutorTestRegisters::createWrite(2, 2, 200));
 
         for (int i = 0; i < modmqttd::ModbusExecutor::WRITE_BATCH_SIZE; i++) {
             executor.executeNext(); //write to the first slave
@@ -336,9 +337,9 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should retry last write command mMaxWriteRetryCount times if failed") {
         modbus_factory.setModbusRegisterWriteError("test", 1, 1, modmqttd::RegisterType::HOLDING);
 
-        auto cmd(registers.createWrite(1, 0x3));
+        auto cmd(registers.createWrite(1, 1, 0x3));
         cmd->setMaxRetryCounts(0,1);
-        executor.addWriteCommand(1, cmd);
+        executor.addWriteCommand(cmd);
 
         executor.executeNext();
         REQUIRE(!executor.allDone());
@@ -353,9 +354,9 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should delay retry of last write command") {
         modbus_factory.setModbusRegisterWriteError("test", 1, 1, modmqttd::RegisterType::HOLDING);
 
-        auto cmd(registers.createWriteDelayed(1, 0x3, std::chrono::milliseconds(10)));
+        auto cmd(registers.createWriteDelayed(1, 1, 0x3, std::chrono::milliseconds(10)));
         cmd->setMaxRetryCounts(0,1);
-        executor.addWriteCommand(1, cmd);
+        executor.addWriteCommand(cmd);
 
         executor.executeNext();
         REQUIRE(!executor.allDone());

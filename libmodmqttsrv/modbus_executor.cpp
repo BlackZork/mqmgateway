@@ -116,43 +116,60 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
 
 void
-ModbusExecutor::addWriteCommand(int slaveId, const std::shared_ptr<RegisterWrite>& pCommand) {
-    ModbusRequestsQueues& queue = mSlaveQueues[slaveId];
-    queue.addWriteCommand(pCommand);
-    if (mCurrentSlaveQueue == mSlaveQueues.end()) {
-        mCurrentSlaveQueue = mSlaveQueues.begin();
+ModbusExecutor::addWriteCommand(const std::shared_ptr<RegisterWrite>& pCommand) {
+    if (mWriteCommandsQueued == 0) {
+        // skip queuing for if there is no queued write commands.
+        // This improves write latency in use case, where there is a lot of polling 
+        // and sporadic write. I belive this is main use case for this gateway. 
+
+        // TODO this could leat to poll queue starvation when write commands
+        // arive in sync with slave execution time. Maybe there should be a 
+        // configuration switch to turn it off? 
+        if (mWaitingCommand != nullptr) 
+            mSlaveQueues[pCommand->mSlaveId].readdCommand(mWaitingCommand);
+
+        mWaitingCommand = pCommand;
+        mCurrentSlaveQueue = mSlaveQueues.find(pCommand->mSlaveId);
         resetCommandsCounter();
+    } else {
+        ModbusRequestsQueues& queue = mSlaveQueues[pCommand->mSlaveId];
+        queue.addWriteCommand(pCommand);
+        if (mCurrentSlaveQueue == mSlaveQueues.end()) {
+            mCurrentSlaveQueue = mSlaveQueues.find(pCommand->mSlaveId);
+            resetCommandsCounter();
+        }
     }
+    mWriteCommandsQueued++;
 }
 
 
 void
-ModbusExecutor::pollRegisters(int slaveId, RegisterPoll& reg, bool forceSend) {
+ModbusExecutor::pollRegisters(RegisterPoll& reg, bool forceSend) {
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
-        std::vector<uint16_t> newValues(mModbus->readModbusRegisters(slaveId, reg));
+        std::vector<uint16_t> newValues(mModbus->readModbusRegisters(reg.mSlaveId, reg));
         reg.mLastReadOk = true;
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        BOOST_LOG_SEV(log, Log::trace) << "Register " << slaveId << "." << reg.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << reg.mRegister << ")"
+        BOOST_LOG_SEV(log, Log::trace) << "Register " << reg.mSlaveId << "." << reg.mRegister << " (0x" << std::hex << reg.mSlaveId << ".0x" << std::hex << reg.mRegister << ")"
                         << " polled in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
         if ((reg.getValues() != newValues) || forceSend || (reg.mReadErrors != 0)) {
-            MsgRegisterValues val(slaveId, reg.mRegisterType, reg.mRegister, newValues);
+            MsgRegisterValues val(reg.mSlaveId, reg.mRegisterType, reg.mRegister, newValues);
             sendMessage(QueueItem::create(val));
             reg.update(newValues);
             if (reg.mReadErrors != 0) {
                 BOOST_LOG_SEV(log, Log::debug) << "Register "
-                    << slaveId << "." << reg.mRegister
+                    << reg.mSlaveId << "." << reg.mRegister
                     << " read ok after " << reg.mReadErrors << " error(s)";
             }
             reg.mReadErrors = 0;
-            BOOST_LOG_SEV(log, Log::trace) << "Register " << slaveId << "." << reg.mRegister
+            BOOST_LOG_SEV(log, Log::trace) << "Register " << reg.mSlaveId << "." << reg.mRegister
                 << " values sent, data=" << DebugTools::registersToStr(reg.getValues());
         };
     } catch (const ModbusReadException& ex) {
-        handleRegisterReadError(slaveId, reg, ex.what());
+        handleRegisterReadError(reg, ex.what());
     }
     // set mLastRead regardless if modbus command was successful or not
     // ModbusScheduler should not reschedule again after failed read
@@ -162,14 +179,14 @@ ModbusExecutor::pollRegisters(int slaveId, RegisterPoll& reg, bool forceSend) {
 };
 
 void
-ModbusExecutor::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, const char* errorMessage) {
+ModbusExecutor::handleRegisterReadError(RegisterPoll& regPoll, const char* errorMessage) {
     // avoid flooding logs with register read error messages - log last error every 5 minutes
     regPoll.mReadErrors++;
     regPoll.mLastReadOk = false;
 
     if (regPoll.mReadErrors == 1 || (std::chrono::steady_clock::now() - regPoll.mFirstErrorTime > RegisterPoll::DurationBetweenLogError)) {
         BOOST_LOG_SEV(log, Log::error) << regPoll.mReadErrors << " error(s) when reading register "
-            << slaveId << "." << regPoll.mRegister << ", last error: " << errorMessage;
+            << regPoll.mSlaveId << "." << regPoll.mRegister << ", last error: " << errorMessage;
         regPoll.mFirstErrorTime = std::chrono::steady_clock::now();
         if (regPoll.mReadErrors != 1)
             regPoll.mReadErrors = 0;
@@ -177,21 +194,22 @@ ModbusExecutor::handleRegisterReadError(int slaveId, RegisterPoll& regPoll, cons
 
     // start sending MsgRegisterReadFailed if we cannot read register DefaultReadErrorCount times
     if (regPoll.mReadErrors > RegisterPoll::DefaultReadErrorCount) {
-        MsgRegisterReadFailed msg(slaveId, regPoll.mRegisterType, regPoll.mRegister, regPoll.getCount());
+        MsgRegisterReadFailed msg(regPoll.mSlaveId, regPoll.mRegisterType, regPoll.mRegister, regPoll.getCount());
         sendMessage(QueueItem::create(msg));
     }
 }
 
 void
-ModbusExecutor::writeRegisters(int slaveId, RegisterWrite& cmd) {
+ModbusExecutor::writeRegisters(RegisterWrite& cmd) {
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-        mModbus->writeModbusRegisters(slaveId, cmd);
+        mModbus->writeModbusRegisters(cmd.mSlaveId, cmd);
         cmd.mLastWriteOk = true;
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        BOOST_LOG_SEV(log, Log::debug) << "Register " << slaveId << "." << cmd.mRegister << " (0x" << std::hex << slaveId << ".0x" << std::hex << cmd.mRegister << ")"
-                        << " written in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
+        BOOST_LOG_SEV(log, Log::debug) << "Register " << cmd.mSlaveId << "." << cmd.mRegister << " (0x" << std::hex << cmd.mSlaveId << ".0x" << std::hex << cmd.mRegister << ")"
+                        << " written in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms"
+                        << ", processing time "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(start - cmd.mCreationTime).count() << "ms";
 
         if (cmd.mReturnMessage != nullptr) {
             cmd.mReturnMessage->mRegisters = ModbusRegisters(cmd.getValues());
@@ -199,9 +217,9 @@ ModbusExecutor::writeRegisters(int slaveId, RegisterWrite& cmd) {
         }
     } catch (const ModbusWriteException& ex) {
         BOOST_LOG_SEV(log, Log::error) << "error writing register "
-            << slaveId << "." << cmd.mRegister << ": " << ex.what();
+            << cmd.mSlaveId << "." << cmd.mRegister << ": " << ex.what();
         cmd.mLastWriteOk = false;
-        MsgRegisterWriteFailed msg(slaveId, cmd.mRegisterType, cmd.mRegister, cmd.getCount());
+        MsgRegisterWriteFailed msg(cmd.mSlaveId, cmd.mRegisterType, cmd.mRegister, cmd.getCount());
         sendMessage(QueueItem::create(msg));
     }
     mLastCommandTime = std::chrono::steady_clock::now();
@@ -305,7 +323,7 @@ ModbusExecutor::sendCommand() {
 
     if (typeid(*mWaitingCommand) == typeid(RegisterPoll)) {
         RegisterPoll& pollcmd(static_cast<RegisterPoll&>(*mWaitingCommand));
-        pollRegisters(mCurrentSlaveQueue->first, pollcmd, mInitialPoll);
+        pollRegisters(pollcmd, mInitialPoll);
         if (!pollcmd.mLastReadOk) {
             if (mReadRetryCount != 0) {
                 retry = true;
@@ -316,7 +334,7 @@ ModbusExecutor::sendCommand() {
         }
     } else {
         RegisterWrite& writecmd(static_cast<RegisterWrite&>(*mWaitingCommand));
-        writeRegisters(mCurrentSlaveQueue->first, writecmd);
+        writeRegisters(writecmd);
         if (!writecmd.mLastWriteOk) {
             if (mWriteRetryCount != 0) {
                 retry = true;
@@ -324,6 +342,8 @@ ModbusExecutor::sendCommand() {
             }
         } else {
             mWriteRetryCount = mMaxWriteRetryCount;
+            mWriteCommandsQueued--;
+            assert(mWriteCommandsQueued >= 0);
         }
     }
     mLastQueue = mCurrentSlaveQueue;

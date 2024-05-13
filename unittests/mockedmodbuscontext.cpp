@@ -286,7 +286,7 @@ MockedModbusContext::getWriteCount(int slaveId) const {
 uint16_t
 MockedModbusContext::getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype) {
     mInternalOperation = true;
-    modmqttd::RegisterPoll poll(--regNum, regtype, 1, std::chrono::milliseconds(0));
+    modmqttd::RegisterPoll poll(slaveId, --regNum, regtype, 1, std::chrono::milliseconds(0));
 
     auto vals = readModbusRegisters(slaveId, poll);
     return vals[0];
@@ -353,9 +353,9 @@ void
 MockedModbusFactory::setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val) {
     regNum--;
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
-    modmqttd::RegisterWrite msg(regNum, regtype, ModbusRegisters(val));
+    modmqttd::RegisterWrite msg(slaveId, regNum, regtype, ModbusRegisters(val));
     ctx->mInternalOperation = true;
-    ctx->writeModbusRegisters(slaveId, msg);
+    ctx->writeModbusRegisters(msg.mSlaveId, msg);
 }
 
 

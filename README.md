@@ -271,7 +271,8 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 * **refresh** (timespan, optional, default 5s)
 
   A timespan used to poll modbus registers. This setting is propagated
-  down to object and register definitions
+  down to an object and register definitions. If this value is less than the target network can handle
+  then newly scheduled read commands will be merged with those already in modbus command queue.
 
 * **broker** (required)
 

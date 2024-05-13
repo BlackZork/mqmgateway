@@ -125,8 +125,8 @@ TEST_CASE("ModbusExecutor for first delay config") {
         executor.executeNext();
 
         // add write about to be executed
-        auto write = registers.createWriteDelayed(1,0x15, std::chrono::milliseconds(30));
-        executor.addWriteCommand(1, write);
+        auto write = registers.createWriteDelayed(1, 1,0x15, std::chrono::milliseconds(30));
+        executor.addWriteCommand(write);
         waitTime = executor.executeNext();
         REQUIRE(executor.getWaitingCommand() == write);
 
