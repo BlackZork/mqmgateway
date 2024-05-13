@@ -23,7 +23,6 @@ ModbusExecutor::ModbusExecutor(
 {
     //some random past value, not using steady_clock:min() due to overflow
     mLastCommandTime = std::chrono::steady_clock::now() - std::chrono::hours(100000);
-    mLastQueue = mSlaveQueues.end();
     mCurrentSlaveQueue = mSlaveQueues.end();
     mInitialPoll = false;
     mReadRetryCount = mMaxReadRetryCount;
@@ -119,13 +118,13 @@ void
 ModbusExecutor::addWriteCommand(const std::shared_ptr<RegisterWrite>& pCommand) {
     if (mWriteCommandsQueued == 0) {
         // skip queuing for if there is no queued write commands.
-        // This improves write latency in use case, where there is a lot of polling 
-        // and sporadic write. I belive this is main use case for this gateway. 
+        // This improves write latency in use case, where there is a lot of polling
+        // and sporadic write. I belive this is main use case for this gateway.
 
-        // TODO this could leat to poll queue starvation when write commands
-        // arive in sync with slave execution time. Maybe there should be a 
-        // configuration switch to turn it off? 
-        if (mWaitingCommand != nullptr) 
+        // TODO this could lead to poll queue starvation when write commands
+        // arive in sync with slave execution time. Maybe there should be a
+        // configuration switch to turn it off?
+        if (mWaitingCommand != nullptr)
             mSlaveQueues[pCommand->mSlaveId].readdCommand(mWaitingCommand);
 
         mWaitingCommand = pCommand;
@@ -235,8 +234,8 @@ ModbusExecutor::executeNext() {
             ||
             (
                 mWaitingCommand->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE
-                && mLastQueue != mSlaveQueues.end()
-                && mCurrentSlaveQueue->first != mLastQueue->first
+                && mLastCommand != nullptr
+                && mWaitingCommand->mSlaveId != mLastCommand->mSlaveId
             )
         ) {
             auto delay_passed = std::chrono::steady_clock::now() - mLastCommandTime;
@@ -346,14 +345,14 @@ ModbusExecutor::sendCommand() {
             assert(mWriteCommandsQueued >= 0);
         }
     }
-    mLastQueue = mCurrentSlaveQueue;
     mLastCommand = mWaitingCommand;
 
     // to retry just leave mCurrentCommand
     // for next executeNext() call
     if (!retry) {
         mWaitingCommand.reset();
-        mCommandsLeft--;
+        if (mCommandsLeft > 0)
+            mCommandsLeft--;
     }
 }
 
@@ -386,7 +385,7 @@ void
 ModbusExecutor::resetCommandsCounter() {
     if (mCurrentSlaveQueue->second.mPollQueue.empty())
         mCommandsLeft = WRITE_BATCH_SIZE;
-    else
+    else if (mCurrentSlaveQueue != mSlaveQueues.end())
         mCommandsLeft = mCurrentSlaveQueue->second.mPollQueue.size() * 2;
 }
 
