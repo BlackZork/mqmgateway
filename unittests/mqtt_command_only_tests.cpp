@@ -1,8 +1,9 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
 #include "defaults.hpp"
+#include "yaml_utils.hpp"
 
-static const std::string config = R"(
+TestConfig config(R"(
 modmqttd:
 modbus:
   networks:
@@ -24,9 +25,9 @@ mqtt:
         - name: set
           register: tcptest.1.2
           register_type: holding
-)";
+)");
 TEST_CASE ("Write value in write-only configuration should succeed") {
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
@@ -40,7 +41,7 @@ TEST_CASE ("Write value in write-only configuration should succeed") {
 
 
 TEST_CASE ("Write should respect slave delay_before_command") {
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
@@ -60,7 +61,7 @@ TEST_CASE ("Write should respect slave delay_before_command") {
 TEST_CASE ("When network delay") {
 
 
-static const std::string global_delay_config = R"(
+TestConfig global_delay_config(R"(
 modmqttd:
 modbus:
     networks:
@@ -78,10 +79,10 @@ mqtt:
         - name: set
           register: tcptest.1.2
           register_type: holding
-)";
+)");
 
 SECTION("is set to delay_before_command write should wait") {
-    MockedModMqttServerThread server(global_delay_config);
+    MockedModMqttServerThread server(global_delay_config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
@@ -99,9 +100,10 @@ SECTION("is set to delay_before_command write should wait") {
 }
 
 SECTION("is set to delay_before_first_command write should wait") {
-    std::string config = std::regex_replace(global_delay_config, std::regex("delay_before_command"), "delay_before_first_command");
+    global_delay_config.mYAML["modbus"]["networks"][0].remove("delay_before_command");
+    global_delay_config.mYAML["modbus"]["networks"][0]["delay_before_first_command"] = "500ms";
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(global_delay_config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
