@@ -45,9 +45,9 @@ TEST_CASE ("Write should respect slave delay_before_command") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
+    auto now = std::chrono::steady_clock::now();
     server.waitForSubscription("test_switch/set");
 
-    auto now = std::chrono::steady_clock::now();
     server.publish("test_switch/set", "7");
     server.publish("test_switch/set", "8");
     server.waitForModbusValue("tcptest",1,2, modmqttd::RegisterType::HOLDING, 0x8, std::chrono::milliseconds(700));
@@ -107,9 +107,9 @@ SECTION("is set to delay_before_first_command write should wait") {
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
+    auto now = std::chrono::steady_clock::now();
     server.waitForSubscription("test_switch/set");
 
-    auto now = std::chrono::steady_clock::now();
     server.publish("test_switch/set", "7");
     server.publish("test_switch/set", "8");
     server.waitForModbusValue("tcptest",1,2, modmqttd::RegisterType::HOLDING, 0x8, std::chrono::milliseconds(700));
