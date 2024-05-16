@@ -625,7 +625,7 @@ MQMGateway contains *std* library with basic converters ready to use:
 
     Same as int32, but modbus registers are interpreted as unsingned int32.
 
-  * **float**
+  * **float32**
 
     Usage: state, command
     Arguments:
