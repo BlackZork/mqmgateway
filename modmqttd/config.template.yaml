@@ -88,10 +88,10 @@ mqtt:
     - topic: isma_switch_2
       # multiple registers in payload will generate json array as mqtt value
       state:
-        register: tcptest.1.274
-        register_type: coil
-        register: tcptest.1.275
-        register_type: coil
+        - register: tcptest.1.274
+          register_type: coil
+        - register: tcptest.1.275
+          register_type: coil
           
     - topic: gtb_sensor/presence
       refresh: 1s
