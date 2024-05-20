@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cassert>
 #include <map>
 
 #include "common.hpp"
@@ -126,6 +127,28 @@ MqttClient::processRegisterValues(const std::string& modbusNetworkName, const Ms
         return;
     }
 
+    MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
+    std::map<MqttObjectRegisterIdent, std::vector<MqttObject>>::iterator it = 
+        mObjects.find(ident);
+
+    //we do not poll if there is nothing to publish
+    assert(it != mObjects.end());
+
+    for (MqttObject& obj: it->second) {
+        AvailableFlag oldAvail = obj.getAvailableFlag();
+        bool stateChanged = obj.updateRegisters(slaveData);
+        if (!stateChanged)
+            continue;
+
+        publishState(obj);    
+        AvailableFlag newAvail = obj.getAvailableFlag();
+            if (oldAvail != newAvail)
+                publishAvailabilityChange(obj);        
+    }
+
+
+
+/*
     std::map<MqttObject*, AvailableFlag> modified;
 
     MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
@@ -153,6 +176,7 @@ MqttClient::processRegisterValues(const std::string& modbusNetworkName, const Ms
                 publishAvailabilityChange(obj);
         }
     }
+    */
 }
 
 void

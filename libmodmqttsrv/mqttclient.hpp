@@ -66,7 +66,13 @@ class MqttClient {
         // Now it looks like callbacks use mosquitto internal thread and ModMqtt main thread.
         State mConnectionState = State::DISCONNECTED;
         bool mIsStarted = false;
-        std::vector<MqttObject> mObjects;
+        //std::vector<MqttObject> mObjects;
+        /**
+         * Assuming that PollGroups do not overlap hold separate list  
+         * per poll group ident. We need to update objects from single list only
+         * MqttObject can be a member of multiple lists on this map
+        */
+        std::map<MqttObjectRegisterIdent, std::vector<std::shared_ptr<MqttObject>>> mObjects;
         std::map<std::string, MqttObjectCommand> mCommands;
 
         DefaultCommandConverter mDefaultConverter;
