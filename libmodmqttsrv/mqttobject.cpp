@@ -22,6 +22,7 @@ MqttObjectAvailabilityValue::getAvailabilityFlag() const {
     return mValue == mAvailableValue ? AvailableFlag::True : AvailableFlag::False;
 };
 
+/*
 template <typename T>
 void
 MqttObjectRegisterHolder<T>::addRegister(const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv) {
@@ -106,15 +107,19 @@ MqttObjectRegisterHolder<T>::getRawArray() const {
 
     return ret;
 }
-
+*/
+/*
 void
 MqttObjectAvailability::addRegister(const MqttObjectRegisterIdent& regIdent, uint16_t availValue) {
     mRegisterValues[regIdent] = MqttObjectAvailabilityValue(availValue);
 };
+*/
 
 AvailableFlag
 MqttObjectAvailability::getAvailableFlag() const {
-    for(std::map<MqttObjectRegisterIdent, MqttObjectAvailabilityValue>::const_iterator it = mRegisterValues.begin(); it != mRegisterValues.end(); it++) {
+    //TODO compare or use converter
+    /*
+    for(std::map<MqttObjectRegisterIdent, MqttObjectAvailabilityValue>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
         switch(it->second.getAvailabilityFlag()) {
             case AvailableFlag::NotSet:
                 return AvailableFlag::NotSet;
@@ -126,10 +131,11 @@ MqttObjectAvailability::getAvailableFlag() const {
                 continue;
             break;
         }
-    }
+    }*/
     return AvailableFlag::True;
 }
 
+/*
 void
 MqttObjectState::addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv) {
     std::vector<MqttObjectStateValue>::iterator existing = std::find_if(
@@ -143,6 +149,7 @@ MqttObjectState::addRegister(const std::string& name, const MqttObjectRegisterId
         existing->addRegister(regIdent, conv);
     }
 };
+*/
 
 void
 createConvertedValue(
@@ -225,6 +232,12 @@ createConvertedValue(
             createRegisterValuesArray(writer, stateValue.getValues());
     }
 }
+
+void
+MqttObjectDataNode::setScalarNode(const MqttObjectRegisterIdent& ident) {
+    mIdent.reset(new MqttObjectRegisterIdent(ident));
+}
+
 
 std::string
 MqttObjectState::createMessage() const {
@@ -338,8 +351,8 @@ MqttObjectState::isPolling() const {
     return true;
 }
 
-MqttObject::MqttObject(const YAML::Node& data) {
-    mTopic = ConfigTools::readRequiredString(data, "topic");
+
+MqttObject::MqttObject(const std::string& pTopic) {
     mStateTopic = mTopic + "/state";
     mAvailabilityTopic = mTopic + "/availability";
 };

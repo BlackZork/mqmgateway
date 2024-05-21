@@ -70,8 +70,6 @@ class MqttObjectCommand {
 
 class MqttObjectRegisterValue {
     public:
-        MqttObjectRegisterValue(uint16_t val) : mValue(val), mHasValue(true), mReadOk(true) {}
-        //no value yet, assume that read is in progress
         MqttObjectRegisterValue() : mHasValue(false), mReadOk(true) {}
         void setValue(uint16_t val) { mValue = val; mHasValue = true; }
         void setReadError(bool pFlag) { mReadOk = !pFlag; }
@@ -88,6 +86,7 @@ class MqttObjectRegisterValue {
         std::shared_ptr<DataConverter> mConverter;
 };
 
+/*
 class MqttObjectAvailabilityValue : public MqttObjectRegisterValue {
     public:
         MqttObjectAvailabilityValue(uint16_t availValue = 1) : mAvailableValue(availValue), MqttObjectRegisterValue() {};
@@ -96,7 +95,7 @@ class MqttObjectAvailabilityValue : public MqttObjectRegisterValue {
         // expected register value if register is available
         uint16_t mAvailableValue;
 };
-
+*/
 /*!
     Base class for state an availability
 
@@ -121,18 +120,16 @@ class MqttObjectRegisterHolder {
 
 class MqttObjectDataNode {
     public:
-        void init(
-            const YAML::Node& pNode, 
-            const std::string& pDefaultNetwork, 
-            int pDefaultSlave, 
-            std::chrono::milliseconds> refresh, 
-            std::vector<MsgRegisterPollSpecification>& pSpecs
-        );
         bool isUnnamed() const { return mKeyName.empty(); }
+        void setName(const std::string& pName) { mKeyName = pName; }
         bool isScalar() const { return mNodes.size() == 0; }
+        void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
+        bool hasConverter() const { return mConverter != nullptr; }
+        void addChildDataNode(const MqttObjectDataNode& pNode) { mNodes.push_back(pNode); }
+        void setScalarNode(const MqttObjectRegisterIdent& ident);
     private:
         // if not empty then json value is published as json object
-        // 
+        //
         std::string mKeyName;
         /**
          * if not empty then this is composite node
@@ -141,63 +138,55 @@ class MqttObjectDataNode {
          *  - a list if all mNodes have mKeyName empty
          *  - a single value if mConverter is set. In this case
          *    mNodes list must hold scalars only.
-         * */ 
+         * */
 
         std::vector<MqttObjectDataNode> mNodes;
+
+        /**
+         * Modbus register identifier used to
+         * update values received from modbus threads.
+        */
+        std::shared_ptr<MqttObjectRegisterIdent> mIdent;
         /**
          * if mNodes is empty then this is a scalar value.
         */
         MqttObjectRegisterValue mValue;
 
         /**
-         * Modbus register identifier used to 
-         * update values received from modbus threads.
-        */
-        MqttObjectRegisterIdent mIdent;
-        /**
-         * A converter used to convert mValue or list of scalars on mNodes list 
+         * A converter used to convert mValue or list of scalars on mNodes list
         */
         std::shared_ptr<DataConverter> mConverter;
 };
 
 class MqttObjectState {
     public:
-        void init(
-            const YAML::Node& pStateNode, 
-            const std::string& pDefaultNetwork, 
-            int pDefaultSlave, 
-            std::chrono::milliseconds> refresh, 
-            std::vector<MsgRegisterPollSpecification>& pSpecs
-        );
         //void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
         bool hasRegister(const MqttObjectRegisterIdent& regIdent) const;
         bool usesModbusNetwork(const std::string& networkName) const;
         bool updateRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t value);
         bool updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
-        //void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         std::string createMessage() const;
         bool hasValues() const;
         bool isPolling() const;
-    private:
+        void addDataNode(const MqttObjectDataNode& pNode) { mNodes.push_back(pNode); }
+    protected:
         std::vector<MqttObjectDataNode> mNodes;
-        /**
-         * A converter used to convert a list of scalars on mNodes list 
-        */        
-        std::shared_ptr<DataConverter> mConverter;
 };
 
 class MqttObjectAvailability : public MqttObjectState {
     public:
         AvailableFlag getAvailableFlag() const;
+        void setAvailableValue(uint16_t pValue) { mAvailableValue = pValue; }
     private:
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
-        void updateAvailablityFlag(); // from MqttObject ?        
+        uint16_t mAvailableValue = 1;
+        void updateAvailablityFlag(); // from MqttObject ?
 };
 
 class MqttObject {
     public:
-        MqttObject(const YAML::Node& data);
+        MqttObject(const std::string& pTopic);
         const std::string& getTopic() const { return mTopic; };
         const std::string& getStateTopic() const { return mStateTopic; };
         const std::string& getAvailabilityTopic() const { return mAvailabilityTopic; }
