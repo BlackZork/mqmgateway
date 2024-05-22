@@ -54,7 +54,7 @@ class ModMqtt {
         void initServer(const YAML::Node& config);
         void initBroker(const YAML::Node& config);
         std::vector<MsgRegisterPollSpecification> initModbusClients(const YAML::Node& config);
-        std::vector<MsgRegisterPollSpecification> initObjects(const YAML::Node& config);
+        std::vector<MqttObject> initObjects(const YAML::Node& config, std::vector<MsgRegisterPollSpecification>& pSpecsOut);
         void waitForSignal();
 
         MqttObjectRegisterIdent updateSpecification(

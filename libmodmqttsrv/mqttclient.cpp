@@ -108,7 +108,7 @@ MqttClient::onConnect() {
     // then all published information is gone until
     // modbus register data is changed
     // republish current object state and availability to
-    // for subscribed clients
+    // all subscribed clients
     publishAll();
 
     for(std::vector<std::shared_ptr<ModbusClient>>::iterator it = mModbusClients.begin(); it != mModbusClients.end(); it++) {
@@ -119,7 +119,7 @@ MqttClient::onConnect() {
 }
 
 void
-MqttClient::processRegisterValues(const std::string& modbusNetworkName, const MsgRegisterValues& slaveData) {
+MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const MsgRegisterValues& pSlaveData) {
     if (!isConnected()) {
         // we drop changes when there is no connection
         // retain flag is set so
@@ -127,26 +127,25 @@ MqttClient::processRegisterValues(const std::string& modbusNetworkName, const Ms
         return;
     }
 
-    MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
-    std::map<MqttObjectRegisterIdent, std::vector<MqttObject>>::iterator it = 
-        mObjects.find(ident);
+    MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
+    MqttObjMap::iterator it = mObjects.find(ident);
 
     //we do not poll if there is nothing to publish
     assert(it != mObjects.end());
 
-    for (MqttObject& obj: it->second) {
-        AvailableFlag oldAvail = obj.getAvailableFlag();
-        bool stateChanged = obj.updateRegisters(slaveData);
-        if (!stateChanged)
-            continue;
+    for (std::shared_ptr<MqttObject>& obj: it->second) {
+        AvailableFlag oldAvail = obj->mAvailability.getAvailableFlag();
+        bool stateChanged = obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
+        AvailableFlag newAvail = obj->mAvailability.getAvailableFlag();
 
-        publishState(obj);    
-        AvailableFlag newAvail = obj.getAvailableFlag();
-            if (oldAvail != newAvail)
-                publishAvailabilityChange(obj);        
+        if (oldAvail != newAvail) {
+            publishState(*obj);
+            publishAvailabilityChange(*obj);
+        } else {
+            if (stateChanged)
+                publishState(*obj);
+        }
     }
-
-
 
 /*
     std::map<MqttObject*, AvailableFlag> modified;
@@ -188,14 +187,14 @@ MqttClient::publishState(const MqttObject& obj) {
 }
 
 void
-MqttClient::processRegistersOperationFailed(const std::string& modbusNetworkName, const MsgRegisterMessageBase& slaveData) {
-    std::map<MqttObject*, AvailableFlag> modified;
+MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkName, const MsgRegisterMessageBase& pSlaveData) {
+/*    std::map<MqttObject*, AvailableFlag> modified;
 
     MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
     for(auto& obj: mObjects)
     {
         int regIndex = 0;
-        AvailableFlag oldAvail = obj.getAvailableFlag();
+        AvailableFlag oldAvail = obj.mAvailability.getAvailableFlag();
         int lastRegister = slaveData.mRegister + slaveData.mCount;
         for(int regNumber = slaveData.mRegister; regNumber < lastRegister; regNumber++) {
             ident.mRegisterNumber = regNumber;
@@ -208,21 +207,46 @@ MqttClient::processRegistersOperationFailed(const std::string& modbusNetworkName
 
     for(auto& obj_it: modified) {
         MqttObject& obj(*(obj_it.first));
-        AvailableFlag newAvail = obj.getAvailableFlag();
+        AvailableFlag newAvail = obj.mAvailability.getAvailableFlag();
         if (obj_it.second != newAvail)
             publishAvailabilityChange(obj);
+    }
+*/
+
+    MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
+    MqttObjMap::iterator it = mObjects.find(ident);
+
+    //we do not poll if there is nothing to publish
+    assert(it != mObjects.end());
+
+    for (std::shared_ptr<MqttObject>& obj: it->second) {
+        AvailableFlag oldAvail = obj->mAvailability.getAvailableFlag();
+        bool stateChanged = obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
+        AvailableFlag newAvail = obj->mAvailability.getAvailableFlag();
+
+        if (oldAvail != newAvail) {
+            publishState(*obj);
+            publishAvailabilityChange(*obj);
+        } else {
+            if (stateChanged)
+                publishState(*obj);
+        }
     }
 }
 
 void
-MqttClient::processModbusNetworkState(const std::string& networkName, bool isUp) {
-    for(std::vector<MqttObject>::iterator it = mObjects.begin();
-        it != mObjects.end(); it++)
+MqttClient::processModbusNetworkState(const std::string& pNetworkName, bool pIsUp) {
+    for(MqttObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
     {
-        AvailableFlag oldAvail = it->getAvailableFlag();
-        it->setModbusNetworkState(networkName, isUp);
-        if (oldAvail != it->getAvailableFlag())
-            publishAvailabilityChange(*it);
+        if (it->first.mNetworkName != pNetworkName)
+            continue;
+
+        for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
+            AvailableFlag oldAvail = (*oit)->getAvailableFlag();
+            (*oit)->setModbusNetworkState(pNetworkName, pIsUp);
+            if (oldAvail != (*oit)->getAvailableFlag())
+                publishAvailabilityChange(**oit);
+        }
     }
 }
 
@@ -237,14 +261,15 @@ MqttClient::publishAvailabilityChange(const MqttObject& obj) {
 
 void
 MqttClient::publishAll() {
-    for(auto object = mObjects.begin(); object != mObjects.end(); object++) {
-        if (object->getAvailableFlag() == AvailableFlag::True)
-            publishState(*object);
-        publishAvailabilityChange(*object);
+    for(MqttObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
+    {
+        for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
+            if ((*oit)->getAvailableFlag() == AvailableFlag::True)
+                publishState(**oit);
+            publishAvailabilityChange(**oit);
+        }
     }
 }
-
-static const int MAX_DATA_LEN = 32;
 
 MqttValue
 createMqttValue(const MqttObjectCommand& command, const void* data, int datalen) {

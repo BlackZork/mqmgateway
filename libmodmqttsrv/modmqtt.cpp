@@ -140,7 +140,8 @@ void
 ModMqtt::init(const YAML::Node& config) {
     initServer(config);
     initBroker(config);
-    std::vector<MsgRegisterPollSpecification> mqtt_specs = initObjects(config);
+    std::vector<MsgRegisterPollSpecification> mqtt_specs;
+    std::vector<MqttObject> objects = initObjects(config, mqtt_specs);
 
     std::vector<MsgRegisterPollSpecification> modbus_specs = initModbusClients(config);
 
@@ -172,6 +173,22 @@ ModMqtt::init(const YAML::Node& config) {
             (*client)->mToModbusQueue.enqueue(QueueItem::create(*sit));
         }
     };
+
+    //find which objects are related to final poll groups and create lists
+    MqttClient::MqttObjMap mapped_objects;
+    for(const MqttObject& obj : objects) {
+        auto optr = std::shared_ptr<MqttObject>(new MqttObject(obj));
+        for(std::vector<MsgRegisterPollSpecification>::const_iterator sit = modbus_specs.begin(); sit != modbus_specs.end(); sit++) {
+            for(std::vector<MsgRegisterPoll>::const_iterator rit = sit->mRegisters.begin(); rit != sit->mRegisters.end(); rit++) {
+                MqttObjectRegisterIdent ident(sit->mNetworkName, *rit);
+                if (obj.hasRegister(ident)) {
+                    mapped_objects[ident].push_back(optr);
+                }
+            }
+        }
+    }
+
+    mMqtt->setObjects(mapped_objects);
 }
 
 void
@@ -713,10 +730,9 @@ ModMqtt::parseObjectCommands(
     }
 }
 
-std::vector<MsgRegisterPollSpecification>
-ModMqtt::initObjects(const YAML::Node& config)
+std::vector<MqttObject>
+ModMqtt::initObjects(const YAML::Node& config, std::vector<MsgRegisterPollSpecification>& pSpecsOut)
 {
-    std::vector<MsgRegisterPollSpecification> specs_out;
     std::vector<MqttObjectCommand> commands;
     std::vector<MqttObject> objects;
 
@@ -744,7 +760,7 @@ ModMqtt::initObjects(const YAML::Node& config)
         ConfigTools::readOptionalValue<int>(defaultSlave, objdata, "slave");
 
 
-        MqttObject object(parseObject(objdata, defaultNetwork, defaultSlave, defaultRefresh, specs_out));
+        MqttObject object(parseObject(objdata, defaultNetwork, defaultSlave, defaultRefresh, pSpecsOut));
         objects.push_back(object);
 
 /*
@@ -755,10 +771,8 @@ ModMqtt::initObjects(const YAML::Node& config)
         parseObjectCommands(object.getTopic(), objdata["commands"], defaultNetwork, defaultSlave);
         BOOST_LOG_SEV(log, Log::debug) << "object for topic " << object.getTopic() << " created";
     }
-
-    mMqtt->setObjects(objects);
     BOOST_LOG_SEV(log, Log::debug) << "Finished reading config_objects specification";
-    return specs_out;
+    return objects;
 }
 
 MqttObjectRegisterIdent
