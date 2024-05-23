@@ -180,8 +180,8 @@ ModMqtt::init(const YAML::Node& config) {
         auto optr = std::shared_ptr<MqttObject>(new MqttObject(obj));
         for(std::vector<MsgRegisterPollSpecification>::const_iterator sit = modbus_specs.begin(); sit != modbus_specs.end(); sit++) {
             for(std::vector<MsgRegisterPoll>::const_iterator rit = sit->mRegisters.begin(); rit != sit->mRegisters.end(); rit++) {
-                MqttObjectRegisterIdent ident(sit->mNetworkName, *rit);
-                if (obj.hasRegister(ident)) {
+                if (obj.hasRegisterIn(sit->mNetworkName, *rit)) {
+                    MqttObjectRegisterIdent ident(sit->mNetworkName, *rit);
                     mapped_objects[ident].push_back(optr);
                 }
             }
@@ -494,13 +494,13 @@ ModMqtt::parseObject(
 
     uint16_t availValue;
     if (ConfigTools::readOptionalValue<uint16_t>(availValue, yAvail, "available_value"))
-        ret.mAvailability.setAvailableValue(availValue);
+        ret.setAvailableValue(availValue);
 
     if (yAvail.IsMap()) {
         MqttObjectDataNode node(parseObjectDataNode(yAvail, pDefaultNetwork, pDefaultSlave, pDefaultRefresh, pSpecsOut));
         if (!node.isScalar() && !node.hasConverter())
             throw ConfigurationException(yAvail.Mark(), "mutiple registers availability must use a converter");
-        ret.mAvailability.addDataNode(node);
+        ret.addAvailabilityDataNode(node);
     } else {
         throw ConfigurationException(yState.Mark(), "availability must be a single register or a list with converter");
     }
@@ -539,7 +539,7 @@ ModMqtt::parseObjectDataNode(
             throw new ConfigurationException(yRegisters.Mark(), "'registers' must be a list");
         for(size_t i = 0; i < yRegisters.size(); i++) {
             const YAML::Node& yData = yRegisters[i];
-            MqttObjectDataNode node(parseObjectDataNode(yData, pDefaultNetwork, pDefaultSlave, pRefresh, pSpecsOut));
+            MqttObjectDataNode childNode(parseObjectDataNode(yData, pDefaultNetwork, pDefaultSlave, pRefresh, pSpecsOut));
             //the first element defines if we have named or unnamed list
             if (i == 0)
                 isUnnamed = node.isUnnamed();
@@ -547,7 +547,7 @@ ModMqtt::parseObjectDataNode(
                 if (node.isUnnamed() ^ isUnnamed)
                     throw ConfigurationException(yData.Mark(), "All list elements must be named or unnamed");
             }
-            node.addChildDataNode(node);
+            node.addChildDataNode(childNode);
         }
     } else {
         int count = 1;

@@ -7,6 +7,7 @@
 #include "exceptions.hpp"
 #include "modmqtt.hpp"
 #include "default_command_converter.hpp"
+#include "mqttpayload.hpp"
 
 namespace modmqttd {
 
@@ -134,9 +135,9 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
     assert(it != mObjects.end());
 
     for (std::shared_ptr<MqttObject>& obj: it->second) {
-        AvailableFlag oldAvail = obj->mAvailability.getAvailableFlag();
+        AvailableFlag oldAvail = obj->getAvailableFlag();
         bool stateChanged = obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
-        AvailableFlag newAvail = obj->mAvailability.getAvailableFlag();
+        AvailableFlag newAvail = obj->getAvailableFlag();
 
         if (oldAvail != newAvail) {
             publishState(*obj);
@@ -180,8 +181,10 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 
 void
 MqttClient::publishState(const MqttObject& obj) {
+    if (obj.getAvailableFlag() != AvailableFlag::True)
+        return;
     int msgId;
-    std::string messageData(obj.mState.createMessage());
+    std::string messageData(MqttPayload::generate(obj));
     BOOST_LOG_SEV(log, Log::debug) << "Publish on topic " << obj.getStateTopic() << ": " << messageData;
     mMqttImpl->publish(obj.getStateTopic().c_str(), messageData.length(), messageData.c_str());
 }
@@ -216,13 +219,15 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
     MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
     MqttObjMap::iterator it = mObjects.find(ident);
 
-    //we do not poll if there is nothing to publish
-    assert(it != mObjects.end());
+    // msg was sent after failed write and
+    // is not related MqttObjectState
+    if (it == mObjects.end())
+        return;
 
     for (std::shared_ptr<MqttObject>& obj: it->second) {
-        AvailableFlag oldAvail = obj->mAvailability.getAvailableFlag();
+        AvailableFlag oldAvail = obj->getAvailableFlag();
         bool stateChanged = obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
-        AvailableFlag newAvail = obj->mAvailability.getAvailableFlag();
+        AvailableFlag newAvail = obj->getAvailableFlag();
 
         if (oldAvail != newAvail) {
             publishState(*obj);
@@ -236,16 +241,23 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
 
 void
 MqttClient::processModbusNetworkState(const std::string& pNetworkName, bool pIsUp) {
+    std::set<std::shared_ptr<MqttObject>> processed;
+
     for(MqttObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
     {
         if (it->first.mNetworkName != pNetworkName)
             continue;
 
         for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
-            AvailableFlag oldAvail = (*oit)->getAvailableFlag();
-            (*oit)->setModbusNetworkState(pNetworkName, pIsUp);
-            if (oldAvail != (*oit)->getAvailableFlag())
-                publishAvailabilityChange(**oit);
+            const std::shared_ptr<MqttObject>& optr = *oit;
+            if (processed.find(optr) == processed.end()) {
+
+                AvailableFlag oldAvail = (*oit)->getAvailableFlag();
+                (*oit)->setModbusNetworkState(pNetworkName, pIsUp);
+                if (oldAvail != (*oit)->getAvailableFlag())
+                    publishAvailabilityChange(**oit);
+                processed.insert(optr);
+            }
         }
     }
 }
@@ -261,12 +273,18 @@ MqttClient::publishAvailabilityChange(const MqttObject& obj) {
 
 void
 MqttClient::publishAll() {
+    std::set<std::shared_ptr<MqttObject>> published;
+
     for(MqttObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
     {
         for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
-            if ((*oit)->getAvailableFlag() == AvailableFlag::True)
-                publishState(**oit);
-            publishAvailabilityChange(**oit);
+            const std::shared_ptr<MqttObject>& optr = *oit;
+            if (published.find(optr) == published.end()) {
+                if ((*oit)->getAvailableFlag() == AvailableFlag::True)
+                    publishState(**oit);
+                publishAvailabilityChange(**oit);
+                published.insert(*oit);
+            }
         }
     }
 }

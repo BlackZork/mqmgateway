@@ -55,6 +55,10 @@ class MqttObjectRegisterIdent {
             return Equal()(*this, other);
         }
 
+        ModbusAddressRange asModbusAddressRange() const {
+            return ModbusAddressRange(mRegisterNumber, mRegisterType, 1);
+        }
+
         std::string mNetworkName;
         int mSlaveId;
         int mRegisterNumber;
@@ -137,12 +141,13 @@ class MqttObjectDataNode {
         bool updateRegistersReadFailed(const std::string& pNetworkName, const MsgRegisterMessageBase& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
 
-        bool hasRegister(const MqttObjectRegisterIdent& regIdent) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const;
         bool hasAllValues() const;
         bool isPolling() const;
 
         bool isUnnamed() const { return mKeyName.empty(); }
         void setName(const std::string& pName) { mKeyName = pName; }
+        const std::string& getName() const { return mKeyName; }
 
         void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         bool hasConverter() const { return mConverter != nullptr; }
@@ -150,6 +155,7 @@ class MqttObjectDataNode {
         bool isScalar() const { return mNodes.size() == 0; }
         void addChildDataNode(const MqttObjectDataNode& pNode) { mNodes.push_back(pNode); }
         void setScalarNode(const MqttObjectRegisterIdent& ident);
+        const std::vector<MqttObjectDataNode>& getChildNodes() const { return mNodes; }
         MqttValue getConvertedValue() const;
         uint16_t getRawValue() const;
     private:
@@ -186,15 +192,15 @@ class MqttObjectDataNode {
 class MqttObjectState {
     public:
         //void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
-        bool hasRegister(const MqttObjectRegisterIdent& regIdent) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const;
         bool usesModbusNetwork(const std::string& networkName) const;
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
         bool updateRegistersReadFailed(const std::string& pNetworkName, const MsgRegisterMessageBase& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
-        std::string createMessage() const;
         bool hasAllValues() const;
         bool isPolling() const;
         void addDataNode(const MqttObjectDataNode& pNode) { mNodes.push_back(pNode); }
+        const std::vector<MqttObjectDataNode>& getNodes() const { return mNodes; }
     protected:
         std::vector<MqttObjectDataNode> mNodes;
 };
@@ -213,21 +219,24 @@ class MqttObject {
         const std::string& getTopic() const { return mTopic; };
         const std::string& getStateTopic() const { return mStateTopic; };
         const std::string& getAvailabilityTopic() const { return mAvailabilityTopic; }
-        bool hasRegister(const MqttObjectRegisterIdent& regIdent) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const;
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
         bool updateRegistersReadFailed(const std::string& pNetworkName, const MsgRegisterMessageBase& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
+
+        void addAvailabilityDataNode(const MqttObjectDataNode& pNode) { mAvailability.addDataNode(pNode); }
+        void setAvailableValue(uint16_t pValue) { mAvailability.setAvailableValue(pValue); }
         AvailableFlag getAvailableFlag() const { return mIsAvailable; }
-        std::string createStateMessage();
 
         MqttObjectState mState;
-        MqttObjectAvailability mAvailability;
 
         void dump() const;
     private:
         std::string mTopic;
         std::string mStateTopic;
         std::string mAvailabilityTopic;
+
+        MqttObjectAvailability mAvailability;
 
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
         void updateAvailablityFlag();

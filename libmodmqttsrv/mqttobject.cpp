@@ -74,8 +74,10 @@ MqttObjectDataNode::updateRegisterValues(const std::string& pNetworkName, const 
         ) {
             //check if our value is in pSlaveData range and update
             uint16_t idx = abs(mIdent->mRegisterNumber - pSlaveData.mRegister);
-            if (idx < pSlaveData.mCount)
+            if (idx < pSlaveData.mCount) {
                 ret = mValue.setValue(pSlaveData.mRegisters.getValue(idx));
+                mValue.setReadError(false);
+            }
         }
     }
     return ret;
@@ -116,8 +118,10 @@ MqttObjectDataNode::setModbusNetworkState(const std::string& pNetworkName, bool 
         }
     } else {
         if (pNetworkName == mIdent->mNetworkName) {
-            mValue.setReadError(!isUp);
-            ret = true;
+            if (mValue.isPolling() ^ isUp) {
+                mValue.setReadError(!isUp);
+                ret = true;
+            }
         }
     }
     return ret;
@@ -152,12 +156,12 @@ MqttObjectRegisterHolder<T>::hasValue() const {
 bool
 MqttObjectDataNode::isPolling() const {
     if (isScalar())
-        return mValue.hasValue();
+        return mValue.isPolling();
     else {
-    for(auto it = mNodes.begin(); it != mNodes.end(); it++)
-        if (!it->isPolling()) {
-            return false;
-        }
+        for(auto it = mNodes.begin(); it != mNodes.end(); it++)
+            if (!it->isPolling()) {
+                return false;
+            }
     }
     return true;
 }
@@ -199,13 +203,17 @@ MqttObjectAvailability::getAvailableFlag() const {
         }
     }*/
 
+    // no registers for availability
+    // assume that state is available
+    if (mNodes.size() == 0)
+        return AvailableFlag::True;
+
     // if we do not have all data
     // then we do not know if state is available or not
     if (!hasAllValues() || !isPolling())
         return AvailableFlag::NotSet;
 
     // single raw value or MqttObjectDataNode with converter and child nodes
-    assert(mNodes.size() == 1);
     if (mNodes.front().getConvertedValue().getInt() != mAvailableValue.getInt())
         return AvailableFlag::False;
     return AvailableFlag::True;
@@ -280,13 +288,19 @@ MqttObjectDataNode::setScalarNode(const MqttObjectRegisterIdent& ident) {
 }
 
 bool
-MqttObjectDataNode::hasRegister(const MqttObjectRegisterIdent& regIdent) const {
+MqttObjectDataNode::hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const {
     if (isScalar()) {
         assert(mIdent != nullptr);
-        return *mIdent == regIdent;
+        if (mIdent->mSlaveId != pPoll.mSlaveId)
+            return false;
+        if (!pPoll.overlaps(mIdent->asModbusAddressRange()))
+            return false;
+        if (mIdent->mNetworkName != pNetworkName)
+            return false;
+        return true;
     } else {
         for(std::vector<MqttObjectDataNode>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
-            if (it->hasRegister(regIdent))
+            if (it->hasRegisterIn(pNetworkName, pPoll))
                 return true;
         }
     }
@@ -311,8 +325,12 @@ MqttValue
 MqttObjectDataNode::getConvertedValue() const {
     if (mConverter != nullptr) {
         ModbusRegisters data;
-        for(std::vector<MqttObjectDataNode>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
-            data.appendValue(it->getRawValue());
+        if (isScalar()) {
+            data.appendValue(getRawValue());
+        } else {
+            for(std::vector<MqttObjectDataNode>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
+                data.appendValue(it->getRawValue());
+            }
         }
         return mConverter->toMqtt(data);
     } else {
@@ -423,9 +441,9 @@ MqttObjectState::createMessage() const {
 
 
 bool
-MqttObjectState::hasRegister(const MqttObjectRegisterIdent& regIdent) const {
+MqttObjectState::hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const {
     for(std::vector<MqttObjectDataNode>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
-        if (it->hasRegister(regIdent))
+        if (it->hasRegisterIn(pNetworkName, pPoll))
             return true;
     }
     return false;
@@ -481,14 +499,16 @@ MqttObjectState::isPolling() const {
 }
 
 
-MqttObject::MqttObject(const std::string& pTopic) {
+MqttObject::MqttObject(const std::string& pTopic)
+    : mTopic(pTopic)
+{
     mStateTopic = mTopic + "/state";
     mAvailabilityTopic = mTopic + "/availability";
 };
 
 bool
-MqttObject::hasRegister(const MqttObjectRegisterIdent& regIdent) const {
-    return mState.hasRegister(regIdent) || mAvailability.hasRegister(regIdent);
+MqttObject::hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const {
+    return mState.hasRegisterIn(pNetworkName, pPoll) || mAvailability.hasRegisterIn(pNetworkName, pPoll);
 }
 
 
