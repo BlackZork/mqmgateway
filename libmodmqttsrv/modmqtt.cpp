@@ -477,7 +477,15 @@ ModMqtt::parseObject(
     if (yState.IsDefined()) {
         if (yState.IsMap()) {
             MqttObjectDataNode node(parseObjectDataNode(yState, pDefaultNetwork, pDefaultSlave, pDefaultRefresh, pSpecsOut));
-            ret.mState.addDataNode(node);
+            // a map that contains register with optional count
+            // should output a list or a scalar value
+            // in this case we do not need parsed parent level
+            if (!node.hasConverter() && node.isUnnamed() && !node.isScalar()) {
+                for (auto& n: node.getChildNodes())
+                    ret.mState.addDataNode(n);
+            } else {
+                ret.mState.addDataNode(node);
+            }
         } else if (yState.IsSequence()) {
             bool isUnnamed = false;
             for(size_t i = 0; i < yState.size(); i++) {
@@ -488,12 +496,12 @@ ModMqtt::parseObject(
                     isUnnamed = node.isUnnamed();
                 else {
                     if (node.isUnnamed() ^ isUnnamed)
-                        throw ConfigurationException(yData.Mark(), "All elements must be named or unnamed");
+                        throw ConfigurationException(yData.Mark(), "All list elements must be named or unnamed");
                 }
                 ret.mState.addDataNode(node);
             }
         } else {
-            throw ConfigurationException(yState.Mark(), "state must be a list or single register data");
+            throw ConfigurationException(yState.Mark(), "state must be a list or a single register data");
         }
     }
 
