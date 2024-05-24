@@ -175,20 +175,30 @@ ModMqtt::init(const YAML::Node& config) {
     };
 
     //find which objects are related to final poll groups and create lists
-    MqttClient::MqttObjMap mapped_objects;
+    MqttClient::MqttPollObjMap mappedPollObjects;
+    MqttClient::MqttCmdObjMap mappedCommandObjects;
+
     for(const MqttObject& obj : objects) {
         auto optr = std::shared_ptr<MqttObject>(new MqttObject(obj));
         for(std::vector<MsgRegisterPollSpecification>::const_iterator sit = modbus_specs.begin(); sit != modbus_specs.end(); sit++) {
             for(std::vector<MsgRegisterPoll>::const_iterator rit = sit->mRegisters.begin(); rit != sit->mRegisters.end(); rit++) {
                 if (obj.hasRegisterIn(sit->mNetworkName, *rit)) {
                     MqttObjectRegisterIdent ident(sit->mNetworkName, *rit);
-                    mapped_objects[ident].push_back(optr);
+                    mappedPollObjects[ident].push_back(optr);
                 }
+            }
+        }
+        const std::map<std::string, MqttObjectCommand>& commands(mMqtt->getCommands());
+        for(std::map<std::string, MqttObjectCommand>::const_iterator it = commands.begin(); it != commands.end(); it++) {
+            if (obj.hasRegisterIn(it->second.mModbusNetworkName, it->second)) {
+                assert(it->second.getCommandId() > 0);
+                mappedCommandObjects[it->second.getCommandId()].push_back(optr);
             }
         }
     }
 
-    mMqtt->setObjects(mapped_objects);
+    mMqtt->setObjects(mappedPollObjects);
+    mMqtt->setCommandObjects(mappedCommandObjects);
 }
 
 void
@@ -572,7 +582,13 @@ ModMqtt::parseObjectDataNode(
 
 
 MqttObjectCommand
-ModMqtt::parseObjectCommand(const std::string& pTopicPrefix, const YAML::Node& node, const std::string& default_network, int default_slave) {
+ModMqtt::parseObjectCommand(
+    const std::string& pTopicPrefix,
+    int nextCommandId,
+    const YAML::Node& node,
+    const std::string& default_network,
+    int default_slave)
+{
     std::string name = ConfigTools::readRequiredString(node, "name");
     std::string topic = pTopicPrefix + "/" + name;
     RegisterConfigName rname(node, default_network, default_slave);
@@ -582,14 +598,13 @@ ModMqtt::parseObjectCommand(const std::string& pTopicPrefix, const YAML::Node& n
     ConfigTools::readOptionalValue<int>(count, node, "count");
 
     MqttObjectCommand cmd(
+        nextCommandId,
         topic,
-        MqttObjectRegisterIdent(
-            rname.mNetworkName,
-            rname.mSlaveId,
-            rType,
-            rname.mRegisterNumber
-            ),
         pType,
+        rname.mNetworkName,
+        rname.mSlaveId,
+        rType,
+        rname.mRegisterNumber,
         count
     );
 
@@ -710,24 +725,25 @@ ModMqtt::readObjectAvailability(
 */
 
 
-void
+int
 ModMqtt::parseObjectCommands(
     const std::string& pTopicPrefix,
+    int nextCommandId,
     const YAML::Node& commands,
     const std::string& default_network,
     int default_slave
-
 ) {
-    if (!commands.IsDefined())
-        return;
-    if (commands.IsMap()) {
-        mMqtt->addCommand(parseObjectCommand(pTopicPrefix, commands, default_network, default_slave));
-    } else if (commands.IsSequence()) {
-        for(size_t i = 0; i < commands.size(); i++) {
-            const YAML::Node& cmddata = commands[i];
-            mMqtt->addCommand(parseObjectCommand(pTopicPrefix, cmddata, default_network, default_slave));
+    if (commands.IsDefined()) {
+        if (commands.IsMap()) {
+            mMqtt->addCommand(parseObjectCommand(pTopicPrefix, nextCommandId++, commands, default_network, default_slave));
+        } else if (commands.IsSequence()) {
+            for(size_t i = 0; i < commands.size(); i++) {
+                const YAML::Node& cmddata = commands[i];
+                mMqtt->addCommand(parseObjectCommand(pTopicPrefix, nextCommandId++, cmddata, default_network, default_slave));
+            }
         }
     }
+    return nextCommandId;
 }
 
 std::vector<MqttObject>
@@ -735,6 +751,7 @@ ModMqtt::initObjects(const YAML::Node& config, std::vector<MsgRegisterPollSpecif
 {
     std::vector<MqttObjectCommand> commands;
     std::vector<MqttObject> objects;
+    int nextCommandId = 1;
 
 
     const YAML::Node& mqtt = config["mqtt"];
@@ -768,7 +785,7 @@ ModMqtt::initObjects(const YAML::Node& config, std::vector<MsgRegisterPollSpecif
         readObjectAvailability(object, default_network, default_slave, specs_out, currentRefresh, objdata["availability"]);
 */
 
-        parseObjectCommands(object.getTopic(), objdata["commands"], defaultNetwork, defaultSlave);
+        nextCommandId = parseObjectCommands(object.getTopic(), nextCommandId, objdata["commands"], defaultNetwork, defaultSlave);
         BOOST_LOG_SEV(log, Log::debug) << "object for topic " << object.getTopic() << " created";
     }
     BOOST_LOG_SEV(log, Log::debug) << "Finished reading config_objects specification";

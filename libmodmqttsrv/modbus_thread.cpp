@@ -105,12 +105,7 @@ ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
 
     //TODO cache this setup
 
-    //send state change immediately if we
-    //are polling this register
-    std::shared_ptr<RegisterPoll> poll(mScheduler.findRegisterPoll(*msg));
-    if (poll != nullptr) {
-        cmd->mReturnMessage = msg;
-    }
+    cmd->mReturnMessage = msg;
 
     setCommandDelays(*cmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
     cmd->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);

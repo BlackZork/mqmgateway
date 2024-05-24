@@ -97,8 +97,9 @@ class ModMqtt {
         // void readObjectStateNode(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<std::chrono::milliseconds>& currentRefresh, const std::string& stateName, const YAML::Node& node, bool isListMember = false);
         // void readObjectAvailability(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<std::chrono::milliseconds>& currentRefresh, const YAML::Node& availability);
 
-        void parseObjectCommands(
+        int parseObjectCommands(
             const std::string& pTopicPrefix,
+            int nextCommandId,
             const YAML::Node& pCommands,
             const std::string& pDefaultNetwork,
             int pDefaultSlave
@@ -107,7 +108,7 @@ class ModMqtt {
         std::vector<modmqttd::MsgRegisterPoll> readModbusPollGroups(const std::string& modbus_network, int default_slave, const YAML::Node& groups);
         void processModbusMessages();
 
-        MqttObjectCommand parseObjectCommand(const std::string& pTopicPrefix, const YAML::Node& node, const std::string& default_network, int default_slave);
+        MqttObjectCommand parseObjectCommand(const std::string& pTopicPrefix, int nextCommandId, const YAML::Node& node, const std::string& default_network, int default_slave);
 
         bool hasConverterPlugin(const std::string& name) const;
         boost::shared_ptr<ConverterPlugin> initConverterPlugin(const std::string& name);

@@ -128,13 +128,25 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
         return;
     }
 
-    MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
-    MqttObjMap::iterator it = mObjects.find(ident);
+    std::vector<std::shared_ptr<MqttObject>>* affectedObjects = nullptr;
 
-    //we do not poll if there is nothing to publish
-    assert(it != mObjects.end());
+    if (pSlaveData.hasCommandId()) {
+        MqttCmdObjMap::iterator it = mCommandObjects.find(pSlaveData.getCommandId());
+        if (it != mCommandObjects.end())
+            affectedObjects = &(it->second);
+    } else {
+        MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
+        MqttPollObjMap::iterator it = mObjects.find(ident);
+        assert(it != mObjects.end());
+        affectedObjects = &(it->second);
+    }
 
-    for (std::shared_ptr<MqttObject>& obj: it->second) {
+    // possible if write command registers do not overlap with
+    // any MqttObject
+    if (affectedObjects == nullptr)
+        return;
+
+    for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
         AvailableFlag oldAvail = obj->getAvailableFlag();
         bool stateChanged = obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
         AvailableFlag newAvail = obj->getAvailableFlag();
@@ -190,7 +202,7 @@ MqttClient::publishState(const MqttObject& obj) {
 }
 
 void
-MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkName, const MsgRegisterMessageBase& pSlaveData) {
+MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkName, const ModbusSlaveAddressRange& pSlaveData) {
 /*    std::map<MqttObject*, AvailableFlag> modified;
 
     MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
@@ -217,7 +229,7 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
 */
 
     MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
-    MqttObjMap::iterator it = mObjects.find(ident);
+    MqttPollObjMap::iterator it = mObjects.find(ident);
 
     // msg was sent after failed write and
     // is not related MqttObjectState
@@ -243,7 +255,7 @@ void
 MqttClient::processModbusNetworkState(const std::string& pNetworkName, bool pIsUp) {
     std::set<std::shared_ptr<MqttObject>> processed;
 
-    for(MqttObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
+    for(MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
     {
         if (it->first.mNetworkName != pNetworkName)
             continue;
@@ -275,7 +287,7 @@ void
 MqttClient::publishAll() {
     std::set<std::shared_ptr<MqttObject>> published;
 
-    for(MqttObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
+    for(MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
     {
         for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
             const std::shared_ptr<MqttObject>& optr = *oit;
@@ -308,7 +320,7 @@ void
 MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
     try {
         const MqttObjectCommand& command = findCommand(topic);
-        const std::string network = command.mRegister.mNetworkName;
+        const std::string network = command.mModbusNetworkName;
 
         //TODO is is thread safe to iterate on modbus clients from mosquitto callback?
         std::vector<std::shared_ptr<ModbusClient>>::const_iterator it = std::find_if(

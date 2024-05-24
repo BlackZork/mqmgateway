@@ -41,6 +41,8 @@ add_library(modmqttsrv
     mqttclient.hpp
     mqttobject.cpp
     mqttobject.hpp
+    mqttcommand.cpp
+    mqttcommand.hpp
     mqttpayload.hpp
     mqttpayload.cpp
     queue_item.hpp

@@ -57,4 +57,15 @@ class ModbusAddressRange {
         RegisterType mRegisterType;
 };
 
+
+class ModbusSlaveAddressRange : public ModbusAddressRange {
+    public:
+        ModbusSlaveAddressRange(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount)
+            : ModbusAddressRange(pRegisterNumber, pType, pCount),
+              mSlaveId(pSlaveId)
+        {}
+
+        int mSlaveId;
+};
+
 }

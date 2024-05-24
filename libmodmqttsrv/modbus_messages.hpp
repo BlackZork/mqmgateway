@@ -11,61 +11,50 @@
 
 namespace modmqttd {
 
-class MsgMqttCommand {
+class MsgRegisterValues : public ModbusSlaveAddressRange {
     public:
-        int mSlave;
-        int mRegister;
-        RegisterType mRegisterType;
-        int16_t mData;
-};
-
-class MsgRegisterMessageBase : public ModbusAddressRange {
-    public:
-        MsgRegisterMessageBase(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount)
-            : ModbusAddressRange(pRegisterNumber, pType, pCount),
-              mSlaveId(pSlaveId)
-        {}
-
-        int mSlaveId;
-};
-
-class MsgRegisterValues : public MsgRegisterMessageBase {
-    public:
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers)
-            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registers.getCount()),
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers, int pCommandId)
+            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registers.getCount()),
+              mRegisters(registers),
+              mCreationTime(std::chrono::steady_clock::now()),
+              mCommandId(pCommandId)
+            {}
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers)
+            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registers.size()),
               mRegisters(registers),
               mCreationTime(std::chrono::steady_clock::now())
             {}
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers)
-            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registers.size()),
-              mRegisters(registers), 
-              mCreationTime(std::chrono::steady_clock::now())
-            {}
 
-        std::chrono::steady_clock::time_point mCreationTime;
+        const std::chrono::steady_clock::time_point& getCreationTime() const { return mCreationTime; }
+        int getCommandId() const { return mCommandId; }
+        bool hasCommandId() const { return mCommandId != 0; }
+
         ModbusRegisters mRegisters;
+    private:
+        std::chrono::steady_clock::time_point mCreationTime;
+        int mCommandId = 0;
 };
 
-class MsgRegisterReadFailed : public MsgRegisterMessageBase {
+class MsgRegisterReadFailed : public ModbusSlaveAddressRange {
     public:
         MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
-            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registerCount)
+            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registerCount)
         {}
 };
 
-class MsgRegisterWriteFailed : public MsgRegisterMessageBase {
+class MsgRegisterWriteFailed : public ModbusSlaveAddressRange {
     public:
         MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
-            : MsgRegisterMessageBase(slaveId, registerNumber, regType, registerCount)
+            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registerCount)
         {}
 };
 
 
-class MsgRegisterPoll : public MsgRegisterMessageBase {
+class MsgRegisterPoll : public ModbusSlaveAddressRange {
     public:
         static constexpr std::chrono::milliseconds INVALID_REFRESH = std::chrono::milliseconds(-1);
         MsgRegisterPoll(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount=1)
-            : MsgRegisterMessageBase(pSlaveId, pRegisterNumber, pType, pCount)
+            : ModbusSlaveAddressRange(pSlaveId, pRegisterNumber, pType, pCount)
         {
 #ifndef NDEBUG
             if (mRegister < 0)

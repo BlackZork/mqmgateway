@@ -44,7 +44,7 @@ class MqttObjectRegisterIdent {
             mRegisterType(regType)
         {}
 
-        MqttObjectRegisterIdent(const std::string& network, const MsgRegisterMessageBase& slaveData)
+        MqttObjectRegisterIdent(const std::string& network, const ModbusSlaveAddressRange& slaveData)
           : mNetworkName(network),
             mSlaveId(slaveData.mSlaveId),
             mRegisterNumber(slaveData.mRegister),
@@ -63,25 +63,6 @@ class MqttObjectRegisterIdent {
         int mSlaveId;
         int mRegisterNumber;
         RegisterType mRegisterType;
-};
-
-class MqttObjectCommand {
-    public:
-        enum PayloadType {
-            STRING = 1
-        };
-        MqttObjectCommand(const std::string& topic, const MqttObjectRegisterIdent& ident, PayloadType ptype, int register_count = 1)
-            : mTopic(topic), mRegister(ident), mPayloadType(ptype), mCount(register_count) {}
-        std::string mTopic;
-        PayloadType mPayloadType;
-        MqttObjectRegisterIdent mRegister;
-        int mCount;
-
-        void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
-        bool hasConverter() const { return mConverter != nullptr; }
-        const DataConverter& getConverter() const { return *mConverter; }
-    private:
-        std::shared_ptr<DataConverter> mConverter;
 };
 
 class MqttObjectRegisterValue {
@@ -138,10 +119,10 @@ class MqttObjectRegisterHolder {
 class MqttObjectDataNode {
     public:
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
-        bool updateRegistersReadFailed(const std::string& pNetworkName, const MsgRegisterMessageBase& pSlaveData);
+        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
 
-        bool hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const;
         bool hasAllValues() const;
         bool isPolling() const;
 
@@ -192,10 +173,10 @@ class MqttObjectDataNode {
 class MqttObjectState {
     public:
         //void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
-        bool hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const;
         bool usesModbusNetwork(const std::string& networkName) const;
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
-        bool updateRegistersReadFailed(const std::string& pNetworkName, const MsgRegisterMessageBase& pSlaveData);
+        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
         bool hasAllValues() const;
         bool isPolling() const;
@@ -219,9 +200,9 @@ class MqttObject {
         const std::string& getTopic() const { return mTopic; };
         const std::string& getStateTopic() const { return mStateTopic; };
         const std::string& getAvailabilityTopic() const { return mAvailabilityTopic; }
-        bool hasRegisterIn(const std::string& pNetworkName, const MsgRegisterPoll& pPoll) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const;
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
-        bool updateRegistersReadFailed(const std::string& pNetworkName, const MsgRegisterMessageBase& pSlaveData);
+        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
 
         void addAvailabilityDataNode(const MqttObjectDataNode& pNode) { mAvailability.addDataNode(pNode); }
