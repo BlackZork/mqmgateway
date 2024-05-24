@@ -92,11 +92,6 @@ class ModMqtt {
             std::vector<MsgRegisterPollSpecification>& pSpecsOut
         );
 
-
-        // void readObjectState(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<std::chrono::milliseconds>& currentRefresh, const YAML::Node& state);
-        // void readObjectStateNode(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<std::chrono::milliseconds>& currentRefresh, const std::string& stateName, const YAML::Node& node, bool isListMember = false);
-        // void readObjectAvailability(MqttObject& object, const std::string& default_network, int default_slave, std::vector<MsgRegisterPollSpecification>& specs_out, std::stack<std::chrono::milliseconds>& currentRefresh, const YAML::Node& availability);
-
         int parseObjectCommands(
             const std::string& pTopicPrefix,
             int nextCommandId,

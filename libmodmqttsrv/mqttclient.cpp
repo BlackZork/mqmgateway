@@ -159,36 +159,6 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
                 publishState(*obj);
         }
     }
-
-/*
-    std::map<MqttObject*, AvailableFlag> modified;
-
-    MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
-    for(auto& obj: mObjects)
-    {
-        int regIndex = 0;
-        AvailableFlag oldAvail = obj.getAvailableFlag();
-        int lastRegister = slaveData.mRegister + slaveData.mCount;
-        for(int regNumber = slaveData.mRegister; regNumber < lastRegister; regNumber++) {
-            ident.mRegisterNumber = regNumber;
-            uint16_t value = slaveData.mRegisters.getValue(regIndex++);
-            if (!obj.updateRegisterValue(ident, value))
-                continue;
-
-            modified[&obj] = oldAvail;
-        }
-    }
-
-    for(auto& obj_it: modified) {
-        MqttObject& obj(*(obj_it.first));
-        if (obj.mState.hasValues()) {
-            publishState(obj);
-            AvailableFlag newAvail = obj.getAvailableFlag();
-            if (obj_it.second != newAvail)
-                publishAvailabilityChange(obj);
-        }
-    }
-    */
 }
 
 void
@@ -203,31 +173,6 @@ MqttClient::publishState(const MqttObject& obj) {
 
 void
 MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkName, const ModbusSlaveAddressRange& pSlaveData) {
-/*    std::map<MqttObject*, AvailableFlag> modified;
-
-    MqttObjectRegisterIdent ident(modbusNetworkName, slaveData);
-    for(auto& obj: mObjects)
-    {
-        int regIndex = 0;
-        AvailableFlag oldAvail = obj.mAvailability.getAvailableFlag();
-        int lastRegister = slaveData.mRegister + slaveData.mCount;
-        for(int regNumber = slaveData.mRegister; regNumber < lastRegister; regNumber++) {
-            ident.mRegisterNumber = regNumber;
-            if (!obj.updateRegisterReadFailed(ident))
-                continue;
-
-            modified[&obj] = oldAvail;
-        }
-    }
-
-    for(auto& obj_it: modified) {
-        MqttObject& obj(*(obj_it.first));
-        AvailableFlag newAvail = obj.mAvailability.getAvailableFlag();
-        if (obj_it.second != newAvail)
-            publishAvailabilityChange(obj);
-    }
-*/
-
     MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
     MqttPollObjMap::iterator it = mObjects.find(ident);
 

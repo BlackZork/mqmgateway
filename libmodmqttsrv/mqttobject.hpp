@@ -17,6 +17,7 @@ enum AvailableFlag {
     True = 1
 };
 
+
 class MqttObjectRegisterIdent {
     public:
         struct Compare {
@@ -65,56 +66,22 @@ class MqttObjectRegisterIdent {
         RegisterType mRegisterType;
 };
 
+
 class MqttObjectRegisterValue {
     public:
         MqttObjectRegisterValue() : mHasValue(false), mReadOk(true) {}
         bool setValue(uint16_t val);
         void clearValue() { mHasValue = false; }
         void setReadError(bool pFlag) { mReadOk = !pFlag; }
-        //void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
-        //bool hasConverter() const { return mConverter != nullptr; }
         uint16_t getRawValue() const { return mValue; }
-        //MqttValue getConvertedValue() const;
         bool hasValue() const { return mHasValue; }
         bool isPolling() const { return mReadOk; }
     protected:
         bool mReadOk = false;
         bool mHasValue = false;
         uint16_t mValue;
-        //std::shared_ptr<DataConverter> mConverter;
 };
 
-/*
-class MqttObjectAvailabilityValue : public MqttObjectRegisterValue {
-    public:
-        MqttObjectAvailabilityValue(uint16_t availValue = 1) : mAvailableValue(availValue), MqttObjectRegisterValue() {};
-        AvailableFlag getAvailabilityFlag() const;
-    private:
-        // expected register value if register is available
-        uint16_t mAvailableValue;
-};
-*/
-/*!
-    Base class for state an availability
-
-template <typename T>
-class MqttObjectRegisterHolder {
-    public:
-        void addRegister(const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
-        bool hasRegister(const MqttObjectRegisterIdent& regIdent) const;
-        bool updateRegisterValue(const MqttObjectRegisterIdent& ident, uint16_t value);
-        bool updateRegisterReadFailed(const MqttObjectRegisterIdent& regIdent);
-        bool setModbusNetworkState(const std::string& networkName, bool isUp);
-        bool hasValue() const;
-        bool isPolling() const;
-        MqttValue getFirstConvertedValue() const { return mRegisterValues.begin()->second.getConvertedValue(); }
-        uint16_t getFirstRawValue() const { return mRegisterValues.begin()->second.getRawValue(); }
-        const std::map<MqttObjectRegisterIdent, T, MqttObjectRegisterIdent::Compare>& getValues() const { return mRegisterValues; }
-        ModbusRegisters getRawArray() const;
-    protected:
-        std::map<MqttObjectRegisterIdent, T, MqttObjectRegisterIdent::Compare> mRegisterValues;
-};
-*/
 
 class MqttObjectDataNode {
     public:
@@ -170,6 +137,7 @@ class MqttObjectDataNode {
         std::shared_ptr<DataConverter> mConverter;
 };
 
+
 class MqttObjectState {
     public:
         //void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
@@ -186,6 +154,7 @@ class MqttObjectState {
         std::vector<MqttObjectDataNode> mNodes;
 };
 
+
 class MqttObjectAvailability : public MqttObjectState {
     public:
         AvailableFlag getAvailableFlag() const;
@@ -193,6 +162,7 @@ class MqttObjectAvailability : public MqttObjectState {
     private:
         MqttValue mAvailableValue = 1;
 };
+
 
 class MqttObject {
     public:
@@ -222,5 +192,6 @@ class MqttObject {
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
         void updateAvailablityFlag();
 };
+
 
 }

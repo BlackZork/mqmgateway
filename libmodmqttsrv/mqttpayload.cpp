@@ -31,15 +31,18 @@ createConvertedValue(
     }
 }
 
+
 bool isMap(const std::vector<MqttObjectDataNode>& pNodes) {
     // map with one or more elements
     return !pNodes.front().isUnnamed();
 }
 
+
 bool isList(const std::vector<MqttObjectDataNode>& pNodes) {
     // cannot create a single element list for now
     return pNodes.size() > 1 && pNodes.front().isUnnamed();
 }
+
 
 void
 generateJson(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const std::vector<MqttObjectDataNode>& pNodes) {

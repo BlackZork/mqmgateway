@@ -9,17 +9,6 @@
 
 namespace modmqttd {
 
-/*MqttValue
-MqttObjectRegisterValue::getConvertedValue() const {
-    if (mConverter != nullptr) {
-        ModbusRegisters data(mValue);
-        return mConverter->toMqtt(data);
-    } else {
-        return MqttValue(mValue);
-    }
-}
-*/
-
 bool
 MqttObjectRegisterValue::setValue(uint16_t val) {
     mHasValue = true;
@@ -30,33 +19,6 @@ MqttObjectRegisterValue::setValue(uint16_t val) {
     return false;
 }
 
-
-/*
-AvailableFlag
-MqttObjectAvailabilityValue::getAvailabilityFlag() const {
-    if (!mReadOk || !mHasValue)
-        return AvailableFlag::NotSet;
-    return mValue == mAvailableValue ? AvailableFlag::True : AvailableFlag::False;
-};
-*/
-
-/*
-template <typename T>
-void
-MqttObjectRegisterHolder<T>::addRegister(const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv) {
-    auto it = mRegisterValues.find(regIdent);
-    if (it == mRegisterValues.end()) {
-        mRegisterValues[regIdent] = T();
-        mRegisterValues[regIdent].setConverter(conv);
-    }
-}
-
-template <typename T>
-bool
-MqttObjectRegisterHolder<T>::hasRegister(const MqttObjectRegisterIdent& regIdent) const {
-    return mRegisterValues.find(regIdent) != mRegisterValues.end();
-}
-*/
 
 bool
 MqttObjectDataNode::updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData) {
@@ -83,6 +45,7 @@ MqttObjectDataNode::updateRegisterValues(const std::string& pNetworkName, const 
     return ret;
 }
 
+
 bool
 MqttObjectDataNode::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData) {
     bool ret = false;
@@ -108,6 +71,7 @@ MqttObjectDataNode::updateRegistersReadFailed(const std::string& pNetworkName, c
     return ret;
 }
 
+
 bool
 MqttObjectDataNode::setModbusNetworkState(const std::string& pNetworkName, bool isUp) {
     bool ret = false;
@@ -128,31 +92,6 @@ MqttObjectDataNode::setModbusNetworkState(const std::string& pNetworkName, bool 
 }
 
 
-/*
-template <typename T>
-bool
-MqttObjectRegisterHolder<T>::setModbusNetworkState(const std::string& networkName, bool isUp) {
-    bool ret = false;
-    for(auto it = mRegisterValues.begin(); it != mRegisterValues.end(); it++) {
-        if (it->first.mNetworkName == networkName) {
-            it->second.setReadError(!isUp);
-            ret = true;
-        }
-    }
-    return ret;
-}
-
-template <typename T>
-bool
-MqttObjectRegisterHolder<T>::hasValue() const {
-    for(auto it = mRegisterValues.begin(); it != mRegisterValues.end(); it++)
-        if (!it->second.hasValue()) {
-            return false;
-        }
-    return true;
-}
-*/
-
 bool
 MqttObjectDataNode::isPolling() const {
     if (isScalar())
@@ -166,43 +105,9 @@ MqttObjectDataNode::isPolling() const {
     return true;
 }
 
-/*
-template <typename T>
-ModbusRegisters
-MqttObjectRegisterHolder<T>::getRawArray() const {
-    ModbusRegisters ret;
-
-    for(auto it = mRegisterValues.begin(); it != mRegisterValues.end(); it++)
-        ret.appendValue(it->second.getRawValue());
-
-    return ret;
-}
-*/
-/*
-void
-MqttObjectAvailability::addRegister(const MqttObjectRegisterIdent& regIdent, uint16_t availValue) {
-    mRegisterValues[regIdent] = MqttObjectAvailabilityValue(availValue);
-};
-*/
 
 AvailableFlag
 MqttObjectAvailability::getAvailableFlag() const {
-    //TODO compare or use converter
-    /*
-    for(std::map<MqttObjectRegisterIdent, MqttObjectAvailabilityValue>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
-        switch(it->second.getAvailabilityFlag()) {
-            case AvailableFlag::NotSet:
-                return AvailableFlag::NotSet;
-            break;
-            case AvailableFlag::False:
-                return AvailableFlag::False;
-            break;
-            case AvailableFlag::True:
-                continue;
-            break;
-        }
-    }*/
-
     // no registers for availability
     // assume that state is available
     if (mNodes.size() == 0)
@@ -219,73 +124,12 @@ MqttObjectAvailability::getAvailableFlag() const {
     return AvailableFlag::True;
 }
 
-/*
-void
-MqttObjectState::addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv) {
-    std::vector<MqttObjectStateValue>::iterator existing = std::find_if(
-        mValues.begin(),
-        mValues.end(),
-        [&name](const MqttObjectStateValue& item) -> bool { return item.mName == name; }
-    );
-    if (existing == mValues.end()) {
-        mValues.push_back(MqttObjectStateValue(name, regIdent, conv));
-    } else {
-        existing->addRegister(regIdent, conv);
-    }
-};
-
-
-void
-createConvertedValue(
-    rapidjson::Writer<rapidjson::StringBuffer>& writer,
-    const MqttValue& value
-) {
-    switch(value.getSourceType()) {
-        case MqttValue::SourceType::INT:
-            writer.Int(value.getInt());
-            break;
-        case MqttValue::SourceType::DOUBLE: {
-            int prec = value.getDoublePrecision();
-            if (prec != MqttValue::NO_PRECISION)
-                writer.SetMaxDecimalPlaces(prec);
-            writer.Double(value.getDouble());
-            break;
-        }
-        case MqttValue::SourceType::BINARY:
-            writer.String(static_cast<const char*>(value.getBinaryPtr()), value.getBinarySize());
-            break;
-        case MqttValue::SourceType::INT64:
-            writer.Int64(value.getInt64());
-            break;
-    }
-}
-
-void
-createRegisterValuesArray(
-    rapidjson::Writer<rapidjson::StringBuffer>& writer,
-    const std::map<MqttObjectRegisterIdent,
-                    MqttObjectRegisterValue,
-                    MqttObjectRegisterIdent::Compare>
-                mRegisterValues)
-{
-    writer.StartArray();
-    for(auto regValue = mRegisterValues.begin();
-        regValue != mRegisterValues.end(); regValue++)
-    {
-        if (regValue->second.hasConverter()) {
-            createConvertedValue(writer, regValue->second.getConvertedValue());
-        } else {
-            writer.Uint(regValue->second.getRawValue());
-        }
-    }
-    writer.EndArray();
-}
-*/
 
 void
 MqttObjectDataNode::setScalarNode(const MqttObjectRegisterIdent& ident) {
     mIdent.reset(new MqttObjectRegisterIdent(ident));
 }
+
 
 bool
 MqttObjectDataNode::hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const {
@@ -307,6 +151,7 @@ MqttObjectDataNode::hasRegisterIn(const std::string& pNetworkName, const ModbusS
     return false;
 }
 
+
 bool
 MqttObjectDataNode::hasAllValues() const {
     if (isScalar()) {
@@ -320,6 +165,7 @@ MqttObjectDataNode::hasAllValues() const {
     }
     return true;
 }
+
 
 MqttValue
 MqttObjectDataNode::getConvertedValue() const {
@@ -338,106 +184,12 @@ MqttObjectDataNode::getConvertedValue() const {
     }
 }
 
+
 uint16_t
 MqttObjectDataNode::getRawValue() const {
     assert(isScalar());
     return mValue.getRawValue();
 }
-
-/*
-void
-createConvertedValue(
-    rapidjson::Writer<rapidjson::StringBuffer>& writer,
-    const ModbusRegisters& registers,
-    const DataConverter& converter
-) {
-    MqttValue v = converter.toMqtt(registers);
-    createConvertedValue(writer, v);
-}
-
-void
-createConvertedValue(
-    rapidjson::Writer<rapidjson::StringBuffer>& writer,
-    const MqttObjectStateValue& stateValue,
-    const std::shared_ptr<DataConverter>& converter
-) {
-    if (stateValue.isScalar()) {
-        //single value
-        const MqttObjectRegisterValue& val(stateValue.getValues().begin()->second);
-        if (converter != nullptr)
-            createConvertedValue(writer, converter->toMqtt(val.getRawValue()));
-        else {
-            if (val.hasConverter())
-                createConvertedValue(writer, val.getConvertedValue());
-            else
-                writer.Uint(val.getRawValue());
-        }
-    } else {
-        //array of values
-        if (converter != nullptr)
-            createConvertedValue(writer, stateValue.getRawArray(), *converter);
-        else
-            createRegisterValuesArray(writer, stateValue.getValues());
-    }
-}
-
-std::string
-MqttObjectState::createMessage() const {
-    // return mqtt value without rapidjson
-    // processing
-    if (mValues.size() == 1) {
-        const MqttObjectStateValue& single(mValues[0]);
-        if (single.isUnnamed() && (single.isScalar() || mConverter != nullptr)) {
-            if (mConverter != nullptr) {
-                MqttValue v = mConverter->toMqtt(single.getRawArray());
-                return v.getString();
-            } else {
-                return std::to_string(single.getFirstRawValue());
-            }
-        }
-    }
-
-    //in all other cases we output json string
-    {
-        const MqttObjectStateValue& first(mValues[0]);
-        rapidjson::StringBuffer ret;
-        rapidjson::Writer<rapidjson::StringBuffer> writer(ret);
-        if (mValues.size() == 1) {
-            if (first.isUnnamed()) {
-                //unnamed array, single value is handled above
-                createRegisterValuesArray(writer, first.getValues());
-            } else {
-                writer.StartObject();
-                writer.Key(first.mName.c_str());
-                //for named scalar or named array
-                createConvertedValue(writer, first, mConverter);
-                writer.EndObject();
-            }
-        } else {
-            if (first.isUnnamed()) {
-                //unnamed array, assume all StateValue objects are unnamed
-                writer.StartArray();
-                for(auto it = mValues.begin(); it != mValues.end(); it++) {
-                    createConvertedValue(writer, *it, mConverter);
-                }
-                writer.EndArray();
-            } else {
-                //map, assume all StateValue objects have a name
-                writer.StartObject();
-                for(auto it = mValues.begin(); it != mValues.end(); it++) {
-                    writer.Key(it->mName.c_str());
-                    createConvertedValue(writer, *it, mConverter);
-                }
-                writer.EndObject();
-            };
-        }
-        return ret.GetString();
-    }
-}
-
-
-
-*/
 
 
 bool
@@ -460,6 +212,7 @@ MqttObjectState::updateRegisterValues(const std::string& pNetworkName, const Msg
     return ret;
 }
 
+
 bool
 MqttObjectState::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData) {
     bool ret = false;
@@ -469,6 +222,7 @@ MqttObjectState::updateRegistersReadFailed(const std::string& pNetworkName, cons
     }
     return ret;
 }
+
 
 bool
 MqttObjectState::setModbusNetworkState(const std::string& networkName, bool isUp) {
@@ -480,6 +234,7 @@ MqttObjectState::setModbusNetworkState(const std::string& networkName, bool isUp
     return ret;
 }
 
+
 bool
 MqttObjectState::hasAllValues() const {
     for(std::vector<MqttObjectDataNode>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
@@ -488,6 +243,7 @@ MqttObjectState::hasAllValues() const {
     }
     return true;
 }
+
 
 bool
 MqttObjectState::isPolling() const {
@@ -505,6 +261,7 @@ MqttObject::MqttObject(const std::string& pTopic)
     mStateTopic = mTopic + "/state";
     mAvailabilityTopic = mTopic + "/availability";
 };
+
 
 bool
 MqttObject::hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const {
@@ -529,6 +286,7 @@ MqttObject::updateRegisterValues(const std::string& pNetworkName, const MsgRegis
     return false;
 }
 
+
 bool
 MqttObject::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData) {
     bool stateChanged = mState.updateRegistersReadFailed(pNetworkName, pSlaveData);
@@ -540,6 +298,7 @@ MqttObject::updateRegistersReadFailed(const std::string& pNetworkName, const Mod
     return false;
 }
 
+
 bool
 MqttObject::setModbusNetworkState(const std::string& networkName, bool isUp) {
     bool stateChanged = mState.setModbusNetworkState(networkName, isUp);
@@ -550,6 +309,7 @@ MqttObject::setModbusNetworkState(const std::string& networkName, bool isUp) {
     }
     return false;
 }
+
 
 void
 MqttObject::updateAvailablityFlag() {
