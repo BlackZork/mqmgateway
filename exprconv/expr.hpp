@@ -13,7 +13,7 @@ class ExprtkConverter : public DataConverter {
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
 
             if (data.getCount() > MAX_REGISTERS)
-                throw new ConvException("Maximum " +std::to_string(MAX_REGISTERS) + " registers allowed");
+                throw ConvException("Maximum " +std::to_string(MAX_REGISTERS) + " registers allowed");
 
             for(int i = 0; i < data.getCount(); i++) {
                 mValues[i] =  data.getValue(i);

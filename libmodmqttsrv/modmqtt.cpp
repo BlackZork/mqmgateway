@@ -358,7 +358,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
         if (slaves.IsDefined()) {
 
             if (!slaves.IsSequence())
-                throw new ConfigurationException(slaves.Mark(), "slaves content should be a list");
+                throw ConfigurationException(slaves.Mark(), "slaves content should be a list");
 
             for(std::size_t i = 0; i < slaves.size(); i++) {
                 const YAML::Node& slave(slaves[i]);
@@ -476,7 +476,7 @@ ModMqtt::parseObjectDataNode(
     if (yRegisters.IsDefined()) {
         bool isUnnamed = false;
         if (!yRegisters.IsSequence())
-            throw new ConfigurationException(yRegisters.Mark(), "'registers' must be a list");
+            throw ConfigurationException(yRegisters.Mark(), "'registers' must be a list");
         for(size_t i = 0; i < yRegisters.size(); i++) {
             const YAML::Node& yData = yRegisters[i];
             MqttObjectDataNode childNode(parseObjectDataNode(yData, pDefaultNetwork, pDefaultSlave, pRefresh, pSpecsOut));
