@@ -35,8 +35,8 @@ MqttObjectDataNode::updateRegisterValues(const std::string& pNetworkName, const 
             && pNetworkName == mIdent->mNetworkName
         ) {
             //check if our value is in pSlaveData range and update
-            uint16_t idx = abs(mIdent->mRegisterNumber - pSlaveData.mRegister);
-            if (idx < pSlaveData.mCount) {
+            if (mIdent->mRegisterNumber >= pSlaveData.mRegister && mIdent->mRegisterNumber <= (pSlaveData.lastRegister())) {
+                uint16_t idx = mIdent->mRegisterNumber - pSlaveData.mRegister;
                 ret = mValue.setValue(pSlaveData.mRegisters.getValue(idx));
                 mValue.setReadError(false);
             }

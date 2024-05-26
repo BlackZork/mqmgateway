@@ -58,16 +58,23 @@ mqtt:
   objects:
     - topic: invalid
       state:
-        registers:
 )");
 
     SECTION("shoud throw if register list is empty") {
+        config.mYAML["mqtt"]["objects"][0]["state"]["registers"] = "";
         MockedModMqttServerThread server(config.toString(), false);
         server.start();
         server.stop();
         REQUIRE(server.initOk() == false);
     }
 
+    SECTION("shoud throw if register map is empty") {
+        config.mYAML["mqtt"]["objects"][0]["state"][0]["name"] = "empty map";
+        MockedModMqttServerThread server(config.toString(), false);
+        server.start();
+        server.stop();
+        REQUIRE(server.initOk() == false);
+    }
 
 }
 

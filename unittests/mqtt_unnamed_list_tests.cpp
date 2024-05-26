@@ -3,6 +3,8 @@
 #include "jsonutils.hpp"
 #include "defaults.hpp"
 
+TEST_CASE ("Unnamed state list") {
+
 static const std::string config1 = R"(
 modbus:
   networks:
@@ -23,7 +25,7 @@ mqtt:
           register_type: input
 )";
 
-TEST_CASE ("Unnamed state list without register value should not be available") {
+SECTION ("without register value should not be available") {
     MockedModMqttServerThread server(config1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 7);
@@ -38,7 +40,7 @@ TEST_CASE ("Unnamed state list without register value should not be available") 
 }
 
 
-TEST_CASE ("Unnamed state list should output json array") {
+SECTION ("should output json array") {
     MockedModMqttServerThread server(config1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 7);
@@ -54,6 +56,53 @@ TEST_CASE ("Unnamed state list should output json array") {
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[1,7]");
     server.stop();
 }
+
+}
+
+TEST_CASE ("Unnamed state list declared as registers") {
+
+static const std::string config1 = R"(
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  refresh: 1s
+  broker:
+    host: localhost
+  objects:
+    - topic: test_state
+      state:
+        registers:
+          - register: tcptest.1.2
+          - register: tcptest.1.3
+)";
+
+SECTION ("should output json array") {
+    MockedModMqttServerThread server(config1);
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
+    server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 7);
+    server.start();
+
+    //to make sure that all registers have initial value
+    server.waitForPublish("test_state/availability");
+    REQUIRE(server.mqttValue("test_state/availability") == "1");
+
+    server.waitForPublish("test_state/state");
+
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE_JSON(server.mqttValue("test_state/state"), "[1,7]");
+    server.stop();
+}
+
+}
+
+
+
+
+TEST_CASE ("Unnamed state list declared as starting register and count") {
 
 static const std::string config2 = R"(
 modbus:
@@ -77,7 +126,7 @@ mqtt:
           count: 2
 )";
 
-TEST_CASE ("Unnamed state list declared as starting register and count should output json array") {
+SECTION ("should output json array") {
     MockedModMqttServerThread server(config2);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 4);
@@ -94,7 +143,7 @@ TEST_CASE ("Unnamed state list declared as starting register and count should ou
     server.stop();
 }
 
-TEST_CASE ("Unnamed state list declared as starting register and count should write from json array") {
+SECTION ("should write from json array") {
     MockedModMqttServerThread server(config2);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
@@ -113,4 +162,7 @@ TEST_CASE ("Unnamed state list declared as starting register and count should wr
 
     server.stop();
 }
+
+}
+
 
