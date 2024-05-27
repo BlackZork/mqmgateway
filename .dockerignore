@@ -1,0 +1,7 @@
+.github
+.vscode
+buildtests
+build
+Dockerfile
+docker-compose.yml
+README.md

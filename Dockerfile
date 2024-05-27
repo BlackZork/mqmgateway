@@ -1,4 +1,4 @@
-ARG ALPINE_VERSION=latest
+ARG ALPINE_VERSION=3.19
 FROM alpine:${ALPINE_VERSION} AS builder
 RUN apk update && apk add --no-cache \
       git build-base cmake pkgconf boost-dev libmodbus-dev mosquitto-dev yaml-cpp-dev rapidjson-dev catch2-3
@@ -28,8 +28,9 @@ FROM alpine:${ALPINE_VERSION} AS runtime
 COPY --from=builder /opt/mqmgateway/install/ /usr/
 COPY --from=builder /opt/mqmgateway/source/modmqttd/config.template.yaml /etc/modmqttd/config.yaml
 RUN apk update && apk add --no-cache \
-  $(apk search -e boost*-log | grep -o '^boost.*-log') \
-  $(apk search -e boost*-program_options | grep -o '^boost.*-program_options') \
+   $(apk search -e boost*-log | grep -o '^boost.*-log') \
+   $(apk search -e boost*-filesystem | grep -o '^boost.*-filesystem') \
+   $(apk search -e boost*-program_options | grep -o '^boost.*-program_options') \
   libmodbus mosquitto yaml-cpp && \
   apk cache purge
 ENTRYPOINT [ "/usr/bin/modmqttd" ]
