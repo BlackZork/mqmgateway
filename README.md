@@ -312,23 +312,15 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
 ### Topic default values:
 
-  * **response_timeout** (optional)
-
-  Overrides modbus.response_timeout for this topic
-
-  * **response_data_timeout** (optional)
-
-    Overrides modbus.response_data_timeout for this topic
-
-  * **refresh**
+  * **refresh** (optional)
 
     Overrides mqtt.refresh for all state and availability sections in this topic
 
-  * **network**
+  * **network** (optional)
 
     Sets default network name for all state, commands and availability sections in this topic
 
-  * **slave**
+  * **slave** (optional)
 
     Sets default modbus slave address for all state, commands and availability sections in this topic
 
@@ -362,13 +354,15 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   Example of MQTT command topic declaration:
 
-     objects:
+    ```yaml
+    objects:
     - topic: test_switch
       commands:
         - name: set
           register: tcptest.1.2
           register_type: holding
           converter: std.divide(100)
+    ```
 
   Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
 
@@ -391,11 +385,13 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   1. As starting register and count:
 
+    ```yaml
     state:
       name: mqtt_combined_val
       converter: std.int32
       register: net.1.12
       count: 2
+    ```
 
   This declaration creates a poll group. Poll group is read from modbus slave using a single
   modbus_read_registers(3) call. Overlapping poll groups are merged with each other and with
@@ -403,6 +399,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   2. as list of registers:
 
+    ```yaml
     state:
       - name: humidity
         register: net.1.12
@@ -412,6 +409,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
       - name:  temp1
         register: net.1.300
         register_type: input
+    ```
 
   This declaration do not create a poll group, but allows to construct MQTT topic data
   from different slaves, even on different modbus networks. On exception is if there are poll groups defined in modbus section, that overlaps state register definitions. In this case
@@ -447,7 +445,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Modbus register type: coil, bit, input, holding
 
-  * **count**
+  * **count** (optional, default: 1)
 
      If defined, then this describes register range to poll. Register range is always
      polled with a single modbus_read_registers(3) call
@@ -460,7 +458,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   1. single value
 
-    ```
+    ```yaml
     state:
       name: mqtt_val
       register: net.1.12
@@ -469,7 +467,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   2. unnamed list, each register is polled with a separate modbus_read_registers call
 
-    ```
+    ```yaml
     state:
       name: mqtt_list
       registers:
@@ -481,7 +479,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   3. multiple registers converted to single MQTT value, polled with single modbus_read_registers call
 
-    ```
+    ```yaml
     state:
       name: mqtt_combined_val
       converter: std.int32
@@ -491,7 +489,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   4. named list (map)
 
-    ```
+    ```yaml
     state:
       - name: humidity
         register: net.1.12
@@ -503,8 +501,31 @@ A list of topics where modbus values are published to MQTT broker and subscribed
         register_type: input
     ```
 
-  In all of above examples *refresh*, *response_timeout* and *response_data_timeout* can be added at any level to set different values to
+  In all of above examples *refresh* can be added at any level to set different values to
   whole list or a single register.
+
+  Lists and maps can be nested if needed:
+
+    ```yaml
+    state:
+      - name: humidity
+        register: net.1.12
+        count: 2
+        converter: std.float()
+      - name: other_params
+        registers:
+          - name: "temp1"
+            register: net.1.14
+            count: 2
+            converter: std.int32()
+          - name: "temp2"
+            register: net.1.16
+            count: 2
+            converter: std.int32()
+    ```
+
+  MQTT output: `{"humidity": 32.45, "other_params": { "temp1": 23, "temp2": 66 }}`
+
 
 ### The *availability* section
 
@@ -532,11 +553,22 @@ Configuration values:
 
     Modbus register type: coil, input, holding
 
+  * **count**
+
+     If defined, then this describes register range to poll. Register range is always
+     polled with a single modbus_read_registers(3) call
+
+  * **converter** (optional)
+
+    The name of function that should be called to convert register uint16_t values to MQTT UTF-8 value. Format of function name is `plugin_name.function_name`. See converters for details.
+    After conversion, MQTT value is compared to available_value. "1" is published if values are equal, 
+    otherwise "0".
+
   * **available_value** (optional, default 1)
 
-    Expected uint16 value read from availability register when availability flag should be set to "1". If other value is read then availability flag is set to "0".
+    Expected MQTT value read from availability register (or list of registers passed to converter) when availability flag should be set to "1". If other value is read then availability flag is set to "0".
 
-*register*, *register_type* and *available_value* can form a list when multiple registers should be read.
+*register*, *register_type* can form a **registers:** list when multiple registers should be read. In this case converter is mandatory and no nesting is allowed. See examples in state section.
 
 ## Data conversion
 
