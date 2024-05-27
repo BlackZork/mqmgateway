@@ -432,9 +432,9 @@ ModMqtt::parseObject(
     if (!yAvail.IsDefined())
         return ret;
 
-    uint16_t availValue;
-    if (ConfigTools::readOptionalValue<uint16_t>(availValue, yAvail, "available_value"))
-        ret.setAvailableValue(availValue);
+    std::string availValue;
+    if (ConfigTools::readOptionalValue<std::string>(availValue, yAvail, "available_value"))
+        ret.setAvailableValue(MqttValue::fromString(availValue));
 
     if (yAvail.IsMap()) {
         MqttObjectDataNode node(parseObjectDataNode(yAvail, pDefaultNetwork, pDefaultSlave, pDefaultRefresh, pSpecsOut));

@@ -158,7 +158,7 @@ class MqttObjectState {
 class MqttObjectAvailability : public MqttObjectState {
     public:
         AvailableFlag getAvailableFlag() const;
-        void setAvailableValue(uint16_t pValue) { mAvailableValue = pValue; }
+        void setAvailableValue(const MqttValue& pValue) { mAvailableValue = pValue; }
     private:
         MqttValue mAvailableValue = 1;
 };
@@ -176,7 +176,7 @@ class MqttObject {
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
 
         void addAvailabilityDataNode(const MqttObjectDataNode& pNode) { mAvailability.addDataNode(pNode); }
-        void setAvailableValue(uint16_t pValue) { mAvailability.setAvailableValue(pValue); }
+        void setAvailableValue(const MqttValue& pValue) { mAvailability.setAvailableValue(pValue); }
         AvailableFlag getAvailableFlag() const { return mIsAvailable; }
 
         MqttObjectState mState;
