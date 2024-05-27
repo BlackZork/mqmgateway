@@ -36,6 +36,10 @@ class MqttValue {
             return MqttValue(ptr, size);
         }
 
+        static MqttValue fromString(const std::string& pVal) {
+            return MqttValue(pVal);
+        }
+
         MqttValue() {
             setInt(0);
         }
@@ -52,6 +56,10 @@ class MqttValue {
             setDouble(val, precision);
         }
 
+        MqttValue(const std::string& pVal) {
+            setString(pVal.c_str());
+        }
+
         MqttValue(const void* ptr, size_t size){
             mBinaryValue = std::shared_ptr<void>(malloc(size), free);
             memcpy(mBinaryValue.get(), ptr, size);
@@ -64,6 +72,7 @@ class MqttValue {
             mBinaryValue = std::shared_ptr<void>(malloc(len), free);
             memcpy(mBinaryValue.get(), val, len);
             mBinarySize = len;
+            mType = SourceType::BINARY;
         }
 
         void setDouble(double val, int precision) {

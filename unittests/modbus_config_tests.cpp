@@ -4,7 +4,7 @@
 #include "yaml_utils.hpp"
 
 
-TEST_CASE("Modbus configuration") {
+TEST_CASE("Modbus timeout configuration") {
 TestConfig config(R"(
 modbus:
   networks:
@@ -41,5 +41,40 @@ mqtt:
         server.stop();
         REQUIRE(server.initOk() == false);
     }
+}
+
+
+TEST_CASE("Modbus state configuration") {
+TestConfig config(R"(
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  broker:
+    host: localhost
+  objects:
+    - topic: invalid
+      state:
+)");
+
+    SECTION("shoud throw if register list is empty") {
+        config.mYAML["mqtt"]["objects"][0]["state"]["registers"] = "";
+        MockedModMqttServerThread server(config.toString(), false);
+        server.start();
+        server.stop();
+        REQUIRE(server.initOk() == false);
+    }
+
+    SECTION("shoud throw if register map is empty") {
+        config.mYAML["mqtt"]["objects"][0]["state"][0]["name"] = "empty map";
+        MockedModMqttServerThread server(config.toString(), false);
+        server.start();
+        server.stop();
+        REQUIRE(server.initOk() == false);
+    }
+
 }
 

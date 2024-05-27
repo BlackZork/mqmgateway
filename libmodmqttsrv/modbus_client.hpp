@@ -3,6 +3,7 @@
 #include <thread>
 #include "queue_item.hpp"
 #include "mqttobject.hpp"
+#include "mqttcommand.hpp"
 #include "modbus_messages.hpp"
 #include "../readerwriterqueue/readerwriterqueue.h"
 
@@ -25,10 +26,11 @@ class ModbusClient {
 
         void sendCommand(const MqttObjectCommand& cmd, const ModbusRegisters& reg_values) {
             MsgRegisterValues val(
-                cmd.mRegister.mSlaveId,
-                cmd.mRegister.mRegisterType,
-                cmd.mRegister.mRegisterNumber,
-                reg_values
+                cmd.mSlaveId,
+                cmd.mRegisterType,
+                cmd.mRegister,
+                reg_values,
+                cmd.getCommandId()
             );
             // TODO add max queue size
             // here or at mqtt level - add configurable global limit for all queues

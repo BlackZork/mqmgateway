@@ -72,7 +72,7 @@ class RegisterWrite : public RegisterCommand {
     public:
         RegisterWrite(const MsgRegisterValues& msg)
             : RegisterCommand(msg.mSlaveId, msg.mRegister, msg.mRegisterType, msg.mRegisters.getCount()),
-              mCreationTime(msg.mCreationTime),
+              mCreationTime(msg.getCreationTime()),
               mValues(msg.mRegisters)
         {}
         RegisterWrite(int pSlaveId, int pRegister, RegisterType pType, const ModbusRegisters& pValues)

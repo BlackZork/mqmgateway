@@ -144,7 +144,7 @@ TEST_CASE ("Availablity should be changed for all registers in poll group") {
     server.waitForPublish("first_state/availability");
     REQUIRE(server.mqttValue("first_state/availability") == "1");
     server.waitForPublish("second_state/availability");
-    REQUIRE(server.mqttValue("first_state/availability") == "1");
+    REQUIRE(server.mqttValue("second_state/availability") == "1");
 
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 10);
     server.setModbusRegisterReadError("tcptest", 1, 1, modmqttd::RegisterType::INPUT);

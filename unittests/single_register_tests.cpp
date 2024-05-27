@@ -33,6 +33,7 @@ mqtt:
 
     TEST_CASE ("When modbus network is connected availability flag for registers should be set") {
         MockedModMqttServerThread server(config);
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, false);
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.start();
         server.waitForPublish("test_switch/availability");
