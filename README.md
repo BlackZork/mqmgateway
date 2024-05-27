@@ -143,7 +143,8 @@ Modbus network configuration parameters are listed below:
 
 * **read_retries** (optional, default 1)
 
-  A number of retries after a modbus read command fails.
+  A number of retries after a modbus read command fails. A failed command will trigger a publish of "0" value
+  to all availability topics for objects which needs command registers for `state` or `command` section.
 
 * **write_retries** (optional, default 2)
 
