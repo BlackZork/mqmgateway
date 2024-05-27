@@ -234,10 +234,12 @@ Modbus network configuration parameters are listed below:
 
       An example poll group definition to poll 20 INPUT registers at once:
 
+      ```yaml
         poll_groups:
           - register: 1
             register_type: input
             count: 20
+      ```
 
       This definition allows to use single modbus read call to read all data that is needed 
       for multiple topics declared in MQTT section. If there are no topics that use modbus data from 
@@ -245,6 +247,7 @@ Modbus network configuration parameters are listed below:
 
       If MQTT topic uses its own register range and this range overlaps a poll group like this:
 
+      ```yaml
         slaves:
           - address: 1
             poll_groups:
@@ -257,7 +260,8 @@ Modbus network configuration parameters are listed below:
             register: 1.18
             register_type: input
             count 5
-      
+      ```
+
       then poll group will be extended to count=23 to issue a single call for reading all data needed for `humidity` topic in single modus read call.
 
 ## MQTT section
@@ -354,15 +358,15 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   Example of MQTT command topic declaration:
 
-    ```yaml
-    objects:
-    - topic: test_switch
-      commands:
-        - name: set
-          register: tcptest.1.2
-          register_type: holding
-          converter: std.divide(100)
-    ```
+  ```yaml
+  objects:
+  - topic: test_switch
+    commands:
+      - name: set
+        register: tcptest.1.2
+        register_type: holding
+        converter: std.divide(100)
+  ```
 
   Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
 
@@ -385,13 +389,13 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   1. As starting register and count:
 
-    ```yaml
-    state:
-      name: mqtt_combined_val
-      converter: std.int32
-      register: net.1.12
-      count: 2
-    ```
+  ```yaml
+  state:
+    name: mqtt_combined_val
+    converter: std.int32
+    register: net.1.12
+    count: 2
+  ```
 
   This declaration creates a poll group. Poll group is read from modbus slave using a single
   modbus_read_registers(3) call. Overlapping poll groups are merged with each other and with
@@ -399,17 +403,17 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   2. as list of registers:
 
-    ```yaml
-    state:
-      - name: humidity
-        register: net.1.12
-        register_type: input
-        # optional
-        converter: std.divide(100,2)
-      - name:  temp1
-        register: net.1.300
-        register_type: input
-    ```
+  ```yaml
+  state:
+    - name: humidity
+      register: net.1.12
+      register_type: input
+      # optional
+      converter: std.divide(100,2)
+    - name:  temp1
+      register: net.1.300
+      register_type: input
+  ```
 
   This declaration do not create a poll group, but allows to construct MQTT topic data
   from different slaves, even on different modbus networks. On exception is if there are poll groups defined in modbus section, that overlaps state register definitions. In this case
@@ -458,71 +462,71 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   1. single value
 
-    ```yaml
-    state:
-      name: mqtt_val
-      register: net.1.12
-      register_type: coil
-    ```
+  ```yaml
+  state:
+    name: mqtt_val
+    register: net.1.12
+    register_type: coil
+  ```
 
   2. unnamed list, each register is polled with a separate modbus_read_registers call
 
-    ```yaml
-    state:
-      name: mqtt_list
-      registers:
-        - register: net.1.12
-          register_type: input
-        - register: net.1.100
-          register_type: input
-    ```
+  ```yaml
+  state:
+    name: mqtt_list
+    registers:
+      - register: net.1.12
+        register_type: input
+      - register: net.1.100
+        register_type: input
+  ```
 
   3. multiple registers converted to single MQTT value, polled with single modbus_read_registers call
 
-    ```yaml
-    state:
-      name: mqtt_combined_val
-      converter: std.int32
-      register: net.1.12
-      count: 2
-    ```
+  ```yaml
+  state:
+    name: mqtt_combined_val
+    converter: std.int32
+    register: net.1.12
+    count: 2
+  ```
 
   4. named list (map)
 
-    ```yaml
-    state:
-      - name: humidity
-        register: net.1.12
-        register_type: input
-        # optional
-        converter: std.divide(100,2)
-      - name:  temp1
-        register: net.1.13
-        register_type: input
-    ```
+  ```yaml
+  state:
+    - name: humidity
+      register: net.1.12
+      register_type: input
+      # optional
+      converter: std.divide(100,2)
+    - name:  temp1
+      register: net.1.13
+      register_type: input
+  ```
 
   In all of above examples *refresh* can be added at any level to set different values to
   whole list or a single register.
 
   Lists and maps can be nested if needed:
 
-    ```yaml
-    state:
-      - name: humidity
-        register: net.1.12
-        count: 2
-        converter: std.float()
-      - name: other_params
-        registers:
-          - name: "temp1"
-            register: net.1.14
-            count: 2
-            converter: std.int32()
-          - name: "temp2"
-            register: net.1.16
-            count: 2
-            converter: std.int32()
-    ```
+  ```yaml
+  state:
+    - name: humidity
+      register: net.1.12
+      count: 2
+      converter: std.float()
+    - name: other_params
+      registers:
+        - name: "temp1"
+          register: net.1.14
+          count: 2
+          converter: std.int32()
+        - name: "temp2"
+          register: net.1.16
+          count: 2
+          converter: std.int32()
+  ```
 
   MQTT output: `{"humidity": 32.45, "other_params": { "temp1": 23, "temp2": 66 }}`
 
@@ -711,7 +715,7 @@ Converter can be added to modbus register in state and command section.
 
 When state is a single modbus register:
 
-```
+```yaml
   state:
     register: device1.slave2.12
     register_type: input
@@ -720,7 +724,7 @@ When state is a single modbus register:
 
 When state is combined from multiple modbus registers:
 
-```
+```yaml
   state:
     register: device1.slave2.12
     register_type: input
@@ -730,7 +734,7 @@ When state is combined from multiple modbus registers:
 
 When mqtt command payload should be converted to register value:
 
-```
+```yaml
     command:
       name: set_val
       register: device1.slave2.12
@@ -775,7 +779,7 @@ Register values are defined as R0..Rn variables.
 #### Examples
 Division of two registers with precision 3:
 
-```
+```yaml
   objects:
     - topic: test_state
       state:
@@ -788,7 +792,8 @@ Division of two registers with precision 3:
 ```
 
 Reading the state of a 32-bit float value (byte order `ABCD`) spanning two registers (R0 = `BA`, R1 = `DC`) with precision 3:
-```
+
+```yaml
   objects:
     - topic: test_state
       state:
@@ -808,7 +813,7 @@ Custom converters can be added by creating a C++ dynamically loaded library with
 
 Here is a minimal example of custom conversion plugin with help of boost dll library loader:
 
-``` C++
+```C++
 
 #include <boost/config.hpp> // for BOOST_SYMBOL_EXPORT
 #include "libmodmqttconv/converterplugin.hpp"
@@ -874,7 +879,7 @@ g++ -I<path to mqmgateway source dir> -fPIC -shared myplugin.cpp -o myplugin.so
 
 *myconverter* from this example can be used like this:
 
-```
+```yaml
 modmqttd:
   loglevel: 5
   converter_search_path:
