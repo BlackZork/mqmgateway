@@ -220,6 +220,14 @@ Modbus network configuration parameters are listed below:
 
       Same as global *delay_before_command* but applies to this slave only.
 
+  * **response_timeout** (optional)
+
+    Overrides modbus.response_timeout 
+
+  * **response_data_timeout** (optional)
+
+    Overrides modbus.response_data_timeout
+
   * **read_retries** (optional)
 
     A number of retries after a modbus read command to this slave fails. Uses the global *read_retries* if not defined.
@@ -422,14 +430,6 @@ A list of topics where modbus values are published to MQTT broker and subscribed
   * **refresh**
 
     Overrides mqtt.refresh for this state topic
-
-  * **response_timeout** (optional)
-
-    Overrides modbus.response_timeout when reading state registers
-
-  * **response_data_timeout** (optional)
-
-    Overrides modbus.response_data_timeout when reading state registers
 
   When state is a single modbus register value:
 
