@@ -38,6 +38,7 @@ add_executable(tests
     mqtt_poll_groups_tests.cpp
     mqtt_register_default_slave_tests.cpp
     mqtt_register_id_parser_tests.cpp
+    mqtt_slave_sets_tests.cpp
     mqtt_state_map_conv_tests.cpp
     mqtt_state_map_tests.cpp
     mqtt_unnamed_list_conv_tests.cpp
