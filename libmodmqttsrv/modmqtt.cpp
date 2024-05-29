@@ -143,13 +143,16 @@ ModMqtt::init(const YAML::Node& config) {
 
     // must be before initObjects, we validate and use slave data
     // there
-    std::vector<MsgRegisterPollSpecification> modbus_specs = initModbusClients(config);
+    ModbusInitData modbusData = initModbusClients(config);
 
     std::vector<MsgRegisterPollSpecification> mqtt_specs;
-    std::vector<MqttObject> objects = initObjects(config, mqtt_specs);
+    std::vector<MqttObject> objects = initObjects(config, modbusData, mqtt_specs);
 
 
-    for(std::vector<MsgRegisterPollSpecification>::iterator sit = modbus_specs.begin(); sit != modbus_specs.end(); sit++) {
+    for(std::vector<MsgRegisterPollSpecification>::iterator sit = modbusData.mPollSpecification.begin();
+        sit != modbusData.mPollSpecification.end();
+        sit++)
+    {
         const std::string& netname = sit->mNetworkName;
 
         const auto& mqtt_spec = std::find_if(
@@ -184,7 +187,10 @@ ModMqtt::init(const YAML::Node& config) {
 
     for(const MqttObject& obj : objects) {
         auto optr = std::shared_ptr<MqttObject>(new MqttObject(obj));
-        for(std::vector<MsgRegisterPollSpecification>::const_iterator sit = modbus_specs.begin(); sit != modbus_specs.end(); sit++) {
+        for(std::vector<MsgRegisterPollSpecification>::const_iterator sit = modbusData.mPollSpecification.begin();
+            sit != modbusData.mPollSpecification.end();
+            sit++)
+        {
             for(std::vector<MsgRegisterPoll>::const_iterator rit = sit->mRegisters.begin(); rit != sit->mRegisters.end(); rit++) {
                 if (obj.hasRegisterIn(sit->mNetworkName, *rit)) {
                     MqttObjectRegisterIdent ident(sit->mNetworkName, *rit);
@@ -329,7 +335,7 @@ ModMqtt::readModbusPollGroups(const std::string& modbus_network, int default_sla
 }
 
 
-std::vector<MsgRegisterPollSpecification>
+ModMqtt::ModbusInitData
 ModMqtt::initModbusClients(const YAML::Node& config) {
     const YAML::Node& modbus = config["modbus"];
     if (!modbus.IsDefined())
@@ -344,7 +350,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
     if (networks.size() == 0)
         throw ConfigurationException(networks.Mark(), "No modbus networks defined");
 
-    std::vector<MsgRegisterPollSpecification> ret;
+    ModbusInitData ret;
 
     for(std::size_t i = 0; i < networks.size(); i++) {
         const YAML::Node& network(networks[i]);
@@ -365,13 +371,24 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
                 throw ConfigurationException(slaves.Mark(), "slaves content must be a list");
 
             for(std::size_t i = 0; i < slaves.size(); i++) {
-                const YAML::Node& slave(slaves[i]);
-                ModbusSlaveConfig slave_config(slave);
-                if (slave_config.mDelayBeforeCommand != std::chrono::milliseconds::zero() && slave_config.mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
-                    BOOST_LOG_SEV(log, Log::warn) << "Ignoring delay_before_first_poll for slave " << slave_config.mAddress << " because delay_before_poll is set";
+                const YAML::Node& ySlave(slaves[i]);
+                std::vector<std::pair<int,int>> slave_addresses(ConfigTools::readRequiredValue<std::vector<std::pair<int,int>>>(ySlave, "address"));
+                for(const std::pair<int,int>& addr_range: slave_addresses) {
+
+                    if (addr_range.first <=0 || addr_range.second > 256 || addr_range.first > addr_range.second)
+                        throw ConfigurationException(ySlave["address"].Mark(), "Invalid slave address range " + std::to_string(addr_range.first) + "-" + std::to_string(addr_range.second));
+
+                    for(int addr = addr_range.first; addr <= addr_range.second; addr++) {
+                        ModbusSlaveConfig slave_config(addr, ySlave);
+                        if (slave_config.mDelayBeforeCommand != std::chrono::milliseconds::zero() && slave_config.mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
+                            BOOST_LOG_SEV(log, Log::warn) << "Ignoring delay_before_first_poll for slave " << slave_config.mAddress << " because delay_before_poll is set";
+                        }
+                        modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
+                        spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, ySlave["poll_groups"]));
+
+                        ret.mSlaveNames[modbus->mNetworkName][slave_config.mAddress] = slave_config.mSlaveName;
+                    }
                 }
-                modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
-                spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, slave["poll_groups"]));
             }
         }
 
@@ -380,7 +397,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
             BOOST_LOG_SEV(log, Log::warn) << "'network.poll_groups' are deprecated and will be removed in future releases. Please use 'slaves' section and define per-slave poll_groups instead";
             spec.merge(readModbusPollGroups(modbus_config.mName, -1, old_groups));
         }
-        ret.push_back(spec);
+        ret.mPollSpecification.push_back(spec);
     }
     mMqtt->setModbusClients(mModbusClients);
     BOOST_LOG_SEV(log, Log::debug) << mModbusClients.size() << " modbus client(s) initialized";
@@ -392,6 +409,7 @@ ModMqtt::parseObject(
     const YAML::Node& pData,
     const std::string& pDefaultNetwork,
     int pDefaultSlaveId,
+    const std::string& pSlaveName,
     std::chrono::milliseconds pDefaultRefresh,
     std::vector<MsgRegisterPollSpecification>& pSpecsOut)
 {
@@ -418,6 +436,18 @@ ModMqtt::parseObject(
         else
         {
             topic.replace(saPhPos, saPhVar.length(), std::to_string(pDefaultSlaveId));
+        }
+    }
+
+    //and the same for slave name
+    const std::string snPhVar("${slave_name}");
+    size_t snPhPos = topic.find(snPhVar);
+    if (snPhPos != std::string::npos) {
+        if (pSlaveName.empty())
+            throw ConfigurationException(pData["topic"].Mark(), std::string("missing name for slave id=") + std::to_string(pDefaultSlaveId) + " needed for placeholder in topic " + topic);
+        else
+        {
+            topic.replace(snPhPos, snPhVar.length(), pSlaveName);
         }
     }
 
@@ -641,7 +671,7 @@ ModMqtt::parseObjectCommands(
 }
 
 std::vector<MqttObject>
-ModMqtt::initObjects(const YAML::Node& config, std::vector<MsgRegisterPollSpecification>& pSpecsOut)
+ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& modbusData, std::vector<MsgRegisterPollSpecification>& pSpecsOut)
 {
     std::vector<MqttObjectCommand> commands;
     std::vector<MqttObject> objects;
@@ -699,7 +729,7 @@ ModMqtt::initObjects(const YAML::Node& config, std::vector<MsgRegisterPollSpecif
                     if (created.find(defaultSlaveId) != created.end())
                         throw ConfigurationException(objdata["slave"].Mark(), std::string("Slave with id=") + std::to_string(defaultSlaveId) + " is duplicated in the list");
 
-                    MqttObject object(parseObject(objdata, defaultNetwork, defaultSlaveId, defaultRefresh, pSpecsOut));
+                    MqttObject object(parseObject(objdata, defaultNetwork, defaultSlaveId, modbusData.getSlaveName(defaultNetwork, defaultSlaveId), defaultRefresh, pSpecsOut));
                     const std::string& baseTopic(object.getTopic());
 
                     std::vector<MqttObject>::const_iterator oit = std::find_if(

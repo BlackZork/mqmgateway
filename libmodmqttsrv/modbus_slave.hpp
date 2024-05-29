@@ -12,8 +12,9 @@ class ModbusSlaveConfig {
     static boost::log::sources::severity_logger<Log::severity> log;
 
     public:
-        ModbusSlaveConfig(const YAML::Node& data);
+        ModbusSlaveConfig(int pAddress, const YAML::Node& data);
         int mAddress;
+        std::string mSlaveName;
         std::chrono::milliseconds mDelayBeforeCommand = std::chrono::milliseconds::zero();
         std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::milliseconds::zero();
 

@@ -74,6 +74,7 @@ modbus:
   networks:
     - name: tcptest
       address: localhost
+      port: 502
       slaves:
         - address: 1
           name: meter
@@ -112,8 +113,8 @@ SECTION("should publish topics with name placeholder for every slave") {
     server.setModbusRegisterValue("tcptest", 2, 1, modmqttd::RegisterType::HOLDING, 2);
 
     server.start();
-    server.waitForPublish("slave_meter/test_sensor");
-    server.waitForPublish("slave_switch/test_sensor");
+    server.waitForPublish("slave_meter/test_sensor/state");
+    server.waitForPublish("slave_switch/test_sensor/state");
 
     REQUIRE(server.mqttValue("slave_meter/test_sensor/state") == "1");
     REQUIRE(server.mqttValue("slave_switch/test_sensor/state") == "2");
