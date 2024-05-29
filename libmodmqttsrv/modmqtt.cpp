@@ -443,7 +443,9 @@ ModMqtt::parseObject(
     const std::string snPhVar("${slave_name}");
     size_t snPhPos = topic.find(snPhVar);
     if (snPhPos != std::string::npos) {
-        if (pSlaveName.empty())
+        if (pDefaultSlaveId == -1) {
+            throw ConfigurationException(pData["topic"].Mark(), "cannot find slave name, default slave address must be set for topic" + topic);
+        } else if (pSlaveName.empty())
             throw ConfigurationException(pData["topic"].Mark(), std::string("missing name for slave id=") + std::to_string(pDefaultSlaveId) + " needed for placeholder in topic " + topic);
         else
         {

@@ -99,6 +99,17 @@ SECTION("should throw ConfigurationException if no slave name is set and slave_n
     REQUIRE(server.initOk() == false);
 }
 
+SECTION("should throw ConfigurationException slave is not defined in topic section") {
+    config.mYAML["modbus"]["networks"][0]["slaves"][1]["name"] = "switch";
+    config.mYAML["mqtt"]["objects"][0].remove("slave");
+    config.mYAML["mqtt"]["objects"][0]["state"]["register"] = 1.1;
+    MockedModMqttServerThread server(config.toString(), false);
+    server.start();
+    server.stop();
+    REQUIRE(server.initOk() == false);
+}
+
+
 SECTION("should throw ConfigurationException if not all slaves have a name") {
     MockedModMqttServerThread server(config.toString(), false);
     server.start();
