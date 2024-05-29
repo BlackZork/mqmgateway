@@ -19,7 +19,7 @@ class ModbusClient {
         moodycamel::BlockingReaderWriterQueue<QueueItem> mToModbusQueue;
 
         void init(const ModbusNetworkConfig& config) {
-            mName = config.mName;
+            mNetworkName = config.mName;
             mModbusThread.reset(new std::thread(threadLoop, std::ref(mToModbusQueue), std::ref(mFromModbusQueue)));
             mToModbusQueue.enqueue(QueueItem::create(config));
         };
@@ -44,7 +44,7 @@ class ModbusClient {
             mToModbusQueue.enqueue(QueueItem::create(MsgMqttNetworkState(up)));
         }
 
-        std::string mName;
+        std::string mNetworkName;
 
         void stop();
         ~ModbusClient() { stop(); }

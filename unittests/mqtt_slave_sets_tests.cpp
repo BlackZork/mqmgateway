@@ -10,6 +10,7 @@ modbus:
   networks:
     - name: tcptest
       address: localhost
+      port: 502
 mqtt:
   client_id: mqtt_test
   broker:
@@ -29,9 +30,9 @@ SECTION("should publish topics with address placeholder for every slave") {
     server.setModbusRegisterValue("tcptest", 3, 1, modmqttd::RegisterType::HOLDING, 3);
 
     server.start();
-    server.waitForPublish("slave_1/test_sensor");
-    server.waitForPublish("slave_2/test_sensor");
-    server.waitForPublish("slave_3/test_sensor");
+    server.waitForPublish("slave_1/test_sensor/state");
+    server.waitForPublish("slave_2/test_sensor/state");
+    server.waitForPublish("slave_3/test_sensor/state");
 
     REQUIRE(server.mqttValue("slave_1/test_sensor/state") == "1");
     REQUIRE(server.mqttValue("slave_2/test_sensor/state") == "2");
@@ -41,11 +42,28 @@ SECTION("should publish topics with address placeholder for every slave") {
 
 SECTION("should throw ConfigurationException if slave address placeholder is missing") {
     config.mYAML["mqtt"]["objects"][0]["topic"] = "slave/test_sensor";
-    MockedModMqttServerThread server(config.toString());
+    MockedModMqttServerThread server(config.toString(), false);
     server.start();
     server.stop();
     REQUIRE(server.initOk() == false);
 }
+
+SECTION("should throw ConfigurationException if slave address is duplicated") {
+    config.mYAML["mqtt"]["objects"][0]["slave"] = "1-3,3";
+    MockedModMqttServerThread server(config.toString(), false);
+    server.start();
+    server.stop();
+    REQUIRE(server.initOk() == false);
+}
+
+SECTION("should throw ConfigurationException if slave address range is invalid") {
+    config.mYAML["mqtt"]["objects"][0]["slave"] = "5-1";
+    MockedModMqttServerThread server(config.toString(), false);
+    server.start();
+    server.stop();
+    REQUIRE(server.initOk() == false);
+}
+
 
 }
 
@@ -74,14 +92,14 @@ mqtt:
 
 SECTION("should throw ConfigurationException if no slave name is set and slave_name placeholder is used") {
     config.mYAML["modbus"]["networks"][0].remove("slaves");
-    MockedModMqttServerThread server(config.toString());
+    MockedModMqttServerThread server(config.toString(), false);
     server.start();
     server.stop();
     REQUIRE(server.initOk() == false);
 }
 
 SECTION("should throw ConfigurationException if not all slaves have a name") {
-    MockedModMqttServerThread server(config.toString());
+    MockedModMqttServerThread server(config.toString(), false);
     server.start();
     server.stop();
     REQUIRE(server.initOk() == false);
@@ -111,9 +129,10 @@ modbus:
   networks:
     - name: local
       address: localhost
-  networks:
+      port: 502
     - name: other
       address: otherhost
+      port: 502
 mqtt:
   client_id: mqtt_test
   broker:
@@ -131,8 +150,8 @@ SECTION("should publish topics with network placeholder for every network") {
     server.setModbusRegisterValue("local", 1, 1, modmqttd::RegisterType::HOLDING, 1);
     server.setModbusRegisterValue("other", 1, 1, modmqttd::RegisterType::HOLDING, 2);
     server.start();
-    server.waitForPublish("net_local/test_sensor");
-    server.waitForPublish("net_other/test_sensor");
+    server.waitForPublish("net_local/test_sensor/state");
+    server.waitForPublish("net_other/test_sensor/state");
     REQUIRE(server.mqttValue("net_local/test_sensor/state") == "1");
     REQUIRE(server.mqttValue("net_other/test_sensor/state") == "2");
     server.stop();

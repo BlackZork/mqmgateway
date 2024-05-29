@@ -270,7 +270,7 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
         //TODO is is thread safe to iterate on modbus clients from mosquitto callback?
         std::vector<std::shared_ptr<ModbusClient>>::const_iterator it = std::find_if(
             mModbusClients.begin(), mModbusClients.end(),
-            [&network](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mName == network; }
+            [&network](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mNetworkName == network; }
         );
         if (it == mModbusClients.end()) {
             BOOST_LOG_SEV(log, Log::error) << "Modbus network " << network << " not found for command  " << topic << ", dropping message";

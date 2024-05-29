@@ -15,13 +15,13 @@ mqtt:
   broker:
     host: localhost
   objects:
-    - topic: test_sensor
+    - topic: test_sensor1
       network: tcptest
       slave: 1
       state:
         register: 0xA
         register_type: input
-    - topic: test_sensor
+    - topic: test_sensor2
       network: tcptest
       slave: 1
       state:
