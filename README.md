@@ -211,7 +211,14 @@ Modbus network configuration parameters are listed below:
 
   * **address** (required)
 
-      Modbus slave address 
+      Modbus slave address. Mutiple comma-separated values or ranges are supported like this:
+          
+          1,2,3-10,12,30
+          
+
+  * **name** (optional)
+
+      Name for use in topic `${slave_name}` placeholder.
 
   * **delay_before_first_command** (timespan, optional)
 
@@ -223,11 +230,11 @@ Modbus network configuration parameters are listed below:
 
   * **response_timeout** (optional)
 
-    Overrides modbus.response_timeout 
+    Overrides modbus.response_timeout for this slave
 
   * **response_data_timeout** (optional)
 
-    Overrides modbus.response_data_timeout
+    Overrides modbus.response_data_timeout for this slave
 
   * **read_retries** (optional)
 
@@ -323,6 +330,12 @@ A list of topics where modbus values are published to MQTT broker and subscribed
     - *state* - for reading modbus registers
     - *availability* - for checking if modbus data is available.
 
+  Topic can contain placeholders for modbus network and slave properies in form `${placeholder_name}`. Following placeholders are supported:
+
+    - *slave_address* - replaced by modbus slave address value
+    - *slave_name* - replaced by name set in modbus.slaves section
+    - *network_name* - replaced by modbus network name
+
 ### Topic default values:
 
   * **refresh** (optional)
@@ -331,11 +344,21 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   * **network** (optional)
 
-    Sets default network name for all state, commands and availability sections in this topic
+    Sets default network name for all state, commands and availability sections in this topic.
+
+    Multiple comma-separated values are supported. If more than one value is set, then you have to include `${network}` placeholder in `topic` value.
 
   * **slave** (optional)
 
-    Sets default modbus slave address for all state, commands and availability sections in this topic
+    Sets default modbus slave address for all state, commands and availability sections in this topic.
+
+    Mutiple values are supported in for of comma separated list of numbers or number ranges like this:
+
+        1,2,3,5-18,21 
+    
+    If more than one value is set, then you have to include `${slave_address}` or `${slave_name}` in `topic` value.
+
+    For examples see [Multi-device definitions](#multi-device-definitions) section.
 
 ### A *commands* section.
 
@@ -432,6 +455,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Overrides mqtt.refresh for this state topic
 
+
   When state is a single modbus register value:
 
   * **name**
@@ -506,31 +530,30 @@ A list of topics where modbus values are published to MQTT broker and subscribed
       register_type: input
   ```
 
-  In all of above examples *refresh* can be added at any level to set different values to
-  whole list or a single register.
+In all of above examples *refresh* can be added at any level to set different values to
+whole list or a single register.
 
-  Lists and maps can be nested if needed:
+Lists and maps can be nested if needed:
 
-  ```yaml
-  state:
-    - name: humidity
-      register: net.1.12
-      count: 2
-      converter: std.float()
-    - name: other_params
-      registers:
-        - name: "temp1"
-          register: net.1.14
-          count: 2
-          converter: std.int32()
-        - name: "temp2"
-          register: net.1.16
-          count: 2
-          converter: std.int32()
-  ```
+```yaml
+state:
+  - name: humidity
+    register: net.1.12
+    count: 2
+    converter: std.float()
+  - name: other_params
+    registers:
+      - name: "temp1"
+        register: net.1.14
+        count: 2
+        converter: std.int32()
+      - name: "temp2"
+        register: net.1.16
+        count: 2
+        converter: std.int32()
+```
 
-  MQTT output: `{"humidity": 32.45, "other_params": { "temp1": 23, "temp2": 66 }}`
-
+MQTT output: `{"humidity": 32.45, "other_params": { "temp1": 23, "temp2": 66 }}`
 
 ### The *availability* section
 
@@ -910,3 +933,71 @@ mqtt:
 
 For more examples see libstdconv source code.
 
+## Multi-device definitions
+
+Multi-device defintions allows to set slave properties or create a single topic for multiple modbus devices of the same type. This greatly reduces the number of configuration sections that differ only by slave address or modbus network name.
+
+### Multi-device MQTT topics 
+
+If there are many devices of the same type then a MQTT topic for group of devices can be defined by setting `slave` value to list of modbus slave addresses. Then you have to add either `slave_name` or `slave_address` placeholder in the topic string like this:
+
+```yaml
+modbus:
+  networks:
+    - name: basement
+      slaves:
+        - address: 1
+          name: meter1 
+        - address: 2
+          name: meter2 
+        [...]
+mqtt:
+  objects:
+    - topic: ${network}/${slave_name}/node_${slave_address}
+      slave: 1,2,3,8-9
+      network: basement, roof
+      state:
+        register: 1
+```
+
+In the above example 10 registers will be polled and their values will be published as `/basement/meter1/node_1/state`, `/basement/meter2/node_2/state` and so on.
+
+Slave names are required only if `${slave_name}` placeholder is used.
+
+### Multi device modbus slave definitions.
+
+Address list can be used in `modbus.networks.slaves.address` to define properties for mutiple slaves at once:
+
+```yaml
+modbus:
+  networks:
+    - name: basement
+      slaves:
+        - address: 1,2,3,5-18
+          pool_groups:
+            - register: 3
+              count: 10
+            - register: 30
+              count: 5
+```
+
+A single slave address can be listed in mutiple entries like this:
+
+```yaml
+modbus:
+  networks:
+    - name: basement
+      slaves:
+        - address: 1
+          name: meter1 
+          response_timeout: 50ms
+        - address: 2
+          name: meter2 
+        - address: 1,2
+          response_timeout: 100ms
+          pool_groups:
+            - register: 3
+              count: 10
+```
+
+This example will set response timeout 100ms for both slaves - overriding value for slave1. Two poll groups are defined for reading registers 3-13 for both slaves.
