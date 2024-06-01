@@ -72,9 +72,13 @@ template<>
 struct YAML::convert<std::vector<std::pair<int,int>>> {
     static int toNumber(const YAML::Node& node, const std::string& val) {
         try {
-            return std::stoi(val);
+            size_t idx = 0;
+            int ret = std::stoi(val, &idx);
+            if (idx != val.size())
+                throw modmqttd::ConfigurationException(node.Mark(), std::string("Conversion to number failed, unknown char at ") + std::to_string(idx) + " position in " + val);
+            return ret;
         } catch (const std::invalid_argument& ex) {
-            throw modmqttd::ConfigurationException(node.Mark(), "Conversion to number or number list failed");
+            throw modmqttd::ConfigurationException(node.Mark(), std::string("Conversion to number or number list failed: ") + ex.what());
         } catch (const std::out_of_range& ex) {
             throw modmqttd::ConfigurationException(node.Mark(), "Conversion to number or number list contains number that is out of range");
         }

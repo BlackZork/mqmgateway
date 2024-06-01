@@ -3,6 +3,8 @@
 
 #include "libmodmqttsrv/yaml_converters.hpp"
 
+typedef std::vector<std::pair<int,int>> pairs;
+
 TEST_CASE ("time string should") {
     SECTION("be parsed as milliseconds") {
         YAML::Node node = YAML::Load("100ms");
@@ -32,27 +34,45 @@ TEST_CASE ("time string should") {
 TEST_CASE ("number list string should") {
     SECTION("be parsed as single number") {
         YAML::Node node = YAML::Load("4");
-        std::vector<std::pair<int,int>> lst = node.as<std::vector<std::pair<int,int>>>();
+        pairs lst = node.as<pairs>();
         REQUIRE(lst[0] == std::pair(4,4));
     }
 
+    SECTION("be parsed as single number with spaces ignored") {
+        YAML::Node node = YAML::Load(" 4 ");
+        pairs lst = node.as<pairs>();
+        REQUIRE(lst[0] == std::pair(4,4));
+    }
+
+    SECTION("fail if value is not a number") {
+        YAML::Node node = YAML::Load("a");
+        REQUIRE_THROWS_AS(node.as<pairs>(), modmqttd::ConfigurationException);
+    }
+
+    SECTION("fail if value contains invalid characters") {
+        YAML::Node node = YAML::Load("4 z");
+        pairs lst = node.as<pairs>();
+        REQUIRE(lst[0] == std::pair(4,4));
+    }
+
+
     SECTION("be parsed as list of number separated by comma") {
         YAML::Node node = YAML::Load("4,5");
-        std::vector<std::pair<int,int>> lst = node.as<std::vector<std::pair<int,int>>>();
+        pairs lst = node.as<pairs>();
         REQUIRE(lst[0] == std::pair(4,4));
         REQUIRE(lst[1] == std::pair(5,5));
     }
 
     SECTION("be parsed as list of number ranges separated by comma") {
         YAML::Node node = YAML::Load("4-6,5-18");
-        std::vector<std::pair<int,int>> lst = node.as<std::vector<std::pair<int,int>>>();
+        pairs lst = node.as<pairs>();
         REQUIRE(lst[0] == std::pair(4,6));
         REQUIRE(lst[1] == std::pair(5,18));
     }
 
     SECTION("should ignore spaces") {
         YAML::Node node = YAML::Load(" 4, 5-18, 7");
-        std::vector<std::pair<int,int>> lst = node.as<std::vector<std::pair<int,int>>>();
+        pairs lst = node.as<pairs>();
         REQUIRE(lst[0] == std::pair(4,4));
         REQUIRE(lst[1] == std::pair(5,18));
         REQUIRE(lst[2] == std::pair(7,7));
