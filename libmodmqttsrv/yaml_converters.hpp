@@ -88,7 +88,10 @@ struct YAML::convert<std::vector<std::pair<int,int>>> {
         boost::char_separator<char> sep = boost::char_separator<char>(",");
         const std::regex re_range("\\s*([0-9]+)-([0-9]+)\\s*");
 
-        boost::tokenizer<boost::char_separator<char>> tokens(node.as<std::string>(), sep);
+        std::string strval(node.as<std::string>());
+        boost::trim(strval);
+
+        boost::tokenizer<boost::char_separator<char>> tokens(strval, sep);
         for (const std::string& t : tokens) {
             std::cmatch matches;
             std::pair<int,int> item;
@@ -112,7 +115,10 @@ struct YAML::convert<std::vector<std::string>> {
     static bool decode(const YAML::Node& node, std::vector<std::string>& value) {
         boost::char_separator<char> sep = boost::char_separator<char>(",");
 
-        boost::tokenizer<boost::char_separator<char>> tokens(node.as<std::string>(), sep);
+        std::string strval(node.as<std::string>());
+        boost::trim(strval);
+
+        boost::tokenizer<boost::char_separator<char>> tokens(strval, sep);
         for (const std::string& t : tokens) {
             std::string val(t);
             boost::trim(val);
