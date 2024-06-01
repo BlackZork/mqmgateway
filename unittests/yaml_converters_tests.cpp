@@ -39,7 +39,7 @@ TEST_CASE ("number list string should") {
     }
 
     SECTION("be parsed as single number with spaces ignored") {
-        YAML::Node node = YAML::Load(" 4 ");
+        YAML::Node node = YAML::Load(" 4");
         pairs lst = node.as<pairs>();
         REQUIRE(lst[0] == std::pair(4,4));
     }
@@ -51,8 +51,7 @@ TEST_CASE ("number list string should") {
 
     SECTION("fail if value contains invalid characters") {
         YAML::Node node = YAML::Load("4 z");
-        pairs lst = node.as<pairs>();
-        REQUIRE(lst[0] == std::pair(4,4));
+        REQUIRE_THROWS_AS(node.as<pairs>(), modmqttd::ConfigurationException);
     }
 
 
