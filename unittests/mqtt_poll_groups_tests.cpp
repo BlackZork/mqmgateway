@@ -160,6 +160,54 @@ TEST_CASE ("Availablity should be changed for all registers in poll group") {
 }
 
 
+static const std::string slave_sets_config = R"(
+modmqttd:
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 1
+          poll_groups:
+            - register: 1
+              count: 2
+        - address: 1-3
+          poll_groups:
+            - register: 1
+              count: 4
+mqtt:
+  client_id: mqtt_test
+  refresh: 10ms
+  broker:
+    host: localhost
+  objects:
+    - topic: first_state
+      state:
+        registers:
+        - register: tcptest.1.1
+        - register: tcptest.1.4
+)";
+
+TEST_CASE ("Mutiple poll group definitions should be merged") {
+    MockedModMqttServerThread server(slave_sets_config);
+    server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 1);
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
+    server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 3);
+    server.setModbusRegisterValue("tcptest", 1, 4, modmqttd::RegisterType::HOLDING, 4);
+
+    server.start();
+
+    server.waitForPublish("first_state/state");
+    REQUIRE(server.mqttValue("first_state/state") == "[1,4]");
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+
+    server.stop();
+}
+
+
+
+
 static const std::string old_valid_pg_config = R"(
 modmqttd:
 modbus:

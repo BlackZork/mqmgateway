@@ -22,6 +22,7 @@ extern std::mutex gQueueMutex;
 extern std::condition_variable gHasMessagesCondition;
 void notifyQueues();
 
+
 class ModMqtt {
     public:
         static void setModbusContextFactory(const std::shared_ptr<IModbusFactory>& factory);
@@ -44,6 +45,24 @@ class ModMqtt {
         void setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl);
         ~ModMqtt();
     private:
+        struct ModbusInitData {
+            std::vector<MsgRegisterPollSpecification> mPollSpecification;
+
+            std::map<std::string, std::map<int, std::string>> mSlaveNames;
+
+            std::string getSlaveName(const std::string& pNetwork, int pSlaveId) const {
+                auto nit = mSlaveNames.find(pNetwork);
+                if (nit == mSlaveNames.end())
+                    return std::string();
+
+                auto sit = nit->second.find(pSlaveId);
+                if (sit == nit->second.end())
+                    return std::string();
+
+                return sit->second;
+            }
+        };
+
         static std::shared_ptr<IModbusFactory> mModbusFactory;
 
         std::shared_ptr<MqttClient> mMqtt;
@@ -53,8 +72,8 @@ class ModMqtt {
 
         void initServer(const YAML::Node& config);
         void initBroker(const YAML::Node& config);
-        std::vector<MsgRegisterPollSpecification> initModbusClients(const YAML::Node& config);
-        std::vector<MqttObject> initObjects(const YAML::Node& config, std::vector<MsgRegisterPollSpecification>& pSpecsOut);
+        ModbusInitData initModbusClients(const YAML::Node& config);
+        std::vector<MqttObject> initObjects(const YAML::Node& config, const ModbusInitData& modbusData, std::vector<MsgRegisterPollSpecification>& pSpecsOut);
         void waitForSignal();
 
         MqttObjectRegisterIdent updateSpecification(
@@ -72,6 +91,7 @@ class ModMqtt {
             const YAML::Node& pData,
             const std::string& pDefaultNetwork,
             int pDefaultSlave,
+            const std::string& pSlaveName,
             std::chrono::milliseconds pDefaultRefresh,
             std::vector<MsgRegisterPollSpecification>& pSpecsOut
         );
