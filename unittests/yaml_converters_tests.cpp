@@ -35,13 +35,13 @@ TEST_CASE ("number list string should") {
     SECTION("be parsed as single number") {
         YAML::Node node = YAML::Load("4");
         pairs lst = node.as<pairs>();
-        REQUIRE(lst[0] == std::pair(4,4));
+        REQUIRE(lst[0] == std::pair<int,int>(4,4));
     }
 
     SECTION("be parsed as single number with spaces ignored") {
         YAML::Node node = YAML::Load(" 4");
         pairs lst = node.as<pairs>();
-        REQUIRE(lst[0] == std::pair(4,4));
+        REQUIRE(lst[0] == std::pair<int,int>(4,4));
     }
 
     SECTION("fail if value is not a number") {
@@ -58,23 +58,23 @@ TEST_CASE ("number list string should") {
     SECTION("be parsed as list of number separated by comma") {
         YAML::Node node = YAML::Load("4,5");
         pairs lst = node.as<pairs>();
-        REQUIRE(lst[0] == std::pair(4,4));
-        REQUIRE(lst[1] == std::pair(5,5));
+        REQUIRE(lst[0] == std::pair<int,int>(4,4));
+        REQUIRE(lst[1] == std::pair<int,int>(5,5));
     }
 
     SECTION("be parsed as list of number ranges separated by comma") {
         YAML::Node node = YAML::Load("4-6,5-18");
         pairs lst = node.as<pairs>();
-        REQUIRE(lst[0] == std::pair(4,6));
-        REQUIRE(lst[1] == std::pair(5,18));
+        REQUIRE(lst[0] == std::pair<int,int>(4,6));
+        REQUIRE(lst[1] == std::pair<int,int>(5,18));
     }
 
     SECTION("should ignore spaces") {
         YAML::Node node = YAML::Load(" 4, 5-18, 7");
         pairs lst = node.as<pairs>();
-        REQUIRE(lst[0] == std::pair(4,4));
-        REQUIRE(lst[1] == std::pair(5,18));
-        REQUIRE(lst[2] == std::pair(7,7));
+        REQUIRE(lst[0] == std::pair<int,int>(4,4));
+        REQUIRE(lst[1] == std::pair<int,int>(5,18));
+        REQUIRE(lst[2] == std::pair<int,int>(7,7));
     }
 
 }

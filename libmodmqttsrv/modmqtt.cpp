@@ -709,7 +709,7 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
         ConfigTools::readOptionalValue<std::vector<std::pair<int, int>>>(slaves, objdata, "slave");
         // default undefined slave - register address must contain slave id
         if (slaves.size() == 0)
-            slaves.push_back(std::pair(-1, -1));
+            slaves.push_back(std::pair<int,int>(-1, -1));
 
         for(const std::string& defaultNetwork: networks) {
 
