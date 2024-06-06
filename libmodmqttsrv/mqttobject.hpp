@@ -17,7 +17,6 @@ enum AvailableFlag {
     True = 1
 };
 
-
 class MqttObjectRegisterIdent {
     public:
         struct Compare {
@@ -66,7 +65,6 @@ class MqttObjectRegisterIdent {
         RegisterType mRegisterType;
 };
 
-
 class MqttObjectRegisterValue {
     public:
         MqttObjectRegisterValue() : mHasValue(false), mReadOk(true) {}
@@ -81,7 +79,6 @@ class MqttObjectRegisterValue {
         bool mHasValue = false;
         uint16_t mValue;
 };
-
 
 class MqttObjectDataNode {
     public:
@@ -107,40 +104,15 @@ class MqttObjectDataNode {
         MqttValue getConvertedValue() const;
         uint16_t getRawValue() const;
     private:
-        // if not empty then json value is published as json object
-        //
         std::string mKeyName;
-        /**
-         * if not empty then this is composite node
-         * that is published as:
-         *  - an object if all mNodes have mKeyName
-         *  - a list if all mNodes have mKeyName empty
-         *  - a single value if mConverter is set. In this case
-         *    mNodes list must hold scalars only.
-         * */
-
         std::vector<MqttObjectDataNode> mNodes;
-
-        /**
-         * Modbus register identifier used to
-         * update values received from modbus threads.
-        */
         std::shared_ptr<MqttObjectRegisterIdent> mIdent;
-        /**
-         * if mNodes is empty then this is a scalar value.
-        */
         MqttObjectRegisterValue mValue;
-
-        /**
-         * A converter used to convert mValue or list of scalars on mNodes list
-        */
         std::shared_ptr<DataConverter> mConverter;
 };
 
-
 class MqttObjectState {
     public:
-        //void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
         bool hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const;
         bool usesModbusNetwork(const std::string& networkName) const;
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
@@ -154,7 +126,6 @@ class MqttObjectState {
         std::vector<MqttObjectDataNode> mNodes;
 };
 
-
 class MqttObjectAvailability : public MqttObjectState {
     public:
         AvailableFlag getAvailableFlag() const;
@@ -163,12 +134,10 @@ class MqttObjectAvailability : public MqttObjectState {
         MqttValue mAvailableValue = 1;
 };
 
-
 class MqttObject {
     public:
         MqttObject(const std::string& pTopic);
         const std::string& getTopic() const { return mTopic; };
-        const std::string& getStateTopic() const { return mStateTopic; };
         const std::string& getAvailabilityTopic() const { return mAvailabilityTopic; }
         bool hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const;
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
@@ -184,14 +153,15 @@ class MqttObject {
         void dump() const;
     private:
         std::string mTopic;
-        std::string mStateTopic;
         std::string mAvailabilityTopic;
 
         MqttObjectAvailability mAvailability;
 
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
         void updateAvailablityFlag();
+
+        void publish(const std::string& topic, const std::string& message);
+        std::string convertToMessage(const MsgRegisterValues& pSlaveData);
 };
 
-
-}
+} // namespace modmqttd
