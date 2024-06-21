@@ -44,7 +44,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 add_subdirectory(stdconv)
 add_dependencies(modmqttd stdconv)
-if (!WITHOUT_TESTS)
+if (NOT WITHOUT_TESTS)
 add_dependencies(tests stdconv)
 endif()
 
@@ -53,7 +53,7 @@ if (EXPRTK_INCLUDE_DIR)
     add_subdirectory(exprconv)    
     add_dependencies(modmqttd exprconv)
 
-    if (!WITHOUT_TESTS)
+    if (NOT WITHOUT_TESTS)
         target_compile_definitions(tests PRIVATE HAVE_EXPRTK)
         add_dependencies(tests exprconv)
     endif()
