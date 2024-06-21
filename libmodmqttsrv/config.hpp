@@ -21,6 +21,7 @@ class ConfigurationException : public ModMqttException {
     public:
         ConfigurationException(const YAML::Mark& mark, const char* what);
         ConfigurationException(const YAML::Mark& mark, const std::string& what) : ConfigurationException(mark, what.c_str()) {};
+        int mLineNumber = 0;
 };
 
 class ConfigTools {

@@ -42,7 +42,9 @@ class ExprtkConverter : public DataConverter {
             }
 
             mExpression.register_symbol_table(mSymbolTable);
-            mParser.compile(ConverterTools::getArg(0, args), mExpression);
+            if (!mParser.compile(ConverterTools::getArg(0, args), mExpression)) {
+                throw ConvException(std::string("Exprtk ") + mParser.error());
+            }
 
             if (args.size() == 2)
                 mPrecision = ConverterTools::getIntArg(1, args);

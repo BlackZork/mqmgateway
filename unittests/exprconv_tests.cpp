@@ -136,5 +136,4 @@ TEST_CASE ("A uint16_t register data should be converted to exprtk value") {
     REQUIRE(output.getString() == "-1");
 }
 
-
 #endif

@@ -15,8 +15,9 @@ ConfigurationException::ConfigurationException(const YAML::Mark& mark, const cha
     if (mark.is_null()) {
         mWhat += ": ";
     } else {
+        mLineNumber = mark.line+1;
         mWhat += "(line ";
-        mWhat += std::to_string(mark.line);
+        mWhat += std::to_string(mLineNumber);
         mWhat += "): ";
     }
     mWhat += what;
