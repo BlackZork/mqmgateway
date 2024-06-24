@@ -51,24 +51,38 @@ std::chrono::steady_clock::duration
 ModbusRequestsQueues::findForSilencePeriod(std::chrono::steady_clock::duration pPeriod, bool ignore_first_read) {
     auto ret = std::chrono::steady_clock::duration::max();
     for(auto pi = mPollQueue.begin(); pi != mPollQueue.end(); pi++) {
-        if (!(*pi)->hasDelay())
+        std::chrono::steady_clock::duration delay = std::chrono::steady_clock::duration::zero();
+
+        // if we are searching for delay before first command
+        // assume that it is longer than delay before every command
+        // and use it
+        if (ignore_first_read || !(*pi)->hasDelayBeforeFirstCommand()) {
+            delay = (*pi)->getDelayBeforeCommand();
+        } else {
+            delay = (*pi)->getDelayBeforeFirstCommand();
+        }
+
+        if (delay == std::chrono::steady_clock::duration::zero())
             continue;
-        if (ignore_first_read  && (*pi)->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE)
-            continue;
+
+        // if (!(*pi)->hasDelay())
+        //     continue;
+        // if (ignore_first_read  && (*pi)->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE)
+        //     continue;
 
 #if __cplusplus < 201703L
         auto diff = (*pi)->getDelay() - pPeriod;
         if (diff < diff.zero())
             diff = - diff;
 #else
-        auto diff = std::chrono::abs((*pi)->getDelay() - pPeriod);
+        auto diff = std::chrono::abs(delay - pPeriod);
 #endif
         if (diff == std::chrono::steady_clock::duration::zero()) {
-            ret = (*pi)->getDelay();
+            ret = delay;
             mLastPollFound = pi;
             break;
         } else if (diff < ret) {
-            ret = (*pi)->getDelay();
+            ret = delay;
             mLastPollFound = pi;
         }
     }
@@ -95,7 +109,7 @@ ModbusRequestsQueues::addWriteCommand(const std::shared_ptr<RegisterWrite>& pReq
 }
 
 
-void 
+void
 ModbusRequestsQueues::readdCommand(const std::shared_ptr<RegisterCommand>& pCmd) {
     if (typeid(*pCmd) == typeid(RegisterPoll)) {
         mPollQueue.push_front(std::static_pointer_cast<RegisterPoll>(pCmd));

@@ -20,7 +20,6 @@ RegisterPoll::RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int
     mRefresh = pRefreshMsec;
     mReadErrors = 0;
     mFirstErrorTime = std::chrono::steady_clock::now();
-    mDelay = std::chrono::milliseconds::zero();
 };
 
 } // namespace

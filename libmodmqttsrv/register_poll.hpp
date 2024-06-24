@@ -19,15 +19,24 @@ class RegisterCommand : public ModbusAddressRange {
 
         virtual int getRegister() const = 0;
         const bool hasDelay() const {
-            return mDelay != std::chrono::steady_clock::duration::zero();
+            return mDelayBeforeCommand != std::chrono::steady_clock::duration::zero()
+                || mDelayBeforeFirstCommand != std::chrono::steady_clock::duration::zero();
         }
+
+
         virtual int getCount() const = 0;
         virtual const std::vector<uint16_t>& getValues() const = 0;
 
         virtual bool executedOk() const = 0;
 
-        const ModbusCommandDelay& getDelay() const { return mDelay; }
-        void setDelay(const ModbusCommandDelay& pDelay) { mDelay = pDelay; }
+        bool hasDelayBeforeFirstCommand() const { return mDelayBeforeFirstCommand != std::chrono::steady_clock::duration::zero(); }
+        bool hasDelayBeforeCommand() const { return mDelayBeforeCommand != std::chrono::steady_clock::duration::zero(); }
+
+        const std::chrono::steady_clock::duration& getDelayBeforeFirstCommand() const { return mDelayBeforeFirstCommand; }
+        const std::chrono::steady_clock::duration& getDelayBeforeCommand() const { return mDelayBeforeCommand; }
+
+        void setDelayBeforeFirstCommand(const std::chrono::steady_clock::duration& pDelay) { mDelayBeforeFirstCommand = pDelay; }
+        void setDelayBeforeCommand(const std::chrono::steady_clock::duration& pDelay) { mDelayBeforeCommand = pDelay; }
 
         void setMaxRetryCounts(short pMaxRead, short pMaxWrite, bool pForce = false);
 
@@ -36,8 +45,8 @@ class RegisterCommand : public ModbusAddressRange {
         short mMaxReadRetryCount;
         short mMaxWriteRetryCount;
     protected:
-        ModbusCommandDelay mDelay = std::chrono::steady_clock::duration::zero();
-
+        std::chrono::steady_clock::duration mDelayBeforeFirstCommand = std::chrono::steady_clock::duration::zero();
+        std::chrono::steady_clock::duration mDelayBeforeCommand = std::chrono::steady_clock::duration::zero();
 };
 
 

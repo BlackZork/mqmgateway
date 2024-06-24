@@ -45,14 +45,14 @@ TEST_CASE("ModbusRequestQueues") {
         std::shared_ptr<modmqttd::RegisterCommand> reg = queue.popFirstWithDelay(std::chrono::milliseconds(100), true);
         REQUIRE(reg->getRegister() == 1);
 
-        dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), false);
+        dur = queue.findForSilencePeriod(std::chrono::milliseconds(100), true);
         REQUIRE(dur == std::chrono::milliseconds(50));
 
     }
 
     SECTION("should return best fit for delayed register ignoring first_request delays") {
         registers.addPollDelayed(1,1, std::chrono::milliseconds(50));
-        registers.addPollDelayed(1,2, std::chrono::milliseconds(100), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
+        registers.addPollDelayed(1,2, std::chrono::milliseconds::zero(), std::chrono::milliseconds(100));
         registers.addPoll(1,3);
 
         queue.addPollList(registers[1]);

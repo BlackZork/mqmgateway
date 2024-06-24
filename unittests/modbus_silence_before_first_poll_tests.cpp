@@ -144,6 +144,7 @@ SECTION("should be respected if delay_before_command is set") {
     //5ms poll time + 50ms silence
     //but not 100ms from delay_before_command
     REQUIRE(ptime > std::chrono::milliseconds(50));
+    server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 20);
 
     // need_silence was polled again, but after 25 ms
     // due to delay_before_command set
