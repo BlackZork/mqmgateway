@@ -85,7 +85,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
             return std::tuple<int,int>(mLastPolledSlave, mLastPolledRegister+1);
         }
         const std::chrono::time_point<std::chrono::steady_clock>& getLastPollTime() const {
-            return mLastPolTime;
+            return mLastPollTime;
         }
 
         Slave& getSlave(int slaveId);
@@ -105,7 +105,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         std::shared_ptr<std::condition_variable> mCondition;
         std::map<int, Slave> mSlaves;
 
-        std::chrono::time_point<std::chrono::steady_clock> mLastPolTime;
+        std::chrono::time_point<std::chrono::steady_clock> mLastPollTime;
         int mLastPolledSlave;
         int mLastPolledRegister;
         int mConnectionCount = 0;

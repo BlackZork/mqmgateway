@@ -150,8 +150,7 @@ SECTION("should be respected if delay_before_command is set") {
     // due to delay_before_command set
 
     server.waitForPublish("need_silence/state");
-    stime = server.getLastPollTime();
-    ptime = stime - first_poll_ts;
+    ptime = server.getLastPollTime() - stime;
     //5ms poll time + 25ms silence
     REQUIRE(ptime > std::chrono::milliseconds(25));
     REQUIRE(ptime < std::chrono::milliseconds(50));

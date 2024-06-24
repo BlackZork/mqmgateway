@@ -201,7 +201,7 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
             << " READ: " << modmqttd::DebugTools::registersToStr(ret);
 
     mInternalOperation = false;
-    mLastPolTime = std::chrono::steady_clock::now();
+    mLastPollTime = std::chrono::steady_clock::now();
     mLastPolledSlave = slaveId;
     mLastPolledRegister = regData.mRegister;
     return ret;
