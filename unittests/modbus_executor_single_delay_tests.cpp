@@ -26,7 +26,7 @@ TEST_CASE("ModbusExecutor for first delay config") {
     modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 1);
 
     SECTION("should poll single register without any delay") {
-        auto reg1 = registers.addPollDelayed(1, 1, std::chrono::milliseconds(50), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
+        auto reg1 = registers.addPollDelayed(1, 1, std::chrono::milliseconds::zero(), std::chrono::milliseconds(50));
 
         executor.setupInitialPoll(registers);
         waitTime = executor.executeNext();
@@ -42,7 +42,7 @@ TEST_CASE("ModbusExecutor for first delay config") {
     modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 6);
 
     SECTION("should delay next poll if slave is changed") {
-        auto reg1 = registers.addPollDelayed(1, 1, std::chrono::milliseconds(15), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
+        auto reg1 = registers.addPollDelayed(1, 1, std::chrono::milliseconds::zero(), std::chrono::milliseconds(15));
         auto reg2 = registers.addPoll(2, 20);
 
         executor.setupInitialPoll(registers);
@@ -78,8 +78,8 @@ TEST_CASE("ModbusExecutor for first delay config") {
     }
 
     SECTION("should not delay next poll if slave was the same") {
-        auto reg1 = registers.addPollDelayed(1, 1, std::chrono::milliseconds(15), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
-        auto reg2 = registers.addPollDelayed(2, 20, std::chrono::milliseconds(20), modmqttd::ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE);
+        auto reg1 = registers.addPollDelayed(1, 1, std::chrono::milliseconds::zero(), std::chrono::milliseconds(15));
+        auto reg2 = registers.addPollDelayed(2, 20, std::chrono::milliseconds::zero(), std::chrono::milliseconds(20));
 
         //initial poll selects reg2 due to longer delay needed
         executor.setupInitialPoll(registers);

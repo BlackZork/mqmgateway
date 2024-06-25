@@ -380,9 +380,9 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
 
                     for(int addr = addr_range.first; addr <= addr_range.second; addr++) {
                         ModbusSlaveConfig slave_config(addr, ySlave);
-                        if (slave_config.mDelayBeforeCommand != std::chrono::milliseconds::zero() && slave_config.mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
-                            BOOST_LOG_SEV(log, Log::warn) << "Ignoring delay_before_first_poll for slave " << slave_config.mAddress << " because delay_before_poll is set";
-                        }
+                        // if (slave_config.mDelayBeforeCommand != std::chrono::milliseconds::zero() && slave_config.mDelayBeforeFirstCommand != std::chrono::milliseconds::zero()) {
+                        //     BOOST_LOG_SEV(log, Log::warn) << "Ignoring delay_before_first_poll for slave " << slave_config.mAddress << " because delay_before_poll is set";
+                        // }
                         modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
                         spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, ySlave["poll_groups"]));
 

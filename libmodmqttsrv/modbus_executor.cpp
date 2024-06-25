@@ -89,7 +89,7 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
         bool ignore_first_read = (sit == mCurrentSlaveQueue);
 
         if (currentDiff != std::chrono::steady_clock::duration::zero()) {
-            ModbusCommandDelay reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
+            std::chrono::steady_clock::duration reg_delay = sit->second.findForSilencePeriod(last_silence_period, ignore_first_read);
 
             if (reg_delay < currentDiff) {
                 std::shared_ptr<RegisterCommand> reg(sit->second.popFirstWithDelay(last_silence_period, ignore_first_read));
@@ -228,27 +228,7 @@ ModbusExecutor::writeRegisters(RegisterWrite& cmd) {
 std::chrono::steady_clock::duration
 ModbusExecutor::executeNext() {
     //assert(!allDone());
-    if (mWaitingCommand != nullptr) {
-        if (
-            (mWaitingCommand->getDelay().delay_type == ModbusCommandDelay::DelayType::EVERYTIME)
-            ||
-            (
-                mWaitingCommand->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE
-                && mLastCommand != nullptr
-                && mWaitingCommand->mSlaveId != mLastCommand->mSlaveId
-            )
-        ) {
-            auto delay_passed = std::chrono::steady_clock::now() - mLastCommandTime;
-            auto delay_left = mWaitingCommand->getDelay() - delay_passed;
-            if (delay_left > std::chrono::steady_clock::duration::zero()) {
-                BOOST_LOG_SEV(log, Log::trace) << "Command for " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister()
-                    << " need to wait " << std::chrono::duration_cast<std::chrono::milliseconds>(delay_left).count() << "ms";
-                return delay_left;
-            }
-        }
-        //mWaitingCommand is ready to be read or written
-        sendCommand();
-    } else {
+    if (mWaitingCommand == nullptr) {
         // find next non empty queue and start sending requests from it
         if (mCurrentSlaveQueue != mSlaveQueues.end()) {
             if (mCommandsLeft == 0 || mCurrentSlaveQueue->second.empty()) {
@@ -278,24 +258,28 @@ ModbusExecutor::executeNext() {
                 mWaitingCommand = mCurrentSlaveQueue->second.popNext();
             }
         }
+    }
 
-        if (mWaitingCommand != nullptr) {
-            if (mWaitingCommand->getDelay() != std::chrono::steady_clock::duration::zero()) {
-                // setup and return needed delay
-                // or pull register if there was enough silence
-                // after previous command
-                auto last_silence_period = std::chrono::steady_clock::now() - mLastCommandTime;
-                if (last_silence_period < mWaitingCommand->getDelay()) {
-                    auto delay_left = mWaitingCommand->getDelay() - last_silence_period;
+    if (mWaitingCommand != nullptr) {
+        bool slave_change = mLastCommand != nullptr
+            && mWaitingCommand->mSlaveId != mLastCommand->mSlaveId;
 
-                    BOOST_LOG_SEV(log, Log::trace) << "Next register set to " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister()
-                        << ", delay=" << std::chrono::duration_cast<std::chrono::milliseconds>(mWaitingCommand->getDelay()).count() << "ms"
-                        << ", left=" << std::chrono::duration_cast<std::chrono::milliseconds>(delay_left).count() << "ms";
-                    return delay_left;
-                }
-            }
-            sendCommand();
+        std::chrono::steady_clock::duration delay = mWaitingCommand->getDelayBeforeCommand();
+        if (mWaitingCommand->hasDelayBeforeFirstCommand() && slave_change) {
+            delay = mWaitingCommand->getDelayBeforeFirstCommand();
         }
+
+        if (delay != std::chrono::steady_clock::duration::zero()) {
+            std::chrono::steady_clock::duration delay_passed = std::chrono::steady_clock::now() - mLastCommandTime;
+            std::chrono::steady_clock::duration delay_left = delay - delay_passed;
+            if (delay_left > std::chrono::steady_clock::duration::zero()) {
+                BOOST_LOG_SEV(log, Log::trace) << "Command for " << mCurrentSlaveQueue->first << "." << mWaitingCommand->getRegister()
+                    << " need to wait " << std::chrono::duration_cast<std::chrono::milliseconds>(delay_left).count() << "ms";
+                return delay_left;
+            }
+        }
+        //mWaitingCommand is ready to be read or written
+        sendCommand();
     }
 
     if (mInitialPoll && pollDone()) {

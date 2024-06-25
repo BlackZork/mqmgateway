@@ -10,15 +10,8 @@ namespace modmqttd {
 
 void
 setCommandDelays(RegisterCommand& cmd, const std::chrono::milliseconds& everyTime, const std::chrono::milliseconds& onChange) {
-    ModbusCommandDelay delay;
-    if (everyTime != std::chrono::milliseconds::zero()) {
-        delay = everyTime;
-        delay.delay_type = ModbusCommandDelay::EVERYTIME;
-    } else if (onChange != std::chrono::milliseconds::zero()) {
-        delay = onChange;
-        delay.delay_type = ModbusCommandDelay::ON_SLAVE_CHANGE;
-    }
-    cmd.setDelay(delay);
+    cmd.setDelayBeforeCommand(everyTime);
+    cmd.setDelayBeforeFirstCommand(onChange);
 }
 
 void
@@ -92,7 +85,8 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
             << ", count=" << (*it)->getCount()
             << ", poll every " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms"
-            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelay()).count() << "ms";
+            << ", min f_delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeFirstCommand()).count() << "ms"
+            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeCommand()).count() << "ms";
         }
     }
     mExecutor.setupInitialPoll(registerMap);

@@ -65,6 +65,27 @@ mqtt:
 
         server.stop();
     }
+
+    SECTION("should be respected if delay_before_first_command_is_set") {
+        config.mYAML["modbus"]["networks"][0]["slaves"][0]["delay_before_first_command"] = "50ms";
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
+        server.start();
+        // delay before first poll is ignored on initial poll
+        server.waitForPublish("test_sensor/state");
+        REQUIRE(server.mqttValue("test_sensor/state") == "1");
+        std::chrono::time_point<std::chrono::steady_clock> first_poll_ts = server.getLastPollTime();
+
+        //we respect 15ms delay_before_poll
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
+        server.waitForPublish("test_sensor/state");
+        auto ptime = server.getLastPollTime() - first_poll_ts;
+        // add 5ms for poll time
+        REQUIRE(ptime > std::chrono::milliseconds(20));
+        REQUIRE(server.mqttValue("test_sensor/state") == "2");
+
+        server.stop();
+    }
 }
 
 TEST_CASE("Silence before poll should not reorder register polling") {

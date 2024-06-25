@@ -85,7 +85,8 @@
         "any": "cpp",
         "forward_list": "cpp",
         "ciso646": "cpp",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "text_encoding": "cpp"
     },
     "cmake.configureOnOpen": true,
     "testMate.cpp.debug.configTemplate": {
