@@ -9,11 +9,13 @@ class FloatConverter : public DataConverter {
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             if (data.getCount() < 2)
                 throw ConvException("Cannot read 32-bit float from single register");
-            std::vector<uint16_t> converted(data.values());
-            if (mSwapBytes)
-                ConverterTools::swapByteOrder(converted);
-            int32_t int_val = ConverterTools::registersToInt32(converted, mLowFirst);
-            double val = *reinterpret_cast<float*>(&int_val);
+
+            char hb = 0; char lb = 1;
+            if (mLowFirst) {
+                hb = 1; lb = 0;
+            }
+
+            float val = ConverterTools::toNumber<float>(data.getValue(hb), data.getValue(lb), mSwapBytes);
             return MqttValue::fromDouble(val, mPrecision);
         }
 
@@ -21,10 +23,16 @@ class FloatConverter : public DataConverter {
             if (registerCount < 2)
                 throw ConvException("Cannot store float in single register");
 
-            float val = value.getDouble();
+            assert(sizeof(float) == sizeof(int32_t));
+            union {
+                int32_t out_value;
+                float in_value;
+            } cast_data;
+
+            cast_data.in_value = value.getDouble();
 
             std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(*reinterpret_cast<int*>(&val), mLowFirst, registerCount)
+                ConverterTools::int32ToRegisters(cast_data.out_value, mLowFirst, registerCount)
             );
 
             if (mSwapBytes)

@@ -145,8 +145,15 @@ class ConverterTools {
             if (swapBytes) {
                 swapByteOrder(registers);
             }
-            int32_t value = registersToInt32(registers, false);
-            return *reinterpret_cast<T*>(&value);
+
+            assert(sizeof(float) == sizeof(T));
+            union {
+                int32_t in_value;
+                T out_value;
+            } cast_data;
+
+            cast_data.in_value = registersToInt32(registers, false);
+            return cast_data.out_value;
         }
 };
 
