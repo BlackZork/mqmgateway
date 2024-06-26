@@ -11,13 +11,15 @@ ModbusContext::init(const ModbusNetworkConfig& config)
 {
     mNetworkType = config.mType;
     if (mNetworkType == ModbusNetworkConfig::TCPIP) {
-        BOOST_LOG_SEV(log, Log::info) << "Connecting to " << config.mAddress << ":" << config.mPort;
+        mNetworkAddress = config.mAddress;
+        BOOST_LOG_SEV(log, Log::info) << "Connecting to " << mNetworkAddress << ":" << config.mPort;
         mCtx = modbus_new_tcp(config.mAddress.c_str(), config.mPort);
         modbus_set_error_recovery(mCtx,
             (modbus_error_recovery_mode)
                 (MODBUS_ERROR_RECOVERY_PROTOCOL|MODBUS_ERROR_RECOVERY_LINK)
         );
     } else {
+        mNetworkAddress = config.mDevice;
         BOOST_LOG_SEV(log, Log::info) << "Creating RTU context: " << config.mDevice << ", " << config.mBaud << "-" << config.mDataBit << config.mParity << config.mStopBit;
         mCtx = modbus_new_rtu(
             config.mDevice.c_str(),
@@ -107,7 +109,14 @@ ModbusContext::connect() {
         modbus_close(mCtx);
 
     if (modbus_connect(mCtx) == -1) {
-        BOOST_LOG_SEV(log, Log::error) << "modbus connection failed("<< errno << ") : " << modbus_strerror(errno);
+        switch(mNetworkType) {
+            case ModbusNetworkConfig::Type::TCPIP:
+                BOOST_LOG_SEV(log, Log::error) << "modbus: connection to " << mNetworkAddress << " failed("<< errno << ") : " << modbus_strerror(errno);
+            break;
+            case ModbusNetworkConfig::Type::RTU:
+                BOOST_LOG_SEV(log, Log::error) << "modbus: cannot open " << mNetworkAddress << " ("<< errno << ") : " << modbus_strerror(errno);
+            break;
+        }
         mIsConnected = false;
     } else {
         mIsConnected = true;
