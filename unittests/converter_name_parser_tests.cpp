@@ -85,4 +85,37 @@ TEST_CASE("Convert name parser tests") {
         REQUIRE(spec.args == args);
     }
 
+    SECTION("Parse converter with single quote arg") {
+
+        modmqttd::ConverterSpecification spec = modmqttd::ConverterNameParser::parse("std.something('1')");
+
+        REQUIRE(spec.plugin == "std");
+        REQUIRE(spec.converter == "something");
+        REQUIRE(spec.args.size() == 1);
+        std::vector<std::string> args = { "1" };
+        REQUIRE(spec.args == args);
+    }
+
+    SECTION("Parse converter with single quote arg and double quote value") {
+
+        modmqttd::ConverterSpecification spec = modmqttd::ConverterNameParser::parse("std.something('\"')");
+
+        REQUIRE(spec.plugin == "std");
+        REQUIRE(spec.converter == "something");
+        REQUIRE(spec.args.size() == 1);
+        std::vector<std::string> args = { "\"" };
+        REQUIRE(spec.args == args);
+    }
+
+    SECTION("Parse converter with double quote arg and single quote value") {
+
+        modmqttd::ConverterSpecification spec = modmqttd::ConverterNameParser::parse("std.something(\"'\")");
+
+        REQUIRE(spec.plugin == "std");
+        REQUIRE(spec.converter == "something");
+        REQUIRE(spec.args.size() == 1);
+        std::vector<std::string> args = { "'" };
+        REQUIRE(spec.args == args);
+    }
+
 }
