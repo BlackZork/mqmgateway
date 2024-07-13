@@ -905,9 +905,8 @@ g++ -I<path to mqmgateway source dir> -fPIC -shared myplugin.cpp -o myplugin.so
 
 ```yaml
 modmqttd:
-  loglevel: 5
   converter_search_path:
-    - <mylugin.so dir>
+    - <myplugin.so dir>
   converter_plugins:
     - myplugin.so
 modbus:
@@ -974,7 +973,7 @@ modbus:
     - name: basement
       slaves:
         - address: 1,2,3,5-18
-          pool_groups:
+          poll_groups:
             - register: 3
               count: 10
             - register: 30
@@ -995,7 +994,7 @@ modbus:
           name: meter2 
         - address: 1,2
           response_timeout: 100ms
-          pool_groups:
+          poll_groups:
             - register: 3
               count: 10
 ```
