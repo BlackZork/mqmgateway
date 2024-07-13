@@ -44,7 +44,7 @@ TEST_CASE("Modbus scheduler") {
         REQUIRE(poll.size() == 0);
     }
 
-    SECTION ("should return delay=mRefresh if register was pulled now") {
+    SECTION ("should return delay=mRefresh if register was polled now") {
         reg->mLastRead = now;
         RegisterSpec poll = scheduler.getRegistersToPoll(duration, now);
 
