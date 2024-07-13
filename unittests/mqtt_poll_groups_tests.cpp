@@ -57,7 +57,7 @@ mqtt:
         available_value: 1
 )";
 
-TEST_CASE ("Topic state data should be pulled as pull group") {
+TEST_CASE ("Topic state data should be polled as poll group") {
     MockedModMqttServerThread server(config1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 1);
@@ -113,7 +113,7 @@ mqtt:
 )";
 
 
-TEST_CASE ("Unchanged state should not be published when pulled as a pull group") {
+TEST_CASE ("Unchanged state should not be published when polled as a poll group") {
     MockedModMqttServerThread server(config2);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 2);
@@ -189,7 +189,7 @@ mqtt:
         - register: tcptest.1.4
 )";
 
-TEST_CASE ("Mutiple poll group definitions should be merged") {
+TEST_CASE ("Multiple poll group definitions should be merged") {
     MockedModMqttServerThread server(slave_sets_config);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
