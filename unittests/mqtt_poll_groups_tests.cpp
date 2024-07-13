@@ -208,6 +208,54 @@ TEST_CASE ("Mutiple poll group definitions should be merged") {
 
 
 
+TEST_CASE ("issue_58_parse_error_for_common_poll_group") {
+static const std::string issue_58_config = R"(
+modmqttd:
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 30
+          name: first-meter
+        - address: 31
+          name: second-meter
+        - address: 30,31
+          poll_groups:
+            - { register:  1, count: 20 }
+            - { register: 21, count: 20 }
+mqtt:
+  client_id: mqtt_test
+  refresh: 10ms
+  broker:
+    host: localhost
+  objects:
+    - topic: ${slave_name}
+      network: tcptest
+      slave: 30
+      state:
+        register: 1
+)";
+
+    MockedModMqttServerThread server(issue_58_config);
+    server.setModbusRegisterValue("tcptest", 30, 1, modmqttd::RegisterType::HOLDING, 1);
+    server.setModbusRegisterValue("tcptest", 30, 2, modmqttd::RegisterType::HOLDING, 2);
+    server.setModbusRegisterValue("tcptest", 31, 21, modmqttd::RegisterType::HOLDING, 21);
+    server.setModbusRegisterValue("tcptest", 31, 22, modmqttd::RegisterType::HOLDING, 22);
+
+    server.start();
+
+    server.waitForPublish("first-meter/state");
+    REQUIRE(server.mqttValue("first-meter/state") == "1");
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(30) == 1);
+
+    server.stop();
+}
+
+
+
+
 static const std::string old_valid_pg_config = R"(
 modmqttd:
 modbus:

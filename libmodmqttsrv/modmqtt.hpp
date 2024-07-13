@@ -48,6 +48,7 @@ class ModMqtt {
         struct ModbusInitData {
             std::vector<MsgRegisterPollSpecification> mPollSpecification;
 
+            //network -> map(slave_id, slave_name)
             std::map<std::string, std::map<int, std::string>> mSlaveNames;
 
             std::string getSlaveName(const std::string& pNetwork, int pSlaveId) const {

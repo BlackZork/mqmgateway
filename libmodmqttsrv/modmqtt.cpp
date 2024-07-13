@@ -386,7 +386,8 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
                         modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
                         spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, ySlave["poll_groups"]));
 
-                        ret.mSlaveNames[modbus->mNetworkName][slave_config.mAddress] = slave_config.mSlaveName;
+                        if (!slave_config.mSlaveName.empty())
+                            ret.mSlaveNames[modbus->mNetworkName][slave_config.mAddress] = slave_config.mSlaveName;
                     }
                 }
             }
