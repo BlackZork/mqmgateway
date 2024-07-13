@@ -211,7 +211,7 @@ Modbus network configuration parameters are listed below:
 
   * **address** (required)
 
-      Modbus slave address. Mutiple comma-separated values or ranges are supported like this:
+      Modbus slave address. Multiple comma-separated values or ranges are supported like this:
           
           1,2,3-10,12,30
           
@@ -352,10 +352,10 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
     Sets default modbus slave address for all state, commands and availability sections in this topic.
 
-    Mutiple values are supported in for of comma separated list of numbers or number ranges like this:
+    Multiple values are supported as comma-separated list of numbers or number ranges like this:
 
-        1,2,3,5-18,21 
-    
+        1,2,3,5-18,21
+
     If more than one value is set, then you have to include `${slave_address}` or `${slave_name}` in `topic` value.
 
     For examples see [Multi-device definitions](#multi-device-definitions) section.
@@ -965,7 +965,7 @@ Slave names are required only if `${slave_name}` placeholder is used.
 
 ### Multi device modbus slave definitions.
 
-Address list can be used in `modbus.networks.slaves.address` to define properties for mutiple slaves at once:
+Address list can be used in `modbus.networks.slaves.address` to define properties for multiple slaves at once:
 
 ```yaml
 modbus:
@@ -980,7 +980,7 @@ modbus:
               count: 5
 ```
 
-A single slave address can be listed in mutiple entries like this:
+A single slave address can be listed in multiple entries like this:
 
 ```yaml
 modbus:

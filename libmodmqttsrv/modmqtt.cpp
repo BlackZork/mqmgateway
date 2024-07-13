@@ -501,7 +501,7 @@ ModMqtt::parseObject(
     if (yAvail.IsMap()) {
         MqttObjectDataNode node(parseObjectDataNode(yAvail, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, pSpecsOut));
         if (!node.isScalar() && !node.hasConverter())
-            throw ConfigurationException(yAvail.Mark(), "mutiple registers availability must use a converter");
+            throw ConfigurationException(yAvail.Mark(), "multiple registers availability must use a converter");
         ret.addAvailabilityDataNode(node);
     } else {
         throw ConfigurationException(yState.Mark(), "availability must be a single register or a list with converter");

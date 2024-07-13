@@ -189,7 +189,7 @@ mqtt:
         - register: tcptest.1.4
 )";
 
-TEST_CASE ("Mutiple poll group definitions should be merged") {
+TEST_CASE ("Multiple poll group definitions should be merged") {
     MockedModMqttServerThread server(slave_sets_config);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
