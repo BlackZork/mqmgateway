@@ -27,12 +27,12 @@ class FloatConverter : public DataConverter {
             union {
                 int32_t out_value;
                 float in_value;
-            } cast_data;
+            } CastData;
 
-            cast_data.in_value = value.getDouble();
+            CastData.in_value = value.getDouble();
 
             std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(cast_data.out_value, mLowFirst, registerCount)
+                ConverterTools::int32ToRegisters(CastData.out_value, mLowFirst, registerCount)
             );
 
             if (mSwapBytes)

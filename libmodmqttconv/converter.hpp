@@ -150,10 +150,10 @@ class ConverterTools {
             union {
                 int32_t in_value;
                 T out_value;
-            } cast_data;
+            } CastData;
 
-            cast_data.in_value = registersToInt32(registers, false);
-            return cast_data.out_value;
+            CastData.in_value = registersToInt32(registers, false);
+            return CastData.out_value;
         }
 };
 

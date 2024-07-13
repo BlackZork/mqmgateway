@@ -2,14 +2,15 @@
 #include "plugin.hpp"
 
 #include "bits.hpp"
-#include "single_arg_ops.hpp"
+#include "float32.hpp"
 #include "int16.hpp"
 #include "int32.hpp"
+#include "int8.hpp"
+#include "map.hpp"
 #include "scale.hpp"
+#include "single_arg_ops.hpp"
 #include "string.hpp"
 #include "uint32.hpp"
-#include "float32.hpp"
-#include "int8.hpp"
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
@@ -37,5 +38,7 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new UInt8Converter();
     else if (name == "bit")
         return new BitConverter();
+    else if (name == "map")
+        return new MapConverter();
     return nullptr;
 }
