@@ -987,16 +987,16 @@ modbus:
   networks:
     - name: basement
       slaves:
-        - address: 1
-          name: meter1 
-          response_timeout: 50ms
-        - address: 2
-          name: meter2 
         - address: 1,2
           response_timeout: 100ms
           poll_groups:
             - register: 3
               count: 10
+        - address: 1
+          name: meter1 
+          response_timeout: 50ms
+        - address: 2
+          name: meter2 
 ```
 
 This example will set response timeout 100ms for both slaves - overriding value for slave1. Two poll groups are defined for reading registers 3-13 for both slaves.
