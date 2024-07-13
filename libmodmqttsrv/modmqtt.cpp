@@ -421,7 +421,7 @@ ModMqtt::parseObject(
     size_t netPhPos = topic.find(netPhVar);
     if (netPhPos != std::string::npos) {
         if (pDefaultNetwork.empty())
-            throw ConfigurationException(pData["topic"].Mark(), "default network name must be set for topic" + topic);
+            throw ConfigurationException(pData["topic"].Mark(), "default network name must be set for topic " + topic);
         else
         {
             topic.replace(netPhPos, netPhVar.length(), pDefaultNetwork);
@@ -433,7 +433,7 @@ ModMqtt::parseObject(
     size_t saPhPos = topic.find(saPhVar);
     if (saPhPos != std::string::npos) {
         if (pDefaultSlaveId == -1)
-            throw ConfigurationException(pData["topic"].Mark(), "default slave address must be set for topic" + topic);
+            throw ConfigurationException(pData["topic"].Mark(), "default slave address must be set for topic " + topic);
         else
         {
             topic.replace(saPhPos, saPhVar.length(), std::to_string(pDefaultSlaveId));
@@ -446,10 +446,11 @@ ModMqtt::parseObject(
     if (snPhPos != std::string::npos) {
         if (pDefaultSlaveId == -1) {
             throw ConfigurationException(pData["topic"].Mark(), "cannot find slave name, default slave address must be set for topic" + topic);
-        } else if (pSlaveName.empty())
+        } else if (pDefaultNetwork.empty()) {
+            throw ConfigurationException(pData["topic"].Mark(), "default network name must be set for topic " + topic);
+        } else if (pSlaveName.empty()) {
             throw ConfigurationException(pData["topic"].Mark(), std::string("missing name for slave id=") + std::to_string(pDefaultSlaveId) + " needed for placeholder in topic " + topic);
-        else
-        {
+        } else {
             topic.replace(snPhPos, snPhVar.length(), pSlaveName);
         }
     }
