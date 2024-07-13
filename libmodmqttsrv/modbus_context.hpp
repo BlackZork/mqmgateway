@@ -28,6 +28,7 @@ class ModbusContext : public IModbusContext {
         void handleError(const std::string& desc);
         bool mIsConnected = false;
         ModbusNetworkConfig::Type mNetworkType;
+        std::string mNetworkAddress;
         modbus_t* mCtx = NULL;
 };
 

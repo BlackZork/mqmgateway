@@ -2,6 +2,7 @@
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
 #include "defaults.hpp"
+#include "yaml_utils.hpp"
 
 static const std::string config1 = R"(
 modmqttd:
@@ -57,7 +58,7 @@ mqtt:
         available_value: 1
 )";
 
-TEST_CASE ("Topic state data should be pulled as pull group") {
+TEST_CASE ("Topic state data should be polled as poll group") {
     MockedModMqttServerThread server(config1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 1);
@@ -113,7 +114,7 @@ mqtt:
 )";
 
 
-TEST_CASE ("Unchanged state should not be published when pulled as a pull group") {
+TEST_CASE ("Unchanged state should not be published when polled as a poll group") {
     MockedModMqttServerThread server(config2);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 2);
@@ -189,7 +190,7 @@ mqtt:
         - register: tcptest.1.4
 )";
 
-TEST_CASE ("Mutiple poll group definitions should be merged") {
+TEST_CASE ("Multiple poll group definitions should be merged") {
     MockedModMqttServerThread server(slave_sets_config);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
@@ -205,7 +206,58 @@ TEST_CASE ("Mutiple poll group definitions should be merged") {
     server.stop();
 }
 
+TestConfig issue_58_config(R"(
+modmqttd:
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 30
+          name: first-meter
+        - address: 31
+          name: second-meter
+        - address: 30,31
+          poll_groups:
+            - { register:  1, count: 20 }
+            - { register: 21, count: 20 }
+mqtt:
+  client_id: mqtt_test
+  refresh: 10ms
+  broker:
+    host: localhost
+  objects:
+    - topic: ${slave_name}
+      network: tcptest
+      slave: 30
+      state:
+        register: 1
+)");
 
+TEST_CASE ("issue 58 parse error for common poll group") {
+    MockedModMqttServerThread server(issue_58_config.toString());
+    server.setModbusRegisterValue("tcptest", 30, 1, modmqttd::RegisterType::HOLDING, 1);
+    server.setModbusRegisterValue("tcptest", 30, 2, modmqttd::RegisterType::HOLDING, 2);
+    server.setModbusRegisterValue("tcptest", 31, 21, modmqttd::RegisterType::HOLDING, 21);
+    server.setModbusRegisterValue("tcptest", 31, 22, modmqttd::RegisterType::HOLDING, 22);
+
+    server.start();
+
+    server.waitForPublish("first-meter/state");
+    REQUIRE(server.mqttValue("first-meter/state") == "1");
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(30) == 1);
+
+    server.stop();
+}
+
+TEST_CASE ("topic with slave_name placeholder must have a default network name set") {
+    issue_58_config.mYAML["mqtt"]["objects"][0].remove("network");
+    MockedModMqttServerThread server(issue_58_config.toString(), false);
+    server.start();
+    server.stop();
+    REQUIRE(server.initOk() == false);
+}
 
 
 static const std::string old_valid_pg_config = R"(

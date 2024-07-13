@@ -6,7 +6,7 @@
 #include "yaml_utils.hpp"
 
 
-TEST_CASE ("Availability from mutiple registers") {
+TEST_CASE ("Availability from multiple registers") {
 
 static TestConfig config(R"(
 modmqttd:

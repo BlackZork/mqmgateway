@@ -386,7 +386,8 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
                         modbus->mToModbusQueue.enqueue(QueueItem::create(slave_config));
                         spec.merge(readModbusPollGroups(modbus_config.mName, slave_config.mAddress, ySlave["poll_groups"]));
 
-                        ret.mSlaveNames[modbus->mNetworkName][slave_config.mAddress] = slave_config.mSlaveName;
+                        if (!slave_config.mSlaveName.empty())
+                            ret.mSlaveNames[modbus->mNetworkName][slave_config.mAddress] = slave_config.mSlaveName;
                     }
                 }
             }
@@ -420,7 +421,7 @@ ModMqtt::parseObject(
     size_t netPhPos = topic.find(netPhVar);
     if (netPhPos != std::string::npos) {
         if (pDefaultNetwork.empty())
-            throw ConfigurationException(pData["topic"].Mark(), "default network name must be set for topic" + topic);
+            throw ConfigurationException(pData["topic"].Mark(), "default network name must be set for topic " + topic);
         else
         {
             topic.replace(netPhPos, netPhVar.length(), pDefaultNetwork);
@@ -432,7 +433,7 @@ ModMqtt::parseObject(
     size_t saPhPos = topic.find(saPhVar);
     if (saPhPos != std::string::npos) {
         if (pDefaultSlaveId == -1)
-            throw ConfigurationException(pData["topic"].Mark(), "default slave address must be set for topic" + topic);
+            throw ConfigurationException(pData["topic"].Mark(), "default slave address must be set for topic " + topic);
         else
         {
             topic.replace(saPhPos, saPhVar.length(), std::to_string(pDefaultSlaveId));
@@ -445,10 +446,11 @@ ModMqtt::parseObject(
     if (snPhPos != std::string::npos) {
         if (pDefaultSlaveId == -1) {
             throw ConfigurationException(pData["topic"].Mark(), "cannot find slave name, default slave address must be set for topic" + topic);
-        } else if (pSlaveName.empty())
+        } else if (pDefaultNetwork.empty()) {
+            throw ConfigurationException(pData["topic"].Mark(), "default network name must be set for topic " + topic);
+        } else if (pSlaveName.empty()) {
             throw ConfigurationException(pData["topic"].Mark(), std::string("missing name for slave id=") + std::to_string(pDefaultSlaveId) + " needed for placeholder in topic " + topic);
-        else
-        {
+        } else {
             topic.replace(snPhPos, snPhVar.length(), pSlaveName);
         }
     }
@@ -501,7 +503,7 @@ ModMqtt::parseObject(
     if (yAvail.IsMap()) {
         MqttObjectDataNode node(parseObjectDataNode(yAvail, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, pSpecsOut));
         if (!node.isScalar() && !node.hasConverter())
-            throw ConfigurationException(yAvail.Mark(), "mutiple registers availability must use a converter");
+            throw ConfigurationException(yAvail.Mark(), "multiple registers availability must use a converter");
         ret.addAvailabilityDataNode(node);
     } else {
         throw ConfigurationException(yState.Mark(), "availability must be a single register or a list with converter");
