@@ -45,7 +45,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 ## From sources
 
 1. `git clone https://github.com/BlackZork/mqmgateway.git#branch=master`
-   
+
    You can aslo use `branch=<tagname>` to clone specific release or download sources from [Releases page](https://github.com/BlackZork/mqmgateway/releases)
 
 1. Install dependencies:
@@ -77,7 +77,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
 ## Docker image
 
-Docker images for various archicetures (i386, arm6, arm7, amd64) are available in [packages section](https://github.com/users/BlackZork/packages/container/package/mqmgateway). 
+Docker images for various archicetures (i386, arm6, arm7, amd64) are available in [packages section](https://github.com/users/BlackZork/packages/container/package/mqmgateway).
 
 1. Pull docker image using instructions provided in packages section.
 
@@ -132,7 +132,7 @@ Modbus network configuration parameters are listed below:
 
 * **delay_before_first_command** (timespan, optional, default 0ms)
 
-  Required silence period before issuing first modbus command to a slave. This delay is applied only when gateway switches to a diffrent slave. 
+  Required silence period before issuing first modbus command to a slave. This delay is applied only when gateway switches to a diffrent slave.
 
   This option is useful for RTU networks with a mix of very slow and fast responding slaves. Adding a delay before slow slave
   can significantly reduce amount of read erorrs if mqmgateway is configured to poll very fast.
@@ -196,14 +196,14 @@ Modbus network configuration parameters are listed below:
 
     TCP port of a device
 
-* **watchdog** (optional)    
+* **watchdog** (optional)
 
   An optional configuration section for modbus connection watchdog. Watchdog monitors modbus command errors. If there is no successful command execution in *watch_period*, then it restarts the modbus connection.
 
   Additionally for RTU network the *device* path is checked on the first error and then in small (300ms) time periods. If modbus RTU device is unplugged, then connection is restarted.
 
   * **watch_period** (optional, timespan, default=10s)
-    
+
   The amount of time after which the connection should be reestablished if there has been no successful execution of a modbus command.
 
 * **slaves** (optional)
@@ -212,9 +212,9 @@ Modbus network configuration parameters are listed below:
   * **address** (required)
 
       Modbus slave address. Multiple comma-separated values or ranges are supported like this:
-          
+
           1,2,3-10,12,30
-          
+
 
   * **name** (optional)
 
@@ -257,8 +257,8 @@ Modbus network configuration parameters are listed below:
             count: 20
       ```
 
-      This definition allows to use single modbus read call to read all data that is needed 
-      for multiple topics declared in MQTT section. If there are no topics that use modbus data from 
+      This definition allows to use single modbus read call to read all data that is needed
+      for multiple topics declared in MQTT section. If there are no topics that use modbus data from
       a poll group then that poll group is ignored.
 
       If MQTT topic uses its own register range and this range overlaps a poll group like this:
@@ -589,7 +589,7 @@ Configuration values:
   * **converter** (optional)
 
     The name of function that should be called to convert register uint16_t values to MQTT UTF-8 value. Format of function name is `plugin_name.function_name`. See converters for details.
-    After conversion, MQTT value is compared to available_value. "1" is published if values are equal, 
+    After conversion, MQTT value is compared to available_value. "1" is published if values are equal,
     otherwise "0".
 
   * **available_value** (optional, default 1)
@@ -936,7 +936,7 @@ For more examples see libstdconv source code.
 
 Multi-device defintions allows to set slave properties or create a single topic for multiple modbus devices of the same type. This greatly reduces the number of configuration sections that differ only by slave address or modbus network name.
 
-### Multi-device MQTT topics 
+### Multi-device MQTT topics
 
 If there are many devices of the same type then a MQTT topic for group of devices can be defined by setting `slave` value to list of modbus slave addresses. Then you have to add either `slave_name` or `slave_address` placeholder in the topic string like this:
 
@@ -946,9 +946,9 @@ modbus:
     - name: basement
       slaves:
         - address: 1
-          name: meter1 
+          name: meter1
         - address: 2
-          name: meter2 
+          name: meter2
         [...]
 mqtt:
   objects:
@@ -993,10 +993,10 @@ modbus:
             - register: 3
               count: 10
         - address: 1
-          name: meter1 
+          name: meter1
           response_timeout: 50ms
         - address: 2
-          name: meter2 
+          name: meter2
 ```
 
 This example will set response timeout 100ms for both slaves - overriding value for slave1. Two poll groups are defined for reading registers 3-13 for both slaves.
