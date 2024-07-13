@@ -62,7 +62,7 @@ struct YAML::convert<std::chrono::milliseconds> {
 };
 
 /**
- * A converter for list of itegers in format
+ * A converter for list of integers in format
  * 1,2,3,4-5,6
  *
  * For single number std::pair<number, number> is returned
