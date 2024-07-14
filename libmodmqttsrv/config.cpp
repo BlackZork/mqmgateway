@@ -75,6 +75,12 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
 
 MqttBrokerConfig::MqttBrokerConfig(const YAML::Node& source) {
     mHost = ConfigTools::readRequiredString(source, "host");
+    if (source["tls"]) {
+        mTLS = true;
+        mPort = 8883;
+        const YAML::Node& tls = source["tls"];
+        ConfigTools::readOptionalValue<std::string>(mCafile, tls, "cafile");
+    }
     ConfigTools::readOptionalValue<int>(mPort, source, "port");
     ConfigTools::readOptionalValue<int>(mKeepalive, source, "keepalive");
     ConfigTools::readOptionalValue<std::string>(mUsername, source, "username");

@@ -146,7 +146,9 @@ class MqttBrokerConfig {
                     mPort == other.mPort &&
                     mKeepalive == other.mKeepalive &&
                     mUsername == other.mUsername &&
-                    mPassword == other.mPassword;
+                    mPassword == other.mPassword &&
+                    mTLS == other.mTLS &&
+                    mCafile == other.mCafile;
         }
 
         //defaults are from mosqittopp.h
@@ -157,6 +159,9 @@ class MqttBrokerConfig {
         std::string mPassword;
 
         std::string mClientId;
+
+        bool mTLS = false;
+        std::string mCafile;
 };
 
 }

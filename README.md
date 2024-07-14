@@ -302,7 +302,7 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
     MQTT boker IP address
 
-  * **port** (optional, default 1883)
+  * **port** (optional, default 1883 for plain MQTT or 8883 for MQTT over TLS)
 
     MQTT broker TCP port
 
@@ -317,6 +317,15 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
   * **password** (optional)
 
     The password to be used to connect to MQTT broker
+
+  * **tls** (optional)
+
+    This option enables TLS for connecting to MQTT broker
+
+    * **cafile** (optional)
+
+      Path to a file containing the PEM encoded trusted CA certificate files.
+      If this option is not set, OS provided CA certificates are used.
 
 * **objects** (required)
 
