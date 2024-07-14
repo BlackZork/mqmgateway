@@ -29,10 +29,26 @@ class MapConverter : public DataConverter {
                 }
                 Mapping() : Mapping(0,0) {};
 
-                ~Mapping() {
+                Mapping(const Mapping& pOther) {
+                    *this = pOther;
+                }
+
+                Mapping& operator=(const Mapping& pOther) {
+                    mRegisterValue = pOther.mRegisterValue;
+                    mIsInt = pOther.isInt();
+                    if (mIsInt)
+                        mMqttValue.mInt = pOther.mMqttValue.mInt;
+                    else
+                        mMqttValue.mStr = pOther.mMqttValue.mStr;
+                    return *this;
+                }
+
+                void dispose() {
                     if (!mIsInt && mMqttValue.mStr != nullptr)
                         delete mMqttValue.mStr;
                 }
+
+                ~Mapping() {}
                 uint16_t mRegisterValue;
 
                 bool isInt() const { return mIsInt; }
@@ -52,6 +68,12 @@ class MapConverter : public DataConverter {
                         end(),
                         [&value](const Mapping& mapping) -> bool { return mapping.mRegisterValue == value; }
                     );
+                }
+
+                ~Map() {
+                    for(auto& val: *this) {
+                        val.dispose();
+                    }
                 }
         };
 
@@ -111,7 +133,8 @@ class MapParser {
 
         std::stack<aState> mCurrentState;
         std::string mKey;
-        bool mIsIntKey;
+
+        bool mIsIntValue;
         std::string mValue;
 
         void addEscapedChar(char c);

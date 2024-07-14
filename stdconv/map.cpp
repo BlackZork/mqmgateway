@@ -13,7 +13,7 @@ void
 MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
     mappings.clear();
 
-    mIsIntKey = false;
+    mIsIntValue = false;
     mCurrentState = std::stack<aState>();
     mCurrentState.push(SCAN);
 
@@ -26,9 +26,9 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         // just ignore it for simplicty
                     break;
                     case KEY:
-                        mKey += c;
+                        throw ConvException("{ in map key is not allowed, must be an uint16_value");
                     case VALUE:
-                        throw ConvException("\\ in map value is not allowed, must be an uint16_value");
+                        mValue += c;
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
@@ -38,12 +38,15 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
             case '}':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        throw ConvException("Missing map opening bracket");
+                        addMapping(mappings);
                     break;
                     case KEY:
-                        mKey += c;
+                        throw ConvException("} in map key is not allowed, must be an uint16_value");
                     case VALUE:
-                        addMapping(mappings);
+                        if (mIsIntValue)
+                            addMapping(mappings);
+                        else
+                            mValue += c;
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
@@ -53,12 +56,11 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
             case '\\':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        throw ConvException("string key should start with \"");
-                    break;
                     case KEY:
-                        mKey += c;
+                        throw ConvException("\\ in map key is not allowed, must be an uint16_value");
+                    break;
                     case VALUE:
-                        throw ConvException("\\ in map value is not allowed, must be an uint16_value");
+                        mCurrentState.push(ESCAPE);
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
@@ -69,19 +71,22 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                 switch(mCurrentState.top()) {
                     case SCAN:
                         mCurrentState.push(KEY);
-                        mIsIntKey = false;
                     break;
                     case KEY:
-                        if (!mIsIntKey)
-                            mCurrentState.pop();
-                        else
-                            throw ConvException("\" in int key is not allowed");
+                        throw ConvException("\" in map key is not allowed, must be an uint16_value");
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
                     break;
                     case VALUE:
-                        throw ConvException("\" in map value is not allowed, must be an uint16_value");
+                        if (mValue.empty())
+                            mIsIntValue = false;
+                        else {
+                            if (!mIsIntValue)
+                                mCurrentState.pop();
+                            else
+                                throw ConvException("\" in int value is not allowed");
+                        }
                     break;
                 }
             break;
@@ -91,11 +96,11 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                     break;
                     case KEY:
                         if (!mKey.empty())
-                            mKey += c;
+                            throw ConvException("space in map key is not allowed, must be an uint16_value");
                     break;
                     case VALUE:
                         if (!mValue.empty())
-                            throw ConvException("space in map value is not allowed, must be an uint16_value");
+                            mValue += c;
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
@@ -115,7 +120,7 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         addEscapedChar(c);
                     break;
                     case VALUE:
-                        throw ConvException(": in map value is not allowed, must be an uint16_value");
+                        mValue += c;
                     break;
                 }
             break;
@@ -124,11 +129,13 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                     case SCAN:
                         throw ConvException("Key " + std::to_string(mappings.size() + 1) + " is empty");
                     case KEY:
-                        mKey += c;
+                        throw ConvException(", in map key is not allowed, must be an uint16_value");
                     break;
                     case VALUE:
-                        addMapping(mappings);
-
+                        if (mIsIntValue)
+                            addMapping(mappings);
+                        else
+                            mValue += c;
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
@@ -139,7 +146,6 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                 switch(mCurrentState.top()) {
                     case SCAN:
                         if (isdigit(c)) {
-                            mIsIntKey = true;
                             mCurrentState.push(KEY);
                             mKey += c;
                         } else {
@@ -147,13 +153,12 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         }
                     break;
                     case KEY:
-                        if (mIsIntKey) {
-                            if (!isdigit(c) && c != 'x')
-                                throw ConvException("Invalid char " + std::to_string(c) + " in int key");
-                        } else {
-                            mKey += c;
-                        }
+                        if (!isdigit(c) && c != 'x')
+                            throw ConvException("Invalid char " + std::to_string(c) + " in int key");
+                        mKey += c;
                     case VALUE:
+                        if (mValue.empty() && isdigit(c))
+                            mIsIntValue = true;
                         mValue += c;
                     break;
                     case ESCAPE:
@@ -162,14 +167,12 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                 }
             break;
         }
-
-
     }
 }
 
 void
 MapParser::addEscapedChar(char c) {
-    char escaped =getEscapedChar(c);
+    char escaped = getEscapedChar(c);
     mCurrentState.pop();
     switch (mCurrentState.top()) {
         case KEY:
@@ -185,17 +188,17 @@ MapParser::addEscapedChar(char c) {
 
 void
 MapParser::addMapping(MapConverter::Map& mappings) {
-    uint16_t v = Int16Converter::toInt16(MqttValue::fromString(mValue));
+    uint16_t regVal = Int16Converter::toInt16(MqttValue::fromString(mKey));
     //map is optimized for polling, so modbus value is stored as key.
-    auto vit = mappings.findRegValue(v);
+    auto vit = mappings.findRegValue(regVal);
     if (vit != mappings.end())
-        throw ConvException("Register value " + std::to_string(v) + " already mapped");
+        throw ConvException("Register value " + mKey + " already mapped");
 
     MapConverter::Mapping mapping;
-    if (mIsIntKey) {
-        mapping = MapConverter::Mapping(v, std::atoi(mKey.c_str()));
+    if (mIsIntValue) {
+        mapping = MapConverter::Mapping(regVal, std::atoi(mValue.c_str()));
     } else {
-        mapping = MapConverter::Mapping(v, StrUtils::trim(mKey));
+        mapping = MapConverter::Mapping(regVal, StrUtils::trim(mValue));
     }
 
     vit = std::find_if(mappings.begin(), mappings.end(), [&mapping](const MapConverter::Mapping& m) -> bool {
