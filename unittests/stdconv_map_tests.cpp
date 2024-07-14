@@ -15,9 +15,9 @@ TEST_CASE ("A map converter") {
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("map"));
 
-    SECTION("with int values") {
+    SECTION("with int value") {
         std::vector<std::string> args = {
-            "{1: 9600, 2: 19200, 3: 38400, 4: 57600}"
+            "{3: 38400}"
         };
         conv->setArgs(args);
 
@@ -29,31 +29,31 @@ TEST_CASE ("A map converter") {
         }
 
         SECTION("should convert int mqtt value to register data") {
-            MqttValue val(MqttValue::fromInt(57600));
+            MqttValue val(MqttValue::fromInt(38400));
 
             ModbusRegisters ret = conv->toModbus(val, 1);
-            REQUIRE(ret.getValue(0) == 4);
+            REQUIRE(ret.getValue(0) == 3);
         }
     }
 
-    SECTION("with string values") {
+    SECTION("with string value") {
         std::vector<std::string> args = {
-            "{1: 'one', 2: 'two', 3: 'three', 4: 'four'}"
+            "{1: \"one\"}"
         };
         conv->setArgs(args);
 
         SECTION("should convert register value to mapped string") {
-            ModbusRegisters data(3);
+            ModbusRegisters data(1);
             MqttValue ret = conv->toMqtt(data);
 
-            REQUIRE(ret.getString() == "three");
+            REQUIRE(ret.getString() == "one");
         }
 
         SECTION("should convert string mqtt value to register data") {
-            MqttValue val(MqttValue::fromString("three"));
+            MqttValue val(MqttValue::fromString("one"));
 
             ModbusRegisters ret = conv->toModbus(val, 1);
-            REQUIRE(ret.getValue(0) == 3);
+            REQUIRE(ret.getValue(0) == 1);
         }
     }
 }

@@ -1,19 +1,8 @@
 #include "map.hpp"
 
-#include <stack>
+#include <cctype>
 
-class MapParser {
-    public:
-        static void parse(std::map<uint16_t, MapConverter::MqttVariant> mMap, const std::string& data);
-    private:
-        typedef enum {
-            SCAN,
-            KEY,
-            ESCAPE,
-            VALUE
-        } aState;
-
-};
+#include "libmodmqttconv/strutils.hpp"
 
 char
 getEscapedChar(const char& c) {
@@ -21,49 +10,75 @@ getEscapedChar(const char& c) {
 };
 
 void
-MapParser::parse(std::map<uint16_t, MapConverter::MqttVariant> mMap, const std::string& data) {
-    mMap.clear();
+MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
+    mappings.clear();
 
-    std::string key;
-    std::string value2;
-    std::stack<aState> currentState;
-    currentState.push(SCAN);
+    mIsIntKey = false;
+    mCurrentState = std::stack<aState>();
+    mCurrentState.push(SCAN);
 
-    for(const char& c: data) {
+    for(auto it = data.cbegin(); it != data.cend(); it++) {
+        const char& c = *it;
         switch(c) {
             case '{':
-                //TODO ignore in scan
-            break;
-            case '}':
-                //TODO end parsing, check for unknown chars
-            break;
-            case '\\':
-                switch(currentState.top()) {
+                switch(mCurrentState.top()) {
                     case SCAN:
-                        currentState.push(ESCAPE);
+                        // just ignore it for simplicty
                     break;
                     case KEY:
-                        key += c;
+                        mKey += c;
                     case VALUE:
                         throw ConvException("\\ in map value is not allowed, must be an uint16_value");
                     break;
                     case ESCAPE:
-                        key += getEscapedChar(c);
-                        currentState.pop();
+                        addEscapedChar(c);
+                    break;
+                }
+            break;
+            case '}':
+                switch(mCurrentState.top()) {
+                    case SCAN:
+                        throw ConvException("Missing map opening bracket");
+                    break;
+                    case KEY:
+                        mKey += c;
+                    case VALUE:
+                        addMapping(mappings);
+                    break;
+                    case ESCAPE:
+                        addEscapedChar(c);
+                    break;
+                }
+            break;
+            case '\\':
+                switch(mCurrentState.top()) {
+                    case SCAN:
+                        throw ConvException("string key should start with \"");
+                    break;
+                    case KEY:
+                        mKey += c;
+                    case VALUE:
+                        throw ConvException("\\ in map value is not allowed, must be an uint16_value");
+                    break;
+                    case ESCAPE:
+                        addEscapedChar(c);
                     break;
                 }
             break;
             case '"':
-                switch(currentState.top()) {
+                switch(mCurrentState.top()) {
                     case SCAN:
-                        currentState.push(KEY); //TODO mark as string key
+                        mCurrentState.push(KEY);
+                        mIsIntKey = false;
                     break;
                     case KEY:
-                        currentState.pop();
-                        break;
+                        if (!mIsIntKey)
+                            mCurrentState.pop();
+                        else
+                            throw ConvException("\" in int key is not allowed");
+                    break;
                     case ESCAPE:
-                        key += getEscapedChar(c);
-                        currentState.pop();
+                        addEscapedChar(c);
                     break;
                     case VALUE:
                         throw ConvException("\" in map value is not allowed, must be an uint16_value");
@@ -71,54 +86,80 @@ MapParser::parse(std::map<uint16_t, MapConverter::MqttVariant> mMap, const std::
                 }
             break;
             case ' ':
-                switch(currentState.top()) {
-                    case SCAN: break;
-                    case KEY: key += c; break;
-                    case VALUE: break; //TODO not allowed
-                    case ESCAPE: key += getEscapedChar(c); currentState.pop(); break;
-                }
-            case ':':
-                switch(currentState.top()) {
+                switch(mCurrentState.top()) {
                     case SCAN:
-                        if (key.empty())
-                            throw ConvException("Key " + std::to_string(mMap.size() + 1) + " is empty");
-                        currentState.push(VALUE);
-                        break;
-                    case KEY: key += c; break;
+                    break;
+                    case KEY:
+                        if (!mKey.empty())
+                            mKey += c;
+                    break;
+                    case VALUE:
+                        if (!mValue.empty())
+                            throw ConvException("space in map value is not allowed, must be an uint16_value");
+                    break;
                     case ESCAPE:
-                        key += getEscapedChar(c);
-                        currentState.pop();
+                        addEscapedChar(c);
+                    break;
+                }
+            break;
+            case ':':
+                switch(mCurrentState.top()) {
+                    case SCAN:
+                        throw ConvException("Key " + std::to_string(mappings.size() + 1) + " is empty");
+                    break;
+                    case KEY:
+                        mCurrentState.pop();
+                        mCurrentState.push(VALUE);
+                    break;
+                    case ESCAPE:
+                        addEscapedChar(c);
                     break;
                     case VALUE:
                         throw ConvException(": in map value is not allowed, must be an uint16_value");
                     break;
                 }
+            break;
             case ',':
-                switch(currentState.top()) {
+                switch(mCurrentState.top()) {
                     case SCAN:
-                        throw ConvException("Key " + std::to_string(mMap.size() + 1) + " is empty");
-                    case KEY: key += c; break;
-                    case VALUE: {
-                        MapConverter::MqttVariant k;
-                        k.mStr = new char[key.size() + 1];
-                        strcpy(k.mStr, key.c_str());
-                        uint16_t v = Int16Converter::toInt16(MqttValue::fromString(value2));
-                        //map is optimized for polling, so modbus value is stored as key.
-                        auto it = mMap.find(v);
-                        if (it != mMap.end())
-                            throw ConvException("Key " + std::to_string(v) + " already exists");
-                        mMap[v] = k;
-                        break;
-                    }
+                        throw ConvException("Key " + std::to_string(mappings.size() + 1) + " is empty");
+                    case KEY:
+                        mKey += c;
+                    break;
+                    case VALUE:
+                        addMapping(mappings);
+
+                    break;
                     case ESCAPE:
-                        key += getEscapedChar(c);
-                        currentState.pop();
+                        addEscapedChar(c);
                     break;
                 }
             break;
             default:
-                //TODO mark as int key if 0-9 in scan,
-                //TODO check for isDigit in value
+                switch(mCurrentState.top()) {
+                    case SCAN:
+                        if (isdigit(c)) {
+                            mIsIntKey = true;
+                            mCurrentState.push(KEY);
+                            mKey += c;
+                        } else {
+                            throw ConvException("string key should start with \"");
+                        }
+                    break;
+                    case KEY:
+                        if (mIsIntKey) {
+                            if (!isdigit(c) && c != 'x')
+                                throw ConvException("Invalid char " + std::to_string(c) + " in int key");
+                        } else {
+                            mKey += c;
+                        }
+                    case VALUE:
+                        mValue += c;
+                    break;
+                    case ESCAPE:
+                        addEscapedChar(c);
+                    break;
+                }
             break;
         }
 
@@ -126,24 +167,76 @@ MapParser::parse(std::map<uint16_t, MapConverter::MqttVariant> mMap, const std::
     }
 }
 
+void
+MapParser::addEscapedChar(char c) {
+    char escaped =getEscapedChar(c);
+    mCurrentState.pop();
+    switch (mCurrentState.top()) {
+        case KEY:
+            mKey += escaped;
+        break;
+        case VALUE:
+            mValue += escaped;
+        break;
+        default:
+            throw ConvException("Internal parser error: invalid state " + std::to_string(mCurrentState.top()) + " when adding escaped char " + escaped);
+    };
+}
+
+void
+MapParser::addMapping(MapConverter::Map& mappings) {
+    uint16_t v = Int16Converter::toInt16(MqttValue::fromString(mValue));
+    //map is optimized for polling, so modbus value is stored as key.
+    auto vit = mappings.findRegValue(v);
+    if (vit != mappings.end())
+        throw ConvException("Register value " + std::to_string(v) + " already mapped");
+
+    MapConverter::Mapping mapping;
+    if (mIsIntKey) {
+        mapping = MapConverter::Mapping(v, std::atoi(mKey.c_str()));
+    } else {
+        mapping = MapConverter::Mapping(v, StrUtils::trim(mKey));
+    }
+
+    vit = std::find_if(mappings.begin(), mappings.end(), [&mapping](const MapConverter::Mapping& m) -> bool {
+        if (mapping.isInt()) {
+            if (!m.isInt())
+                return false;
+            return mapping.getIntMqttValue() == m.getIntMqttValue();
+        } else {
+            if (m.isInt())
+                return true;
+            return strcmp(mapping.getStrMqttValue(), m.getStrMqttValue()) == 0;
+        }
+        return false; //unreacheable
+    });
+
+    if (vit != mappings.end())
+        throw ConvException("Mqtt value " + mValue + " already mapped");
+
+    mappings.push_back(mapping);
+    mCurrentState.pop();
+}
+
 
 void
 MapConverter::parseMap(const std::string& pStrMap) {
-
+    MapParser p;
+    p.parse(mMappings, pStrMap);
 }
 
-std::map<uint16_t, MapConverter::MqttVariant>::const_iterator
-MapConverter::findVariant(const MqttValue& pValue) const {
-    if (mIsIntMap) {
-        int32_t val = pValue.getInt();
-        for (auto it = mMap.begin(); it != mMap.end(); ++it)
-            if (it->second.mInt == val)
+std::vector<MapConverter::Mapping>::const_iterator
+MapConverter::Map::findVariant(const MqttValue& pValue) const {
+    for (auto it = begin(); it != end(); ++it) {
+        if (it->isInt()) {
+            int32_t val = pValue.getInt();
+            if (it->getIntMqttValue() == val)
                 return it;
-    } else {
-        std::string val = pValue.getString();
-        for (auto it = mMap.begin(); it != mMap.end(); ++it)
-            if (it->second.mStr == val.c_str())
+        } else {
+            std::string val = pValue.getString();
+            if (it->getStrMqttValue() == val)
                 return it;
+        }
     }
-    return mMap.end();
+    return end();
 }
