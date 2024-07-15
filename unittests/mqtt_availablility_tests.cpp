@@ -33,7 +33,7 @@ mqtt:
         available_value: 65537
 )");
 
-SECTION ("shoud be set after conversion from register and count") {
+SECTION ("should be set after conversion from register and count") {
     config.mYAML["mqtt"]["objects"][0]["availability"]["register"] = "tcptest.1.2";
     config.mYAML["mqtt"]["objects"][0]["availability"]["count"] = "2";
 
@@ -53,7 +53,7 @@ SECTION ("shoud be set after conversion from register and count") {
     server.stop();
 }
 
-SECTION ("shoud be set after conversion from register list") {
+SECTION ("should be set after conversion from register list") {
     config.mYAML["mqtt"]["objects"][0]["availability"]["registers"].push_back(YAML::Node(YAML::NodeType::Map));
     config.mYAML["mqtt"]["objects"][0]["availability"]["registers"].push_back(YAML::Node(YAML::NodeType::Map));
 

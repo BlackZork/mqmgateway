@@ -26,7 +26,7 @@ mqtt:
         register: tcptest.1.2
 )");
 
-    SECTION("shoud throw if response_timeout is outside range 0-999ms") {
+    SECTION("should throw if response_timeout is outside range 0-999ms") {
         config.mYAML["modbus"]["networks"][0]["response_timeout"] = "1s";
         MockedModMqttServerThread server(config.toString(), false);
         server.start();
@@ -34,7 +34,7 @@ mqtt:
         REQUIRE(server.initOk() == false);
     }
 
-    SECTION("shoud throw if response_data_timeout is outside range 0-999ms") {
+    SECTION("should throw if response_data_timeout is outside range 0-999ms") {
         config.mYAML["modbus"]["networks"][0]["response_data_timeout"] = "1s";
         MockedModMqttServerThread server(config.toString(), false);
         server.start();
@@ -60,7 +60,7 @@ mqtt:
       state:
 )");
 
-    SECTION("shoud throw if register list is empty") {
+    SECTION("should throw if register list is empty") {
         config.mYAML["mqtt"]["objects"][0]["state"]["registers"] = "";
         MockedModMqttServerThread server(config.toString(), false);
         server.start();
@@ -68,7 +68,7 @@ mqtt:
         REQUIRE(server.initOk() == false);
     }
 
-    SECTION("shoud throw if register map is empty") {
+    SECTION("should throw if register map is empty") {
         config.mYAML["mqtt"]["objects"][0]["state"][0]["name"] = "empty map";
         MockedModMqttServerThread server(config.toString(), false);
         server.start();
@@ -103,7 +103,7 @@ mqtt:
         register: tcptest.1.2
 )");
 
-    SECTION("shoud throw if expression is not valid") {
+    SECTION("should throw if expression is not valid") {
         MockedModMqttServerThread server(config.toString(), false);
         server.start();
         server.stop();

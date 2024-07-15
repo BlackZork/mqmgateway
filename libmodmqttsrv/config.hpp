@@ -151,7 +151,7 @@ class MqttBrokerConfig {
                     mCafile == other.mCafile;
         }
 
-        //defaults are from mosqittopp.h
+        //defaults are from mosquittopp.h
         std::string mHost;
         int mPort = 1883;
         int mKeepalive = 60;
