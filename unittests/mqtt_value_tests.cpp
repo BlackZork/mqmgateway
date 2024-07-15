@@ -39,3 +39,24 @@ TEST_CASE("MqttValue::fromDouble should output") {
     }
 
 }
+
+TEST_CASE("MqttValue::fromString should parse") {
+    SECTION("int value in decimal format") {
+        MqttValue strval(MqttValue::fromString("10"));
+
+        int intval = strval.getInt();
+        REQUIRE(10 == intval);
+    }
+    SECTION("int value in hex format") {
+        MqttValue strval(MqttValue::fromString("0x10"));
+
+        int intval = strval.getInt();
+        REQUIRE(16 == intval);
+    }
+    SECTION("int value in ocatl format") {
+        MqttValue strval(MqttValue::fromString("010"));
+
+        int intval = strval.getInt();
+        REQUIRE(8 == intval);
+    }
+}
