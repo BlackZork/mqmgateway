@@ -167,6 +167,7 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         if (!isdigit(c) && c != 'x')
                             throw ConvException("Invalid char " + std::to_string(c) + " in int key");
                         mKey += c;
+                    break;
                     case VALUE:
                         if (mValue.empty() && isdigit(c))
                             mIsIntValue = true;
