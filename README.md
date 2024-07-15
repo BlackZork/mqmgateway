@@ -606,6 +606,8 @@ MQMGateway uses conversion plugins to convert state data read from modbus regist
 
 Converter can also be used to convert mqtt command payload to register value.
 
+String converter arguments can be passed in single or double quotes.
+
 ### Standard converters
 
 Converter functions are defined in libraries dynamically loaded at startup.
@@ -734,6 +736,24 @@ MQMGateway contains *std* library with basic converters ready to use:
     If there not Nul 0x0 byte at the end, then string size is determined by the number of registers, configured using the `count` setting.
 
     When writing, converters puts all bytes from Mqtt payload into register bytes. If payload is shorter, then remaining bytes are zeroed.
+
+  * **map**
+    Usage: state, command (single register only)
+
+    Arguments:
+      - map specification as `"{register_value1: mqtt_value1, register_value2: mqtt_value2}"`
+
+    Returns mqtt value that is mapped to a single register value. If read register value is not mapped then its value is published as is.
+    Map key must be a single 16-bit value. All keys must be unique.
+    Map value can be a 32-bit int value or a string. All values must be unique.
+    Special characters `{}:,"\` must be escaped with `\`.
+
+    When used in command section reverse mapping is done.
+
+    Example:
+
+    `std.map('{1:11, 0x2:"two", 3:"escaped: \""}')`
+
 
 Converter can be added to modbus register in state and command section.
 
