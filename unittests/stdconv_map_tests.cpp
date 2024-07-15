@@ -34,6 +34,20 @@ TEST_CASE ("A map converter") {
             ModbusRegisters ret = conv->toModbus(val, 1);
             REQUIRE(ret.getValue(0) == 3);
         }
+
+        SECTION("should pass unmapped mqtt value") {
+            MqttValue val(MqttValue::fromInt(12));
+
+            ModbusRegisters ret = conv->toModbus(val, 1);
+            REQUIRE(ret.getValue(0) == 12);
+        }
+
+        SECTION("should pass unmapped modbus value") {
+            MqttValue val(MqttValue::fromInt(17));
+
+            ModbusRegisters ret = conv->toModbus(val, 1);
+            REQUIRE(ret.getValue(0) == 17);
+        }
     }
 
     SECTION("with string value") {
@@ -56,4 +70,75 @@ TEST_CASE ("A map converter") {
             REQUIRE(ret.getValue(0) == 1);
         }
     }
+
+    SECTION("with string value, spaces and escaped chars") {
+        std::vector<std::string> args = {
+            "{ 1 : \" \\\\one \"  }"
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(1);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == " \\one ");
+        }
+    }
+
+    SECTION("with colon in value") {
+        std::vector<std::string> args = {
+            "{1:\":\"}"
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(1);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == ":");
+        }
+    }
+
+    SECTION("with multiple mappings") {
+        std::vector<std::string> args = {
+            "{1:11,2:\"two\"}"
+        };
+        conv->setArgs(args);
+
+        SECTION("should use first mapping") {
+            ModbusRegisters data(1);
+            MqttValue ret = conv->toMqtt(data);
+            REQUIRE(ret.getString() == "11");
+        }
+
+        SECTION("should use second mapping") {
+            ModbusRegisters data(2);
+            MqttValue ret = conv->toMqtt(data);
+            REQUIRE(ret.getString() == "two");
+        }
+    }
+
+    SECTION("register in hex format") {
+        std::vector<std::string> args = {
+            "{0x11:17}"
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(0x11);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "17");
+        }
+
+        SECTION("should convert int mqtt value to register data") {
+            MqttValue val(MqttValue::fromInt(17));
+
+            ModbusRegisters ret = conv->toModbus(val, 1);
+            REQUIRE(ret.getValue(0) == 0x11);
+        }
+
+    }
+
+
 }

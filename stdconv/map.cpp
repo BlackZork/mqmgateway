@@ -70,7 +70,10 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
             case '"':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        mCurrentState.push(KEY);
+                        if (mKey.empty())
+                            mCurrentState.push(KEY);
+                        else
+                            mCurrentState.push(VALUE);
                     break;
                     case KEY:
                         throw ConvException("\" in map key is not allowed, must be an uint16_value");
@@ -95,11 +98,12 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                     case SCAN:
                     break;
                     case KEY:
-                        if (!mKey.empty())
-                            throw ConvException("space in map key is not allowed, must be an uint16_value");
+                        mCurrentState.pop();
                     break;
                     case VALUE:
-                        if (!mValue.empty())
+                        if (mIsIntValue)
+                            mCurrentState.pop();
+                        else
                             mValue += c;
                     break;
                     case ESCAPE:
@@ -110,11 +114,11 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
             case ':':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        throw ConvException("Key " + std::to_string(mappings.size() + 1) + " is empty");
+                        if (mKey.empty())
+                            throw ConvException("Key " + std::to_string(mappings.size() + 1) + " is empty");
                     break;
                     case KEY:
                         mCurrentState.pop();
-                        mCurrentState.push(VALUE);
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
@@ -145,11 +149,18 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
             default:
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        if (isdigit(c)) {
-                            mCurrentState.push(KEY);
-                            mKey += c;
+                        if (mKey.empty()) {
+                            if (isdigit(c)) {
+                                mCurrentState.push(KEY);
+                                mKey += c;
+                            } else {
+                                throw ConvException("string key should start with \"");
+                            }
                         } else {
-                            throw ConvException("string key should start with \"");
+                            if (mValue.empty() && isdigit(c))
+                                mIsIntValue = true;
+                            mCurrentState.push(VALUE);
+                            mValue += c;
                         }
                     break;
                     case KEY:
@@ -198,7 +209,7 @@ MapParser::addMapping(MapConverter::Map& mappings) {
     if (mIsIntValue) {
         mapping = MapConverter::Mapping(regVal, std::atoi(mValue.c_str()));
     } else {
-        mapping = MapConverter::Mapping(regVal, StrUtils::trim(mValue));
+        mapping = MapConverter::Mapping(regVal, mValue);
     }
 
     vit = std::find_if(mappings.begin(), mappings.end(), [&mapping](const MapConverter::Mapping& m) -> bool {
@@ -208,7 +219,7 @@ MapParser::addMapping(MapConverter::Map& mappings) {
             return mapping.getIntMqttValue() == m.getIntMqttValue();
         } else {
             if (m.isInt())
-                return true;
+                return false;
             return strcmp(mapping.getStrMqttValue(), m.getStrMqttValue()) == 0;
         }
         return false; //unreacheable
@@ -218,6 +229,9 @@ MapParser::addMapping(MapConverter::Map& mappings) {
         throw ConvException("Mqtt value " + mValue + " already mapped");
 
     mappings.push_back(mapping);
+    mIsIntValue = false;
+    mKey.clear();
+    mValue.clear();
     mCurrentState.pop();
 }
 
