@@ -137,7 +137,7 @@ class MqttValue {
                 case SourceType::BINARY: {
                     char* endptr;
                     std::string strval(getString());
-                    int32_t ret = std::strtol(strval.c_str(), &endptr, 10);
+                    int32_t ret = std::strtol(strval.c_str(), &endptr, 0);
                     if (endptr == nullptr || *endptr != '\0') {
                         throw ConvException(std::string("Cannot convert ") + strval + " to int");
                     }

@@ -40,6 +40,7 @@ ConverterNameParser::parseArgs(const std::string& argSpec) {
     currentState.push(SCAN);
 
     std::string arg;
+    char str_delimiter = 0x0;
 
     for(const char& c: argSpec) {
         switch(c) {
@@ -47,7 +48,10 @@ ConverterNameParser::parseArgs(const std::string& argSpec) {
                 switch(currentState.top()) {
                     case SCAN: currentState.push(ESCAPE); break;
                     case STRING: arg += c; break;
-                    case ESCAPE: arg += getEscapedChar(c); currentState.pop(); break;
+                    case ESCAPE:
+                        arg += getEscapedChar(c);
+                        currentState.pop();
+                    break;
                 }
             break;
             case ',':
@@ -59,16 +63,46 @@ ConverterNameParser::parseArgs(const std::string& argSpec) {
                         arg.clear();
                         break;
                     case STRING: arg += c; break;
-                    case ESCAPE: arg += getEscapedChar(c); currentState.pop(); break;
+                    case ESCAPE:
+                        arg += getEscapedChar(c);
+                        currentState.pop();
+                    break;
                 }
             break;
             case '"':
                 switch(currentState.top()) {
-                    case SCAN: currentState.push(STRING); break;
+                    case SCAN:
+                        currentState.push(STRING);
+                        str_delimiter = c;
+                    break;
                     case STRING:
-                        currentState.pop();
+                        if (str_delimiter == c)
+                            currentState.pop();
+                        else
+                            arg += c;
                         break;
-                    case ESCAPE: arg += getEscapedChar(c); currentState.pop(); break;
+                    case ESCAPE:
+                        arg += getEscapedChar(c);
+                        currentState.pop();
+                    break;
+                }
+            break;
+            case '\'':
+                switch(currentState.top()) {
+                    case SCAN:
+                        currentState.push(STRING);
+                        str_delimiter = c;
+                    break;
+                    case STRING:
+                        if (str_delimiter == c)
+                            currentState.pop();
+                        else
+                            arg += c;
+                        break;
+                    case ESCAPE:
+                        arg += getEscapedChar(c);
+                        currentState.pop();
+                    break;
                 }
             break;
             case ' ':

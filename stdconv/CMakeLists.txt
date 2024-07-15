@@ -4,6 +4,8 @@ add_library(stdconv
     float32.hpp
     int16.hpp
     int32.hpp
+    map.cpp
+    map.hpp
     plugin.hpp
     plugin.cpp
     scale.hpp
