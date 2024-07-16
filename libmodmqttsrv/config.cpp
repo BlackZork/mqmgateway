@@ -1,6 +1,9 @@
+#include <filesystem>
 #include "config.hpp"
 #include "common.hpp"
 #include "yaml_converters.hpp"
+
+namespace fs = std::filesystem;
 
 namespace modmqttd {
 
@@ -78,8 +81,13 @@ MqttBrokerConfig::MqttBrokerConfig(const YAML::Node& source) {
     if (source["tls"]) {
         mTLS = true;
         mPort = 8883;
-        const YAML::Node& tls = source["tls"];
-        ConfigTools::readOptionalValue<std::string>(mCafile, tls, "cafile");
+        YAML::Node cafileNode(ConfigTools::setOptionalValueFromNode<std::string>(mCafile, source["tls"], "cafile"));
+        if (cafileNode.IsDefined()) {
+            fs::path filePath(mCafile);
+            if (!fs::exists(filePath) || fs::is_directory(filePath)) {
+                throw ConfigurationException(cafileNode.Mark(), "CA file '" + mCafile + "' is not a readable file");
+            }
+        }
     }
     ConfigTools::readOptionalValue<int>(mPort, source, "port");
     ConfigTools::readOptionalValue<int>(mKeepalive, source, "keepalive");

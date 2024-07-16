@@ -3,6 +3,7 @@
 #include "yaml_utils.hpp"
 
 using namespace modmqttd;
+using namespace Catch::Matchers;
 
 TEST_CASE("MQTT configuration") {
 TestConfig config(R"(
@@ -44,7 +45,7 @@ mqtt:
             broker["tls"] = YAML::Node(YAML::NodeType::Map);
             YAML::Node tls = broker["tls"];
             const int customPort = 2183;
-            const std::string cafile = "cafile";
+            const std::string cafile = "/dev/null";
 
             SECTION("should have TLS enabled") {
                 MqttBrokerConfig cut(broker);
@@ -94,6 +95,20 @@ mqtt:
 
                     REQUIRE(cut.isSameAs(clone));
                     REQUIRE(clone.isSameAs(cut));
+                }
+
+                SECTION("should throw an exception when file is missing") {
+                    const std::string missingFile = "/non-existant";
+                    tls["cafile"] = missingFile;
+
+                    REQUIRE_THROWS_MATCHES(MqttBrokerConfig(broker), ConfigurationException, MessageMatches(ContainsSubstring(missingFile)));
+                }
+
+                SECTION("should throw an exception when file is a directory") {
+                    const std::string invalidFile = "/tmp";
+                    tls["cafile"] = invalidFile;
+
+                    REQUIRE_THROWS_MATCHES(MqttBrokerConfig(broker), ConfigurationException, MessageMatches(ContainsSubstring(invalidFile)));
                 }
             }
         }
