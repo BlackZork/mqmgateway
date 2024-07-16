@@ -74,8 +74,6 @@ mqtt:
 
                 REQUIRE(cut.isSameAs(clone));
                 REQUIRE(clone.isSameAs(cut));
-                CAPTURE(cut.mCafile);
-                CAPTURE(other.mCafile);
                 REQUIRE_FALSE(cut.isSameAs(other));
                 REQUIRE_FALSE(other.isSameAs(cut));
             }
