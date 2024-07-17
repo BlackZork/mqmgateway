@@ -756,6 +756,7 @@ MQMGateway contains *std* library with basic converters ready to use:
     Map key must be a single 16-bit value. All keys must be unique.
     Map value can be a 32-bit int value or a string. All values must be unique.
     Special characters `{}:,"\` must be escaped with `\`.
+    Due to yaml-cpp limitation, no space between key and value is allowed.
 
     When used in command section reverse mapping is done.
 
