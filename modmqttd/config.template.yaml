@@ -21,9 +21,9 @@ modbus:
       parity: E
       data_bit: 8
       stop_bit: 1
-      
+
       # Optional settings for RTU 
-      
+
       #rtu_serial_mode: rs232
       #rtu_serial_mode: rs485
 
@@ -63,7 +63,7 @@ mqtt:
   refresh: 10s
   broker:
     host: localhost
-    # optional: default is 1883
+    # optional: default is 1883 for plain MQTT or 8883 for MQTT over TLS
     port: 1883
 
     # optional: default is 60sec
@@ -71,6 +71,10 @@ mqtt:
 
     # username: bob
     # password: secret
+
+    # tls:
+    #   cafile: /etc/modmqttd/ca.crt
+
   objects:
     - topic: isma_switch_1
       # default values used in all register: 
@@ -79,7 +83,7 @@ mqtt:
       slave: 1
       refresh: 1s
       commands:
-        - name: set 
+        - name: set
           register: 273
           register_type: coil
         # this declarating expect json list with size=4 from MQTT publish
@@ -105,7 +109,7 @@ mqtt:
           register_type: coil
         - register: tcptest.1.275
           register_type: coil
-          
+
     - topic: gtb_sensor/presence
       refresh: 1s
       state:
@@ -135,6 +139,3 @@ mqtt:
         register: rtutest.1.2
         count: 2
         register_type: input
-
-
-
