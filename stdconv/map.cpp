@@ -85,8 +85,9 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         if (mValue.empty())
                             mIsIntValue = false;
                         else {
-                            if (!mIsIntValue)
-                                mCurrentState.pop();
+                            if (!mIsIntValue) {
+                                addMapping(mappings);
+                            }
                             else
                                 throw ConvException("\" in int value is not allowed");
                         }
@@ -131,7 +132,7 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
             case ',':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        throw ConvException("Key " + std::to_string(mappings.size() + 1) + " is empty");
+                    break;
                     case KEY:
                         throw ConvException(", in map key is not allowed, must be an uint16_value");
                     break;

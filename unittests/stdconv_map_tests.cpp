@@ -140,5 +140,18 @@ TEST_CASE ("A map converter") {
 
     }
 
+    SECTION("string map with two keys") {
+        std::vector<std::string> args = {
+            "{24:\"t\", 1:\"o\"}"
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "t");
+        }
+    }
 
 }
