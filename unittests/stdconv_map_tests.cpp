@@ -4,7 +4,7 @@
 
 #include "libmodmqttconv/converterplugin.hpp"
 
-TEST_CASE ("A map converter") {
+TEST_CASE ("An instance of map converter") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
     boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
@@ -153,5 +153,48 @@ TEST_CASE ("A map converter") {
             REQUIRE(ret.getString() == "t");
         }
     }
+
+    SECTION("string map without braces") {
+        std::vector<std::string> args = {
+            "24:\"t\", 1:\"o\""
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "t");
+        }
+    }
+
+    SECTION("int map without braces") {
+        std::vector<std::string> args = {
+            "24:1, 1:2"
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "1");
+        }
+    }
+
+    SECTION("string map with int values") {
+        std::vector<std::string> args = {
+            "24:\"1\",1:\"2\""
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "1");
+        }
+    }
+
 
 }

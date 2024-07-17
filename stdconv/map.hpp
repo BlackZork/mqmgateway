@@ -136,10 +136,16 @@ class MapParser {
             VALUE
         } aState;
 
+        typedef enum {
+            NONE,
+            INT,
+            STRING
+        } aValueType;
+
         std::stack<aState> mCurrentState;
         std::string mKey;
 
-        bool mIsIntValue;
+        aValueType mValueType;
         std::string mValue;
 
         void addEscapedChar(char c);

@@ -13,7 +13,7 @@ void
 MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
     mappings.clear();
 
-    mIsIntValue = false;
+    mValueType = aValueType::NONE;
     mCurrentState = std::stack<aState>();
     mCurrentState.push(SCAN);
 
@@ -43,10 +43,12 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                     case KEY:
                         throw ConvException("} in map key is not allowed, must be an uint16_value");
                     case VALUE:
-                        if (mIsIntValue)
-                            addMapping(mappings);
-                        else
-                            mValue += c;
+                        switch(mValueType) {
+                            case aValueType::INT: addMapping(mappings); break;
+                            case aValueType::STRING: mValue += c;
+                            default:
+                                throw ConvException("Internal parser error: unknown value type on closing brace");
+                        }
                     break;
                     case ESCAPE:
                         addEscapedChar(c);
@@ -72,8 +74,10 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                     case SCAN:
                         if (mKey.empty())
                             mCurrentState.push(KEY);
-                        else
+                        else {
                             mCurrentState.push(VALUE);
+                            mValueType = aValueType::STRING;
+                        }
                     break;
                     case KEY:
                         throw ConvException("\" in map key is not allowed, must be an uint16_value");
@@ -82,14 +86,12 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         addEscapedChar(c);
                     break;
                     case VALUE:
-                        if (mValue.empty())
-                            mIsIntValue = false;
-                        else {
-                            if (!mIsIntValue) {
-                                addMapping(mappings);
-                            }
-                            else
+                        switch(mValueType) {
+                            case aValueType::NONE: mValueType = aValueType::STRING; break;
+                            case aValueType::STRING: addMapping(mappings); break;
+                            case aValueType::INT:
                                 throw ConvException("\" in int value is not allowed");
+                            break;
                         }
                     break;
                 }
@@ -102,9 +104,9 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         mCurrentState.pop();
                     break;
                     case VALUE:
-                        if (mIsIntValue)
+                        if (mValueType == aValueType::INT)
                             mCurrentState.pop();
-                        else
+                        else if (mValueType == aValueType::STRING)
                             mValue += c;
                     break;
                     case ESCAPE:
@@ -137,7 +139,7 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         throw ConvException(", in map key is not allowed, must be an uint16_value");
                     break;
                     case VALUE:
-                        if (mIsIntValue)
+                        if (mValueType == aValueType::INT)
                             addMapping(mappings);
                         else
                             mValue += c;
@@ -158,8 +160,8 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                                 throw ConvException("string key should start with \"");
                             }
                         } else {
-                            if (mValue.empty() && isdigit(c))
-                                mIsIntValue = true;
+                            if (mValueType == aValueType::NONE && isdigit(c))
+                                mValueType = aValueType::INT;
                             mCurrentState.push(VALUE);
                             mValue += c;
                         }
@@ -170,8 +172,8 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
                         mKey += c;
                     break;
                     case VALUE:
-                        if (mValue.empty() && isdigit(c))
-                            mIsIntValue = true;
+                        if (mValueType == aValueType::NONE && isdigit(c))
+                            mValueType = aValueType::INT;
                         mValue += c;
                     break;
                     case ESCAPE:
@@ -208,7 +210,7 @@ MapParser::addMapping(MapConverter::Map& mappings) {
         throw ConvException("Register value " + mKey + " already mapped");
 
     MapConverter::Mapping mapping;
-    if (mIsIntValue) {
+    if (mValueType == aValueType::INT) {
         mapping = MapConverter::Mapping(regVal, std::atoi(mValue.c_str()));
     } else {
         mapping = MapConverter::Mapping(regVal, mValue);
@@ -231,7 +233,7 @@ MapParser::addMapping(MapConverter::Map& mappings) {
         throw ConvException("Mqtt value " + mValue + " already mapped");
 
     mappings.push_back(mapping);
-    mIsIntValue = false;
+    mValueType = aValueType::NONE;
     mKey.clear();
     mValue.clear();
     mCurrentState.pop();
