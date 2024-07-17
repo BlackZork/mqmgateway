@@ -775,7 +775,7 @@ MQMGateway contains *std* library with basic converters ready to use:
     Curly braces are optional:
 
     ```
-    converter: std.map('1:-1,6:9,8"42"')
+    converter: std.map('1:-1,6:9,8:"42"')
     ```
 
 
