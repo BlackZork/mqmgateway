@@ -858,6 +858,7 @@ Register values are defined as R0..Rn variables.
       - `int16(R0)`: Cast uint16 value from `R0' to int16
 
 #### Examples
+
 Division of two registers with precision 3:
 
 ```yaml
@@ -868,7 +869,7 @@ Division of two registers with precision 3:
         registers:
           - register: tcptest.1.2
             register_type: input
-          - register: tcptest.1.3
+          - register: tcptest.1.300
             register_type: input
 ```
 
@@ -879,14 +880,10 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
     - topic: test_state
       state:
         converter: expr.evaluate("flt32be(R0, R1)", 3)
-        registers:
-          - register: tcptest.1.2
-            register_type: input
-          - register: tcptest.1.3
-            register_type: input
+        register: tcptest.1.2
+        register_type: input
+        count: 2
 ```
-
-
 
 ### Adding custom converters
 
