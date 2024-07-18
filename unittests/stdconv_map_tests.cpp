@@ -118,7 +118,7 @@ TEST_CASE ("An instance of map converter") {
         }
     }
 
-    SECTION("register in hex format") {
+    SECTION("with register in hex format") {
         std::vector<std::string> args = {
             "{0x11:17}"
         };
@@ -140,7 +140,7 @@ TEST_CASE ("An instance of map converter") {
 
     }
 
-    SECTION("string map with two keys") {
+    SECTION("with string map with two keys") {
         std::vector<std::string> args = {
             "{24:\"t\", 1:\"o\"}"
         };
@@ -154,7 +154,7 @@ TEST_CASE ("An instance of map converter") {
         }
     }
 
-    SECTION("string map without braces") {
+    SECTION("with string map without braces") {
         std::vector<std::string> args = {
             "24:\"t\", 1:\"o\""
         };
@@ -168,7 +168,7 @@ TEST_CASE ("An instance of map converter") {
         }
     }
 
-    SECTION("int map without braces") {
+    SECTION("with int map without braces") {
         std::vector<std::string> args = {
             "24:1, 1:2"
         };
@@ -182,7 +182,7 @@ TEST_CASE ("An instance of map converter") {
         }
     }
 
-    SECTION("string map with int values") {
+    SECTION("with string map with int values") {
         std::vector<std::string> args = {
             "24:\"1\",1:\"2\""
         };
@@ -193,6 +193,20 @@ TEST_CASE ("An instance of map converter") {
             MqttValue ret = conv->toMqtt(data);
 
             REQUIRE(ret.getString() == "1");
+        }
+    }
+
+    SECTION("with space between string value and closing brace") {
+        std::vector<std::string> args = {
+            R"({ 0:"nnnn", 1:"nnn.n" })"
+        };
+        conv->setArgs(args);
+
+        SECTION("should not add spurious key=0 when parsing closing brace") {
+            ModbusRegisters data(0);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "nnnn");
         }
     }
 

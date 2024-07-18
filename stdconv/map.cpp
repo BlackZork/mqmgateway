@@ -38,7 +38,8 @@ MapParser::parse(MapConverter::Map& mappings, const std::string& data) {
             case '}':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        addMapping(mappings);
+                        if (mValueType == aValueType::INT)
+                            addMapping(mappings);
                     break;
                     case KEY:
                         throw ConvException("} in map key is not allowed, must be an uint16_value");
