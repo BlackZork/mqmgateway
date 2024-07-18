@@ -778,12 +778,11 @@ MQMGateway contains *std* library with basic converters ready to use:
     converter: std.map('1:-1,6:9,8:"42"')
     ```
 
-
-
+### Converter usage examples
 
 Converter can be added to modbus register in state and command section.
 
-When state is a single modbus register:
+When a state is a single modbus register:
 
 ```yaml
   state:
@@ -792,7 +791,7 @@ When state is a single modbus register:
     converter: std.divide(10,2)
 ```
 
-When state is combined from multiple modbus registers:
+When a state is combined from multiple modbus registers:
 
 ```yaml
   state:
@@ -802,15 +801,27 @@ When state is combined from multiple modbus registers:
     converter: std.int32()
 ```
 
-When mqtt command payload should be converted to register value:
+When a mqtt command payload should be converted to register value:
 
 ```yaml
-    command:
-      name: set_val
+  commands:
+    - name: set_val
       register: device1.slave2.12
       register_type: input
       converter: std.divide(10)
 ```
+
+When an availability value should be computed from multiple registers:
+
+```yaml
+  availability:
+    register: device1.slave2.12
+    register_type: input
+    count: 2
+    converter: std.int32()
+    available_value: 65537
+```
+
 
 ### Exprtk converter.
 
