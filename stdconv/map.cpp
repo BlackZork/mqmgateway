@@ -204,6 +204,9 @@ MapParser::addEscapedChar(char c) {
 
 void
 MapParser::addMapping(MapConverter::Map& mappings) {
+    if (mKey.empty())
+        throw ConvException("Internal parser error: register value cannot be empty");
+
     uint16_t regVal = Int16Converter::toInt16(MqttValue::fromString(mKey));
     //map is optimized for polling, so modbus value is stored as key.
     auto vit = mappings.findRegValue(regVal);
