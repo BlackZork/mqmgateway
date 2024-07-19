@@ -4,7 +4,7 @@
 
 #include "libmodmqttconv/converterplugin.hpp"
 
-TEST_CASE ("A map converter") {
+TEST_CASE ("An instance of map converter") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
     boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
@@ -118,7 +118,7 @@ TEST_CASE ("A map converter") {
         }
     }
 
-    SECTION("register in hex format") {
+    SECTION("with register in hex format") {
         std::vector<std::string> args = {
             "{0x11:17}"
         };
@@ -138,6 +138,76 @@ TEST_CASE ("A map converter") {
             REQUIRE(ret.getValue(0) == 0x11);
         }
 
+    }
+
+    SECTION("with string map with two keys") {
+        std::vector<std::string> args = {
+            "{24:\"t\", 1:\"o\"}"
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "t");
+        }
+    }
+
+    SECTION("with string map without braces") {
+        std::vector<std::string> args = {
+            "24:\"t\", 1:\"o\""
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "t");
+        }
+    }
+
+    SECTION("with int map without braces") {
+        std::vector<std::string> args = {
+            "24:1, 1:2"
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "1");
+        }
+    }
+
+    SECTION("with string map with int values") {
+        std::vector<std::string> args = {
+            "24:\"1\",1:\"2\""
+        };
+        conv->setArgs(args);
+
+        SECTION("should convert register value to mapped string") {
+            ModbusRegisters data(24);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "1");
+        }
+    }
+
+    SECTION("with space between string value and closing brace") {
+        std::vector<std::string> args = {
+            R"({ 0:"nnnn", 1:"nnn.n" })"
+        };
+        conv->setArgs(args);
+
+        SECTION("should not add spurious key=0 when parsing closing brace") {
+            ModbusRegisters data(0);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "nnnn");
+        }
     }
 
 

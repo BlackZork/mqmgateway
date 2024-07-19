@@ -20,6 +20,9 @@ class ModMqttServerThread {
         {};
 
         void RequireNoThrow() {
+            if(mException.get() != nullptr) {
+                CAPTURE(mException->what());
+            }
             CHECK(mException.get() == nullptr);
         }
 

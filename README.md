@@ -302,7 +302,7 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
     MQTT boker IP address
 
-  * **port** (optional, default 1883)
+  * **port** (optional, default 1883 for plain MQTT or 8883 for MQTT over TLS)
 
     MQTT broker TCP port
 
@@ -317,6 +317,15 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
   * **password** (optional)
 
     The password to be used to connect to MQTT broker
+
+  * **tls** (optional)
+
+    This option enables TLS for connecting to MQTT broker
+
+    * **cafile** (optional)
+
+      Path to a file containing the PEM encoded trusted CA certificate files.
+      If this option is not set, OS provided CA certificates are used.
 
 * **objects** (required)
 
@@ -750,14 +759,30 @@ MQMGateway contains *std* library with basic converters ready to use:
 
     When used in command section reverse mapping is done.
 
-    Example:
+    Examples:
 
-    `std.map('{1:11, 0x2:"two", 3:"escaped: \""}')`
+    ```
+    converter: std.map('{1:11, 0x2:"two", 3:"escaped: \""}')
+    ```
 
+    Due to yaml limitation, no space between key and value is allowed, unless you use `|` format:
+
+    ```
+    converter: |
+      std.map('{1: 11, 0x2: 2}')
+    ```
+
+    Curly braces are optional:
+
+    ```
+    converter: std.map('1:-1,6:9,8:"42"')
+    ```
+
+### Converter usage examples
 
 Converter can be added to modbus register in state and command section.
 
-When state is a single modbus register:
+When a state is a single modbus register:
 
 ```yaml
   state:
@@ -766,7 +791,7 @@ When state is a single modbus register:
     converter: std.divide(10,2)
 ```
 
-When state is combined from multiple modbus registers:
+When a state is combined from multiple modbus registers:
 
 ```yaml
   state:
@@ -776,15 +801,27 @@ When state is combined from multiple modbus registers:
     converter: std.int32()
 ```
 
-When mqtt command payload should be converted to register value:
+When a mqtt command payload should be converted to register value:
 
 ```yaml
-    command:
-      name: set_val
+  commands:
+    - name: set_val
       register: device1.slave2.12
       register_type: input
       converter: std.divide(10)
 ```
+
+When an availability value should be computed from multiple registers:
+
+```yaml
+  availability:
+    register: device1.slave2.12
+    register_type: input
+    count: 2
+    converter: std.int32()
+    available_value: 65537
+```
+
 
 ### Exprtk converter.
 
@@ -821,6 +858,7 @@ Register values are defined as R0..Rn variables.
       - `int16(R0)`: Cast uint16 value from `R0' to int16
 
 #### Examples
+
 Division of two registers with precision 3:
 
 ```yaml
@@ -831,7 +869,7 @@ Division of two registers with precision 3:
         registers:
           - register: tcptest.1.2
             register_type: input
-          - register: tcptest.1.3
+          - register: tcptest.1.300
             register_type: input
 ```
 
@@ -842,14 +880,10 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
     - topic: test_state
       state:
         converter: expr.evaluate("flt32be(R0, R1)", 3)
-        registers:
-          - register: tcptest.1.2
-            register_type: input
-          - register: tcptest.1.3
-            register_type: input
+        register: tcptest.1.2
+        register_type: input
+        count: 2
 ```
-
-
 
 ### Adding custom converters
 

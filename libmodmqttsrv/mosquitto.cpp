@@ -103,6 +103,15 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
     int rc = mosquitto_username_pw_set(mMosq, config.mUsername.c_str(), config.mPassword.c_str());
     throwOnCriticalError(rc);
 
+    if (config.mTLS) {
+      if (config.mCafile.empty()) {
+        rc = mosquitto_int_option(mMosq, MOSQ_OPT_TLS_USE_OS_CERTS, 1);
+      } else {
+        rc = mosquitto_tls_set(mMosq, config.mCafile.c_str(), NULL, NULL, NULL, NULL);
+      }
+      throwOnCriticalError(rc);
+    }
+
     rc = mosquitto_connect_async(
         mMosq, config.mHost.c_str(),
         config.mPort,
