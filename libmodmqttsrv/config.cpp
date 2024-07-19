@@ -1,9 +1,9 @@
-#include <filesystem>
+#include <boost/filesystem.hpp>
 #include "config.hpp"
 #include "common.hpp"
 #include "yaml_converters.hpp"
 
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 
 namespace modmqttd {
 
