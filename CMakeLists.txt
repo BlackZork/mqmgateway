@@ -7,6 +7,9 @@ if (WITHOUT_TESTS)
     set(build_unittests EXCLUDE_FROM_ALL)
 endif()
 
+# OLD until min boost version will be bumped to 1.70.x or higher 
+cmake_policy(SET CMP0167 OLD)
+
 find_package(Boost 1.54.0 REQUIRED COMPONENTS log program_options)
 set(Boost_USE_STATIC_LIBS        OFF)
 set(Boost_USE_MULTITHREADED      ON)
