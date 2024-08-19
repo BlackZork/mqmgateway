@@ -210,5 +210,18 @@ TEST_CASE ("An instance of map converter") {
         }
     }
 
+    SECTION("with int value bigger than 32678") {
+    //SECTION("test") {
+        std::vector<std::string> args = {
+            R"({ 0:"DI1", 1:"DI2", 32768:"AI1", 32769:"AI2" })"
+        };
+        conv->setArgs(args);
 
+        SECTION("should convert value to string") {
+            ModbusRegisters data(32769);
+            MqttValue ret = conv->toMqtt(data);
+
+            REQUIRE(ret.getString() == "AI2");
+        }
+    }
 }
