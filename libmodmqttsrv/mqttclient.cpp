@@ -165,7 +165,6 @@ void
 MqttClient::publishState(const MqttObject& obj) {
     if (obj.getAvailableFlag() != AvailableFlag::True)
         return;
-    int msgId;
     std::string messageData(MqttPayload::generate(obj));
     BOOST_LOG_SEV(log, Log::debug) << "Publish on topic " << obj.getStateTopic() << ": " << messageData;
     mMqttImpl->publish(obj.getStateTopic().c_str(), messageData.length(), messageData.c_str());
