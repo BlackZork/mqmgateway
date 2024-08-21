@@ -87,6 +87,16 @@ Docker images for various archicetures (i386, arm6, arm7, amd64) are available i
 
 1. Run `docker-compose up -d` in working directory to start service.
 
+# Logging
+
+modqmttd has six log levels: CRITICAL, ERROR, WARNING, INFO, DEBUG, TRACE, numbered from 1 to 6. When debugging, you can increase the default INFO log level by passing --loglevel <num> to modmqttd:
+
+```
+modmqttd --config=<path> --loglevel=5
+```
+
+DEBUG is more useful for general troubleshotting, TRACE generates a lot of output and is not recommended for production use.
+
 # Configuration
 
 modmqttd configuration file is in YAML format. It is divided into three main sections:

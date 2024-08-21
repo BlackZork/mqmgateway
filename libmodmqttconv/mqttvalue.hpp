@@ -153,6 +153,13 @@ class MqttValue {
             return 0;
         }
 
+        uint16_t getUInt16() const {
+            int32_t val = getInt();
+            if (val < 0 || val > UINT16_MAX)
+                throw ConvException(std::string("Conversion failed, value " + std::to_string(val) + " out of range"));
+            return val;
+        }
+
         int64_t getInt64() const {
             switch(mType) {
                 case SourceType::BINARY: {

@@ -8,7 +8,9 @@ if (WITHOUT_TESTS)
 endif()
 
 # OLD until min boost version will be bumped to 1.70.x or higher 
-cmake_policy(SET CMP0167 OLD)
+if (POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD)
+endif()
 
 find_package(Boost 1.54.0 REQUIRED COMPONENTS log program_options)
 set(Boost_USE_STATIC_LIBS        OFF)
