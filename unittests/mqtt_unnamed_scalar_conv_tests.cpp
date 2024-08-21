@@ -175,7 +175,7 @@ TEST_CASE ("Map converter") {
 
 }
 
-TEST_CASE ("Two converters for single register value") {
+TEST_CASE ("Two topics for single register value") {
 
 static const std::string config = R"(
 modmqttd:
@@ -204,7 +204,7 @@ mqtt:
         converter: std.bit(2)
 )";
 
-    SECTION("should publish only if their bit is changed") {
+    SECTION("should publish only if value after conversion is changed") {
         MockedModMqttServerThread server(config);
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0x0);
         server.start();
