@@ -40,7 +40,7 @@ class MqttClient {
 
         //publish all data after broker is reconnected
         void publishAll();
-        void publishState(const MqttObject& obj);
+        void publishState(MqttObject& obj, bool force=false);
         void publishAvailabilityChange(const MqttObject& obj);
 
         void processRegisterValues(const std::string& modbusNetworkName, const MsgRegisterValues& values);

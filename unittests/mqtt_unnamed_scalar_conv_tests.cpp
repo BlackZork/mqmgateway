@@ -221,6 +221,7 @@ mqtt:
         REQUIRE(server.mqttValue("bit_2/state") == "1");
 
         REQUIRE(server.mMqtt->getPublishCount("bit_1/state") == 1);
+        REQUIRE(server.mMqtt->getPublishCount("bit_2/state") == 2);
         server.stop();
     }
 }
