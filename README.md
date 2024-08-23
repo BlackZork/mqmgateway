@@ -304,6 +304,13 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
   down to an object and register definitions. If this value is less than the target network can handle
   then newly scheduled read commands will be merged with those already in modbus command queue.
 
+* **publish_mode** (string, optional, default on_change)
+
+  A default mode for publishing mqtt values for all topics, that do not have their own `publish_mode` declared.
+  
+    * **on_change**: publish new mqtt value only if it is different from the last published one.
+    * **every_poll**: publish new mqtt value after every modbus register read.
+
 * **broker** (required)
 
   This section contains configuration settings used to connect to MQTT broker.
@@ -378,6 +385,11 @@ A list of topics where modbus values are published to MQTT broker and subscribed
     If more than one value is set, then you have to include `${slave_address}` or `${slave_name}` in `topic` value.
 
     For examples see [Multi-device definitions](#multi-device-definitions) section.
+
+  * **publish_mode** (optional)
+
+    Overrides `mqtt.publish_mode` for this topic. See `mqtt.publish_mode` for available modes.
+
 
 ### A *commands* section.
 
