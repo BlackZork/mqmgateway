@@ -151,12 +151,14 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
         obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
         AvailableFlag newAvail = obj->getAvailableFlag();
 
-
         if (oldAvail != newAvail) {
-            publishState(*obj, true);
+            if (newAvail == AvailableFlag::True)
+                publishState(*obj, true);
+
             publishAvailabilityChange(*obj);
         } else {
-            publishState(*obj);
+            bool force = obj->getPublishMode() == PublishMode::EVERY_POLL;
+            publishState(*obj, force);
         }
     }
 }

@@ -2,6 +2,7 @@
 
 #include "libmodmqttsrv/register_poll.hpp"
 #include "libmodmqttsrv/modbus_types.hpp"
+#include "libmodmqttsrv/common.hpp"
 
 class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared_ptr<modmqttd::RegisterPoll>>>
 {
@@ -12,7 +13,7 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
             std::chrono::milliseconds refresh = std::chrono::milliseconds(10)
         ) {
             //TODO no check if already on list
-            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(slave, number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
+            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(slave, number-1, modmqttd::RegisterType::HOLDING, 1, refresh, modmqttd::PublishMode::ON_CHANGE));
             (*this)[slave].push_back(reg);
             return reg;
         }
@@ -25,7 +26,7 @@ class ModbusExecutorTestRegisters : public std::map<int, std::vector<std::shared
             std::chrono::milliseconds refresh = std::chrono::milliseconds(10)
         ) {
             //TODO no check if already on list
-            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(slave, number-1, modmqttd::RegisterType::HOLDING, 1, refresh));
+            std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(slave, number-1, modmqttd::RegisterType::HOLDING, 1, refresh, modmqttd::PublishMode::ON_CHANGE));
             reg->setDelayBeforeFirstCommand(first_delay);
             reg->setDelayBeforeCommand(delay);
             (*this)[slave].push_back(reg);

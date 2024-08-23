@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "modbus_messages.hpp"
+#include "common.hpp"
 #include "libmodmqttconv/converter.hpp"
 
 namespace modmqttd {
@@ -179,8 +180,11 @@ class MqttObject {
         void setAvailableValue(const MqttValue& pValue) { mAvailability.setAvailableValue(pValue); }
         AvailableFlag getAvailableFlag() const { return mIsAvailable; }
 
-        void setLastPublishedPayload(const std::string& val) { mLastPublishedPayload = val; }
+        void setLastPublishedPayload(const std::string& pVal) { mLastPublishedPayload = pVal; }
         const std::string& getLastPublishedPayload() const { return mLastPublishedPayload; }
+
+        void setPublishMode(const PublishMode& pMode) { mPublishMode = pMode; }
+        const PublishMode& getPublishMode() const { return mPublishMode; }
 
         MqttObjectState mState;
 
@@ -193,7 +197,10 @@ class MqttObject {
         MqttObjectAvailability mAvailability;
 
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
+
+        PublishMode mPublishMode;
         std::string mLastPublishedPayload;
+
         void updateAvailablityFlag();
 };
 
