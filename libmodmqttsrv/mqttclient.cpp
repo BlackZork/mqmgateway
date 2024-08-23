@@ -148,27 +148,31 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 
     for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
         AvailableFlag oldAvail = obj->getAvailableFlag();
-        bool stateChanged = obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
+        obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
         AvailableFlag newAvail = obj->getAvailableFlag();
 
         if (oldAvail != newAvail) {
-            publishState(*obj);
+            if (newAvail == AvailableFlag::True)
+                publishState(*obj, true);
+
             publishAvailabilityChange(*obj);
         } else {
-            if (stateChanged)
-                publishState(*obj);
+            bool force = obj->getPublishMode() == PublishMode::EVERY_POLL;
+            publishState(*obj, force);
         }
     }
 }
 
 void
-MqttClient::publishState(const MqttObject& obj) {
+MqttClient::publishState(MqttObject& obj, bool force) {
     if (obj.getAvailableFlag() != AvailableFlag::True)
         return;
-    int msgId;
     std::string messageData(MqttPayload::generate(obj));
-    BOOST_LOG_SEV(log, Log::debug) << "Publish on topic " << obj.getStateTopic() << ": " << messageData;
-    mMqttImpl->publish(obj.getStateTopic().c_str(), messageData.length(), messageData.c_str());
+    if (messageData != obj.getLastPublishedPayload() || force) {
+        BOOST_LOG_SEV(log, Log::debug) << "Publish on topic " << obj.getStateTopic() << ": " << messageData;
+        mMqttImpl->publish(obj.getStateTopic().c_str(), messageData.length(), messageData.c_str());
+        obj.setLastPublishedPayload(messageData);
+    }
 }
 
 void
@@ -183,15 +187,13 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
 
     for (std::shared_ptr<MqttObject>& obj: it->second) {
         AvailableFlag oldAvail = obj->getAvailableFlag();
-        bool stateChanged = obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
+        obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
         AvailableFlag newAvail = obj->getAvailableFlag();
 
+        publishState(*obj);
+
         if (oldAvail != newAvail) {
-            publishState(*obj);
             publishAvailabilityChange(*obj);
-        } else {
-            if (stateChanged)
-                publishState(*obj);
         }
     }
 }
@@ -238,7 +240,7 @@ MqttClient::publishAll() {
             const std::shared_ptr<MqttObject>& optr = *oit;
             if (published.find(optr) == published.end()) {
                 if ((*oit)->getAvailableFlag() == AvailableFlag::True)
-                    publishState(**oit);
+                    publishState(**oit, true);
                 publishAvailabilityChange(**oit);
                 published.insert(*oit);
             }

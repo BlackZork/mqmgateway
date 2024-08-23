@@ -5,6 +5,7 @@
 
 #include "libmodmqttconv/modbusregisters.hpp"
 
+#include "common.hpp"
 #include "modbus_messages.hpp"
 #include "modbus_types.hpp"
 
@@ -56,7 +57,7 @@ class RegisterPoll : public RegisterCommand {
         // if we cannot read register in this time MsgRegisterReadFailed is sent
         static constexpr int DefaultReadErrorCount = 3;
 
-        RegisterPoll(int pSlaveId, int regNum, RegisterType regType, int regCount, std::chrono::milliseconds refreshMsec);
+        RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int pRegCount, std::chrono::milliseconds pRrefreshMsec, PublishMode pPublishMode);
 
         virtual int getRegister() const { return mRegister; };
         virtual int getCount() const { return mLastValues.size(); }
@@ -73,6 +74,8 @@ class RegisterPoll : public RegisterCommand {
 
         int mReadErrors;
         std::chrono::steady_clock::time_point mFirstErrorTime;
+
+        PublishMode mPublishMode = PublishMode::ON_CHANGE;
     private:
         std::vector<uint16_t> mLastValues;
 };

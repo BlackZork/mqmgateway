@@ -286,7 +286,7 @@ MockedModbusContext::getWriteCount(int slaveId) const {
 uint16_t
 MockedModbusContext::getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype) {
     mInternalOperation = true;
-    modmqttd::RegisterPoll poll(slaveId, --regNum, regtype, 1, std::chrono::milliseconds(0));
+    modmqttd::RegisterPoll poll(slaveId, --regNum, regtype, 1, std::chrono::milliseconds(0), modmqttd::PublishMode::ON_CHANGE);
 
     auto vals = readModbusRegisters(slaveId, poll);
     return vals[0];

@@ -154,6 +154,9 @@ ModbusExecutor::pollRegisters(RegisterPoll& reg, bool forceSend) {
         BOOST_LOG_SEV(log, Log::trace) << "Register " << reg.mSlaveId << "." << reg.mRegister << " (0x" << std::hex << reg.mSlaveId << ".0x" << std::hex << reg.mRegister << ")"
                         << " polled in "  << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms";
 
+        if (reg.mPublishMode == PublishMode::EVERY_POLL)
+            forceSend = true;
+
         if ((reg.getValues() != newValues) || forceSend || (reg.mReadErrors != 0)) {
             MsgRegisterValues val(reg.mSlaveId, reg.mRegisterType, reg.mRegister, newValues);
             sendMessage(QueueItem::create(val));

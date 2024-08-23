@@ -61,6 +61,8 @@ modbus:
 mqtt:
   client_id: modbus
   refresh: 10s
+  # default, if set to "every_poll" then mqtt message is sent after every register read
+  publish_mode: on_change
   broker:
     host: localhost
     # optional: default is 1883 for plain MQTT or 8883 for MQTT over TLS
@@ -111,7 +113,9 @@ mqtt:
           register_type: coil
 
     - topic: gtb_sensor/presence
-      refresh: 1s
+      refresh: 5s
+      # override default, publish after every modbus read call.
+      publish_mode: every_poll
       state:
         register: rtutest.1.1
         register_type: input

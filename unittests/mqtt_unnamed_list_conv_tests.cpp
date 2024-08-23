@@ -3,7 +3,9 @@
 #include "jsonutils.hpp"
 #include "defaults.hpp"
 
-static const std::string config1 = R"(
+TEST_CASE ("Unnamed state list should output converted value") {
+
+static const std::string config = R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -30,8 +32,7 @@ mqtt:
             register_type: input
 )";
 
-TEST_CASE ("Unnamed state list should output converted value") {
-    MockedModMqttServerThread server(config1);
+    MockedModMqttServerThread server(config);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 1);
     server.start();
@@ -47,7 +48,9 @@ TEST_CASE ("Unnamed state list should output converted value") {
     server.stop();
 }
 
-static const std::string config2 = R"(
+TEST_CASE ("Unnamed state list should output converted value issuing single modbus read call") {
+
+static const std::string config = R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -72,8 +75,7 @@ mqtt:
         count: 2
 )";
 
-TEST_CASE ("Unnamed state list should output converted value issuing single modbus read call") {
-    MockedModMqttServerThread server(config2);
+    MockedModMqttServerThread server(config);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 1);
     server.start();
@@ -91,7 +93,7 @@ TEST_CASE ("Unnamed state list should output converted value issuing single modb
 
 TEST_CASE ("Unnamed state list with two element child lists") {
 
-static const std::string config1 = R"(
+static const std::string config = R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -118,23 +120,22 @@ mqtt:
           converter: std.int32()
 )";
 
-SECTION ("should output converted value") {
-    MockedModMqttServerThread server(config1);
-    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
-    server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
-    server.setModbusRegisterValue("tcptest", 1, 4, modmqttd::RegisterType::HOLDING, 0);
-    server.setModbusRegisterValue("tcptest", 1, 5, modmqttd::RegisterType::HOLDING, 1);
-    server.start();
+    SECTION ("should output converted value") {
+        MockedModMqttServerThread server(config);
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
+        server.setModbusRegisterValue("tcptest", 1, 4, modmqttd::RegisterType::HOLDING, 0);
+        server.setModbusRegisterValue("tcptest", 1, 5, modmqttd::RegisterType::HOLDING, 1);
+        server.start();
 
-    //to make sure that all registers have initial value
-    server.waitForPublish("test_state/availability");
-    REQUIRE(server.mqttValue("test_state/availability") == "1");
+        //to make sure that all registers have initial value
+        server.waitForPublish("test_state/availability");
+        REQUIRE(server.mqttValue("test_state/availability") == "1");
 
-    server.waitForPublish("test_state/state");
+        server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
-    REQUIRE_JSON(server.mqttValue("test_state/state"), "[65536, 1]");
-    server.stop();
-}
-
+        REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+        REQUIRE_JSON(server.mqttValue("test_state/state"), "[65536, 1]");
+        server.stop();
+    }
 }

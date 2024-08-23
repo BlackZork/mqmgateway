@@ -59,7 +59,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
         // do not poll a poll group declared in modbus config section
         // that was not merged with any mqtt register declaration
         if (it->mRefreshMsec != MsgRegisterPoll::INVALID_REFRESH) {
-            std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mSlaveId, it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec));
+            std::shared_ptr<RegisterPoll> reg(new RegisterPoll(it->mSlaveId, it->mRegister, it->mRegisterType, it->mCount, it->mRefreshMsec, it->mPublishMode));
             std::map<int, ModbusSlaveConfig>::const_iterator slave_cfg = mSlaves.find(reg->mSlaveId);
 
             setCommandDelays(*reg, mDelayBeforeCommand, mDelayBeforeFirstCommand);
@@ -85,6 +85,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
             << ", count=" << (*it)->getCount()
             << ", poll every " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms"
+            << ", queue " << ((*it)->mPublishMode == PublishMode::ON_CHANGE ? "on change" : "always")
             << ", min f_delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeFirstCommand()).count() << "ms"
             << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeCommand()).count() << "ms";
         }

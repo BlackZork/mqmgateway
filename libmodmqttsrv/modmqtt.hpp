@@ -80,9 +80,10 @@ class ModMqtt {
         MqttObjectRegisterIdent updateSpecification(
             const YAML::Node& pData,
             int pRegisterCount,
-            const std::chrono::milliseconds& pRefresh,
+            const std::chrono::milliseconds& pCurrentRefresh,
             const std::string& pDefaultNetwork,
             int pDefaultSlave,
+            PublishMode pCurrentMode,
             std::vector<MsgRegisterPollSpecification>& specs
         );
 
@@ -94,6 +95,7 @@ class ModMqtt {
             int pDefaultSlave,
             const std::string& pSlaveName,
             std::chrono::milliseconds pDefaultRefresh,
+            PublishMode pDefaultPublishMode,
             std::vector<MsgRegisterPollSpecification>& pSpecsOut
         );
 
@@ -102,6 +104,7 @@ class ModMqtt {
             const std::string& pDefaultNetwork,
             int pDefaultSlave,
             std::chrono::milliseconds refresh,
+            PublishMode pMode,
             std::vector<MsgRegisterPollSpecification>& pSpecs
         );
 

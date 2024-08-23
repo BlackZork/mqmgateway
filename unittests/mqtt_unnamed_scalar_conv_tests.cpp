@@ -174,3 +174,57 @@ TEST_CASE ("Map converter") {
     }
 
 }
+
+TEST_CASE ("Two topics for single register value") {
+
+static const std::string config = R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+  converter_plugins:
+    - stdconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  refresh: 30ms
+  broker:
+    host: localhost
+  objects:
+    - topic: bit_1
+      state:
+        register: tcptest.1.2
+        converter: std.bit(1)
+    - topic: bit_2
+      state:
+        register: tcptest.1.2
+        converter: std.bit(2)
+)";
+
+    SECTION("should publish only if value after conversion is changed") {
+        MockedModMqttServerThread server(config);
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0x0);
+        server.start();
+
+        server.waitForPublish("bit_1/state");
+        REQUIRE(server.mqttValue("bit_1/state") == "0");
+
+        server.waitForPublish("bit_2/state");
+        REQUIRE(server.mqttValue("bit_2/state") == "0");
+
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0x2);
+
+        server.waitForPublish("bit_2/state");
+        REQUIRE(server.mqttValue("bit_2/state") == "1");
+
+        REQUIRE(server.mMqtt->getPublishCount("bit_1/state") == 1);
+        REQUIRE(server.mMqtt->getPublishCount("bit_2/state") == 2);
+        server.stop();
+    }
+}
+
+
+

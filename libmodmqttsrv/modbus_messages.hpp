@@ -5,8 +5,10 @@
 #include <chrono>
 #include <vector>
 
-#include "modbus_types.hpp"
 #include "libmodmqttconv/modbusregisters.hpp"
+
+#include "common.hpp"
+#include "modbus_types.hpp"
 #include "debugtools.hpp"
 
 namespace modmqttd {
@@ -68,6 +70,7 @@ class MsgRegisterPoll : public ModbusSlaveAddressRange {
         void merge(const MsgRegisterPoll& other);
 
         std::chrono::milliseconds mRefreshMsec = INVALID_REFRESH;
+        PublishMode mPublishMode = PublishMode::ON_CHANGE;
 };
 
 class MsgRegisterPollSpecification {

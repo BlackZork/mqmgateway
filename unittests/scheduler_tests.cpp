@@ -1,6 +1,8 @@
 #include "catch2/catch_all.hpp"
-#include "libmodmqttsrv/modbus_scheduler.hpp"
+
 #include <iostream>
+
+#include "libmodmqttsrv/modbus_scheduler.hpp"
 
 typedef std::map<int, std::vector<std::shared_ptr<modmqttd::RegisterPoll>>> RegisterSpec;
 
@@ -20,7 +22,7 @@ TEST_CASE("Modbus scheduler") {
     std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
 
     RegisterSpec source;
-    std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(1, 1, modmqttd::RegisterType::BIT, 1, std::chrono::milliseconds(1000)));
+    std::shared_ptr<modmqttd::RegisterPoll> reg(new modmqttd::RegisterPoll(1, 1, modmqttd::RegisterType::BIT, 1, std::chrono::milliseconds(1000), modmqttd::PublishMode::ON_CHANGE));
     source[reg->mSlaveId].push_back(reg);
 
     std::chrono::nanoseconds duration = std::chrono::seconds(1000);

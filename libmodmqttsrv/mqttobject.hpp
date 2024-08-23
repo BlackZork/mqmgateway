@@ -7,6 +7,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "modbus_messages.hpp"
+#include "common.hpp"
 #include "libmodmqttconv/converter.hpp"
 
 namespace modmqttd {
@@ -171,13 +172,19 @@ class MqttObject {
         const std::string& getStateTopic() const { return mStateTopic; };
         const std::string& getAvailabilityTopic() const { return mAvailabilityTopic; }
         bool hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const;
-        bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
-        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData);
+        void updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
+        void updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
 
         void addAvailabilityDataNode(const MqttObjectDataNode& pNode) { mAvailability.addDataNode(pNode); }
         void setAvailableValue(const MqttValue& pValue) { mAvailability.setAvailableValue(pValue); }
         AvailableFlag getAvailableFlag() const { return mIsAvailable; }
+
+        void setLastPublishedPayload(const std::string& pVal) { mLastPublishedPayload = pVal; }
+        const std::string& getLastPublishedPayload() const { return mLastPublishedPayload; }
+
+        void setPublishMode(const PublishMode& pMode) { mPublishMode = pMode; }
+        const PublishMode& getPublishMode() const { return mPublishMode; }
 
         MqttObjectState mState;
 
@@ -190,6 +197,10 @@ class MqttObject {
         MqttObjectAvailability mAvailability;
 
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
+
+        PublishMode mPublishMode;
+        std::string mLastPublishedPayload;
+
         void updateAvailablityFlag();
 };
 

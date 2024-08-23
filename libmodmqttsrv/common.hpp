@@ -17,3 +17,12 @@
         #define __MUSL__
     #endif
 #endif
+
+namespace modmqttd {
+
+typedef enum {
+    ON_CHANGE=1,
+    EVERY_POLL=2
+} PublishMode;
+
+}

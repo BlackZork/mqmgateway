@@ -269,33 +269,23 @@ MqttObject::hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddr
 }
 
 
-bool
+void
 MqttObject::updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData) {
     bool stateChanged = mState.updateRegisterValues(pNetworkName, pSlaveData);
     bool availChanged = mAvailability.updateRegisterValues(pNetworkName, pSlaveData);
-    if (stateChanged || availChanged) {
+    if (stateChanged || availChanged || !mIsAvailable) {
         updateAvailablityFlag();
-        return true;
-    } else if (!mIsAvailable) {
-        // read was successfull, so availability flag
-        // may need to be updated if it depends only on state register data
-        // avaiablity.
-        updateAvailablityFlag();
-        return mIsAvailable;
     }
-    return false;
 }
 
 
-bool
+void
 MqttObject::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusSlaveAddressRange& pSlaveData) {
     bool stateChanged = mState.updateRegistersReadFailed(pNetworkName, pSlaveData);
     bool availChanged = mAvailability.updateRegistersReadFailed(pNetworkName, pSlaveData);
     if (stateChanged || availChanged) {
         updateAvailablityFlag();
-        return true;
     }
-    return false;
 }
 
 
