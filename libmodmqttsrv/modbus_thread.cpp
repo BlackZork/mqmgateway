@@ -85,6 +85,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
             << ", count=" << (*it)->getCount()
             << ", poll every " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms"
+            << ", queue " << ((*it)->mPublishMode == PublishMode::ON_CHANGE ? "on change" : "always")
             << ", min f_delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeFirstCommand()).count() << "ms"
             << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeCommand()).count() << "ms";
         }
