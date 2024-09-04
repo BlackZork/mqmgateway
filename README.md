@@ -588,9 +588,9 @@ MQTT output: `{"humidity": 32.45, "other_params": { "temp1": 23, "temp2": 66 }}`
 
 ### The *availability* section
 
-For every *state* topic there is another *availability* topic defined by default. If all data from modbus registers needed for *state* is read without errors then by default value "1" is published. If there is any network or device error when polling register data value "0" is published. This is the default behavoiur if *availability* section is not defined.
+For each *state* topic there is another *availability* topic defined by default. If all data required for a *state* is read from the Modbus registers without errors, the value "1" is published by default. If there is a network or device error when polling register data value "0" is published. This is the default behavior if the *availability* section is not defined.
 
-Availablity flag is always published before state value.
+Availablity flag is always published after the state value. If the availability flag is 0, then the current state value may contain outdated or invalid data or may not be published at all.
 
 *Availability* section extends this default behaviour by defining a single or list of modbus registers that should be read to check if state data is valid. This could be i.e. some fault indicator or hardware switch state.
 
