@@ -58,6 +58,23 @@ SECTION ("should output json array") {
     server.stop();
 }
 
+SECTION ("should output single element json array") {
+    config.mYAML["mqtt"]["objects"][0]["state"].remove(1);
+    MockedModMqttServerThread server(config.toString());
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 6);
+    server.start();
+
+    //to make sure that all registers have initial value
+    server.waitForPublish("test_state/availability");
+    REQUIRE(server.mqttValue("test_state/availability") == "1");
+
+    server.waitForPublish("test_state/state");
+
+    REQUIRE_JSON(server.mqttValue("test_state/state"), "[6]");
+    server.stop();
+}
+
+
 }
 
 TEST_CASE ("Unnamed state list declared as registers") {
