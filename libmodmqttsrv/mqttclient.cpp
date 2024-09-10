@@ -125,6 +125,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
         // we drop changes when there is no connection
         // retain flag is set so
         // broker will send last known value for us.
+    	BOOST_LOG_SEV(log, Log::trace) << "Mqtt broker not connected, dropping MsgRegisterValues data";
         return;
     }
 
@@ -143,8 +144,10 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 
     // possible if write command registers do not overlap with
     // any MqttObject
-    if (affectedObjects == nullptr)
+    if (affectedObjects == nullptr) {
+    	BOOST_LOG_SEV(log, Log::trace) << "No affected objects for received register values";
         return;
+    }
 
     for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
         AvailableFlag oldAvail = obj->getAvailableFlag();

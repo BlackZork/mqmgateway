@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/modmqttd/modmqttd",
-            "args": ["--loglevel","5"],
+            "args": ["--loglevel","6"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/modmqttd",
             "externalConsole": false,

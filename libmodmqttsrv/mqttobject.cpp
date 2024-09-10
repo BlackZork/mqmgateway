@@ -11,12 +11,13 @@ namespace modmqttd {
 
 bool
 MqttObjectRegisterValue::setValue(uint16_t val) {
+    bool hadValue = mHasValue;
     mHasValue = true;
     if (mValue != val) {
         mValue = val;
         return true;
     }
-    return false;
+    return !hadValue;
 }
 
 
