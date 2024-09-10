@@ -83,6 +83,22 @@ class MqttObjectRegisterValue {
         uint16_t mValue;
 };
 
+class MqttObjectDataNode;
+
+/**
+ * A MqttObjectDataNode vector with a flag
+ * telling if vector was created from single yaml object
+ * or a yaml list. Needed to for mqttpayload to handle
+ * lists with single elements
+ */
+class MqttObjectDataNodeList : public std::vector<MqttObjectDataNode> {
+    public:
+        void forceListOutput(bool flag) { mForceListOutput = flag; }
+        bool outputAsList() const { return mForceListOutput; }
+    private:
+        bool mForceListOutput = false;
+};
+
 
 class MqttObjectDataNode {
     public:
@@ -102,9 +118,9 @@ class MqttObjectDataNode {
         bool hasConverter() const { return mConverter != nullptr; }
 
         bool isScalar() const { return mNodes.size() == 0; }
-        void addChildDataNode(const MqttObjectDataNode& pNode) { mNodes.push_back(pNode); }
+        void addChildDataNode(const MqttObjectDataNode& pNode, bool forceList = false);
         void setScalarNode(const MqttObjectRegisterIdent& ident);
-        const std::vector<MqttObjectDataNode>& getChildNodes() const { return mNodes; }
+        const MqttObjectDataNodeList& getChildNodes() const { return mNodes; }
         MqttValue getConvertedValue() const;
         uint16_t getRawValue() const;
     private:
@@ -120,7 +136,7 @@ class MqttObjectDataNode {
          *    mNodes list must hold scalars only.
          * */
 
-        std::vector<MqttObjectDataNode> mNodes;
+        MqttObjectDataNodeList mNodes;
 
         /**
          * Modbus register identifier used to
@@ -138,7 +154,6 @@ class MqttObjectDataNode {
         std::shared_ptr<DataConverter> mConverter;
 };
 
-
 class MqttObjectState {
     public:
         //void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
@@ -149,10 +164,10 @@ class MqttObjectState {
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
         bool hasAllValues() const;
         bool isPolling() const;
-        void addDataNode(const MqttObjectDataNode& pNode) { mNodes.push_back(pNode); }
-        const std::vector<MqttObjectDataNode>& getNodes() const { return mNodes; }
+        void addDataNode(const MqttObjectDataNode& pNode, bool forceList = false);
+        const MqttObjectDataNodeList& getNodes() const { return mNodes; }
     protected:
-        std::vector<MqttObjectDataNode> mNodes;
+        MqttObjectDataNodeList mNodes;
 };
 
 
