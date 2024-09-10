@@ -570,7 +570,7 @@ ModMqtt::parseObjectDataNode(
                 if (node.isUnnamed() ^ isUnnamed)
                     throw ConfigurationException(yData.Mark(), "All list elements must be named or unnamed");
             }
-            node.addChildDataNode(childNode);
+            node.addChildDataNode(childNode, true);
         }
     } else {
         int count = 1;
