@@ -32,20 +32,20 @@ createConvertedValue(
 }
 
 
-bool isMap(const std::vector<MqttObjectDataNode>& pNodes) {
+bool isMap(const MqttObjectDataNodeList& pNodes) {
     // map with one or more elements
     return !pNodes.front().isUnnamed();
 }
 
 
-bool isList(const std::vector<MqttObjectDataNode>& pNodes) {
+bool isList(const MqttObjectDataNodeList& pNodes) {
     // cannot create a single element list for now
-    return pNodes.size() > 1 && pNodes.front().isUnnamed();
+    return pNodes.outputAsList() || (pNodes.size() > 1 && pNodes.front().isUnnamed());
 }
 
 
 void
-generateJson(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const std::vector<MqttObjectDataNode>& pNodes) {
+generateJson(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttObjectDataNodeList& pNodes) {
     if (isMap(pNodes)) {
         pWriter.StartObject();
         for(const MqttObjectDataNode& node: pNodes) {
@@ -79,10 +79,10 @@ generateJson(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const std::vec
 
 std::string
 MqttPayload::generate(const MqttObject& pObj) {
-    const std::vector<MqttObjectDataNode>& nodes(pObj.mState.getNodes());
+    const MqttObjectDataNodeList& nodes(pObj.mState.getNodes());
 
 
-    if (nodes.size() == 1) {
+    if (!nodes.outputAsList()) {
         const MqttObjectDataNode& single(nodes[0]);
         if (single.isUnnamed() && (single.isScalar() || single.hasConverter())) {
             MqttValue v = single.getConvertedValue();

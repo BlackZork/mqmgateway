@@ -486,7 +486,7 @@ ModMqtt::parseObject(
             // in this case we do not need parsed parent level
             if (!node.hasConverter() && node.isUnnamed() && !node.isScalar()) {
                 for (auto& n: node.getChildNodes())
-                    ret.mState.addDataNode(n);
+                    ret.mState.addDataNode(n, true);
             } else {
                 ret.mState.addDataNode(node);
             }
@@ -502,7 +502,7 @@ ModMqtt::parseObject(
                     if (node.isUnnamed() ^ isUnnamed)
                         throw ConfigurationException(yData.Mark(), "All list elements must be named or unnamed");
                 }
-                ret.mState.addDataNode(node);
+                ret.mState.addDataNode(node, isUnnamed);
             }
         } else {
             throw ConfigurationException(yState.Mark(), "state must be a list or a single register data");
@@ -570,7 +570,7 @@ ModMqtt::parseObjectDataNode(
                 if (node.isUnnamed() ^ isUnnamed)
                     throw ConfigurationException(yData.Mark(), "All list elements must be named or unnamed");
             }
-            node.addChildDataNode(childNode);
+            node.addChildDataNode(childNode, true);
         }
     } else {
         int count = 1;

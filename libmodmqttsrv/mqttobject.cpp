@@ -11,12 +11,13 @@ namespace modmqttd {
 
 bool
 MqttObjectRegisterValue::setValue(uint16_t val) {
+    bool hadValue = mHasValue;
     mHasValue = true;
     if (mValue != val) {
         mValue = val;
         return true;
     }
-    return false;
+    return !hadValue;
 }
 
 
@@ -192,6 +193,13 @@ MqttObjectDataNode::getRawValue() const {
 }
 
 
+void
+MqttObjectDataNode::addChildDataNode(const MqttObjectDataNode& pNode, bool forceList) {
+    mNodes.push_back(pNode);
+    mNodes.forceListOutput(forceList || mNodes.size() > 1);
+}
+
+
 bool
 MqttObjectState::hasRegisterIn(const std::string& pNetworkName, const ModbusSlaveAddressRange& pRange) const {
     for(std::vector<MqttObjectDataNode>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
@@ -253,6 +261,14 @@ MqttObjectState::isPolling() const {
     }
     return true;
 }
+
+
+void
+MqttObjectState::addDataNode(const MqttObjectDataNode& pNode, bool forceList) {
+    mNodes.push_back(pNode);
+    mNodes.forceListOutput(forceList || mNodes.size() > 1);
+}
+
 
 
 MqttObject::MqttObject(const std::string& pTopic)
