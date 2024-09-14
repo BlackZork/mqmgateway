@@ -12,6 +12,7 @@ Main features:
   * multiple modbus registers as JSON object
   * multiple modbus registers as JSON list
   * registers from different slaves combined as single JSON list/object
+  * publish on change or after every modbus poll, configurable per topic
 * Full control over modbus data polling
   * read multiple register values once for multiple topics
   * read multiple register values for a single topic one by one
