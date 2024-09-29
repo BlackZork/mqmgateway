@@ -28,8 +28,8 @@ class ModbusThread {
 
         // global config
         std::string mNetworkName;
-        std::chrono::milliseconds mDelayBeforeCommand = std::chrono::milliseconds::zero();
-        std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::milliseconds::zero();
+        std::shared_ptr<std::chrono::milliseconds> mDelayBeforeCommand;
+        std::shared_ptr<std::chrono::milliseconds> mDelayBeforeFirstCommand;
         short mMaxReadRetryCount;
         short mMaxWriteRetryCount;
 

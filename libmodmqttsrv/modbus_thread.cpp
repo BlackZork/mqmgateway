@@ -9,9 +9,11 @@
 namespace modmqttd {
 
 void
-setCommandDelays(RegisterCommand& cmd, const std::chrono::milliseconds& everyTime, const std::chrono::milliseconds& onChange) {
-    cmd.setDelayBeforeCommand(everyTime);
-    cmd.setDelayBeforeFirstCommand(onChange);
+setCommandDelays(RegisterCommand& cmd, const std::shared_ptr<const std::chrono::milliseconds>& everyTime, const std::shared_ptr<const std::chrono::milliseconds>& onChange) {
+    if (everyTime != nullptr)
+        cmd.setDelayBeforeCommand(*everyTime);
+    if (onChange != nullptr)
+        cmd.setDelayBeforeFirstCommand(*onChange);
 }
 
 void
@@ -37,13 +39,19 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
     mExecutor.init(mModbus);
     mWatchdog.init(config.mWatchdogConfig);
 
-    mDelayBeforeCommand = config.mDelayBeforeCommand;
-    mDelayBeforeFirstCommand = config.mDelayBeforeFirstCommand;
-    if (mDelayBeforeCommand.count() != 0 || mDelayBeforeFirstCommand.count() != 0) {
-        BOOST_LOG_SEV(log, Log::info) << "Global minimum delays set. Delay before every command "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(mDelayBeforeCommand).count() << "ms"
-            << ", delay when slave changes "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(mDelayBeforeFirstCommand).count() << "ms";
+    if (config.hasDelayBeforeCommand())
+        mDelayBeforeCommand = config.getDelayBeforeCommand();
+    if (config.hasDelayBeforeFirstCommand())
+        mDelayBeforeFirstCommand = config.getDelayBeforeFirstCommand();
+
+    if (mDelayBeforeCommand != nullptr) {
+        BOOST_LOG_SEV(log, Log::info) << "Network default delay before every command set to "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(*mDelayBeforeCommand).count() << "ms";
+    }
+
+    if (mDelayBeforeFirstCommand != nullptr) {
+        BOOST_LOG_SEV(log, Log::info) << "Network default delay when slave changes set to"
+            << std::chrono::duration_cast<std::chrono::milliseconds>(*mDelayBeforeFirstCommand).count() << "ms";
     }
 
     mMaxReadRetryCount = config.mMaxReadRetryCount;
@@ -66,7 +74,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
             reg->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
 
             if (slave_cfg != mSlaves.end()) {
-                setCommandDelays(*reg, slave_cfg->second.mDelayBeforeCommand, slave_cfg->second.mDelayBeforeFirstCommand);
+                setCommandDelays(*reg, slave_cfg->second.getDelayBeforeCommand(), slave_cfg->second.getDelayBeforeFirstCommand());
                 reg->setMaxRetryCounts(slave_cfg->second.mMaxReadRetryCount, slave_cfg->second.mMaxWriteRetryCount);
             }
 
@@ -106,7 +114,7 @@ ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
     cmd->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
     std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(msg->mSlaveId);
     if (it != mSlaves.end()) {
-        setCommandDelays(*cmd, it->second.mDelayBeforeCommand, it->second.mDelayBeforeFirstCommand);
+        setCommandDelays(*cmd, it->second.getDelayBeforeCommand(), it->second.getDelayBeforeFirstCommand());
         cmd->setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
     }
 
@@ -157,7 +165,7 @@ ModbusThread::updateFromSlaveConfig(const ModbusSlaveConfig& pConfig) {
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave_registers = registers.find(pConfig.mAddress);
     if (slave_registers != registers.end()) {
         for (auto it = slave_registers->second.begin(); it != slave_registers->second.end(); it++) {
-            setCommandDelays(**it, pConfig.mDelayBeforeCommand, pConfig.mDelayBeforeFirstCommand);
+            setCommandDelays(**it, pConfig.getDelayBeforeCommand(), pConfig.getDelayBeforeFirstCommand());
             (*it)->setMaxRetryCounts(pConfig.mMaxReadRetryCount, pConfig.mMaxWriteRetryCount);
         }
     }

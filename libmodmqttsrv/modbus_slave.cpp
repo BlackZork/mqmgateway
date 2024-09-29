@@ -9,21 +9,30 @@ boost::log::sources::severity_logger<Log::severity> ModbusSlaveConfig::log;
 ModbusSlaveConfig::ModbusSlaveConfig(int pAddress, const YAML::Node& data)
     : mAddress(pAddress)
 {
-    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(mDelayBeforeCommand, data, "delay_before_poll")) {
+    ConfigTools::readOptionalValue<std::string>(mSlaveName, data, "name");
+
+    std::chrono::milliseconds tmpval;
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(tmpval, data, "delay_before_poll")) {
         BOOST_LOG_SEV(log, Log::warn) << "'delay_before_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_command'";
+        setDelayBeforeCommand(tmpval);
     }
 
-    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(mDelayBeforeFirstCommand, data, "delay_before_first_poll")) {
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(tmpval, data, "delay_before_command")) {
+        setDelayBeforeCommand(tmpval);
+    }
+
+
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(tmpval, data, "delay_before_first_poll")) {
         BOOST_LOG_SEV(log, Log::warn) << "'delay_before_first_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_first_command'";
+        setDelayBeforeFirstCommand(tmpval);
     }
 
-    ConfigTools::readOptionalValue<std::string>(this->mSlaveName, data, "name");
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(tmpval, data, "delay_before_first_command")) {
+        setDelayBeforeFirstCommand(tmpval);
+    }
 
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeCommand, data, "delay_before_command");
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(this->mDelayBeforeFirstCommand, data, "delay_before_first_command");
-
-    ConfigTools::readOptionalValue<unsigned short>(this->mMaxWriteRetryCount, data, "write_retries");
-    ConfigTools::readOptionalValue<unsigned short>(this->mMaxReadRetryCount, data, "read_retries");
+    ConfigTools::readOptionalValue<unsigned short>(mMaxWriteRetryCount, data, "write_retries");
+    ConfigTools::readOptionalValue<unsigned short>(mMaxReadRetryCount, data, "read_retries");
 }
 
 }

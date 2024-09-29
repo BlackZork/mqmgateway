@@ -113,8 +113,14 @@ class ModbusNetworkConfig {
         std::chrono::milliseconds mResponseTimeout = std::chrono::milliseconds(500);
         std::chrono::milliseconds mResponseDataTimeout = std::chrono::seconds(0);
 
-        std::chrono::milliseconds mDelayBeforeCommand = std::chrono::seconds(0);
-        std::chrono::milliseconds mDelayBeforeFirstCommand = std::chrono::seconds(0);
+        bool hasDelayBeforeCommand() const { return mDelayBeforeCommand != nullptr; }
+        bool hasDelayBeforeFirstCommand() const { return mDelayBeforeFirstCommand != nullptr; }
+
+        const std::shared_ptr<std::chrono::milliseconds>& getDelayBeforeCommand() const { return mDelayBeforeCommand; }
+        const std::shared_ptr<std::chrono::milliseconds>& getDelayBeforeFirstCommand() const { return mDelayBeforeFirstCommand; }
+
+        void setDelayBeforeCommand(const std::chrono::milliseconds& pDelay) { mDelayBeforeCommand.reset(new std::chrono::milliseconds(pDelay)); }
+        void setDelayBeforeFirstCommand(const std::chrono::milliseconds& pDelay) { mDelayBeforeFirstCommand.reset(new std::chrono::milliseconds(pDelay)); }
 
         unsigned short mMaxWriteRetryCount = 2;
         unsigned short mMaxReadRetryCount = 1;
@@ -135,6 +141,9 @@ class ModbusNetworkConfig {
         int mPort = 0;
 
         ModbusWatchdogConfig mWatchdogConfig;
+    private:
+        std::shared_ptr<std::chrono::milliseconds> mDelayBeforeCommand;
+        std::shared_ptr<std::chrono::milliseconds> mDelayBeforeFirstCommand;
 };
 
 class MqttBrokerConfig {

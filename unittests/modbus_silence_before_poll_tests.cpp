@@ -12,6 +12,8 @@ modbus:
     - name: tcptest
       address: localhost
       port: 501
+      # overwritten by slave config
+      delay_before_command: 1ms
       slaves:
         - address: 1
           delay_before_command: 15ms
