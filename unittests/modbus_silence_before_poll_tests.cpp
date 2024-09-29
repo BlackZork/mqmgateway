@@ -12,6 +12,8 @@ modbus:
     - name: tcptest
       address: localhost
       port: 501
+      # overwritten by slave config
+      delay_before_command: 1ms
       slaves:
         - address: 1
           delay_before_command: 15ms
@@ -45,6 +47,32 @@ mqtt:
 
         server.stop();
     }
+
+    SECTION("should respect delay_before_command on network level") {
+        config.mYAML["modbus"]["networks"][0]["slaves"][0].remove("delay_before_command");
+        config.mYAML["modbus"]["networks"][0]["delay_before_command"] = "30ms";
+
+        std::cerr << config.toString() << std::endl;
+        MockedModMqttServerThread server(config.toString());
+
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
+        server.start();
+        // default mocked modbus read time is 5ms per register
+        // refresh is 5ms so without silence poll should be executed every 10ms
+        server.waitForPublish("test_sensor/state");
+        REQUIRE(server.mqttValue("test_sensor/state") == "1");
+        std::chrono::time_point<std::chrono::steady_clock> first_poll_ts = server.getLastPollTime();
+
+        // we should respect 30ms silence
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
+        server.waitForPublish("test_sensor/state");
+        auto ptime = server.getLastPollTime() - first_poll_ts;
+        REQUIRE(ptime > std::chrono::milliseconds(30));
+        REQUIRE(server.mqttValue("test_sensor/state") == "2");
+
+        server.stop();
+    }
+
 
     SECTION("should be ignored when next poll is later") {
         config.mYAML["mqtt"]["objects"][0]["state"]["refresh"] = "25ms";
