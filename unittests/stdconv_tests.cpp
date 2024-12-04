@@ -3,6 +3,7 @@
 #include <boost/dll/import.hpp>
 
 #include "libmodmqttconv/converterplugin.hpp"
+#include "libmodmqttconv/convexception.hpp"
 
 TEST_CASE ("Scale value with integer result") {
     std::string stdconv_path = "../stdconv/stdconv.so";
@@ -57,6 +58,20 @@ TEST_CASE("int32 tests") {
 
         REQUIRE(output.getInt() == -2147483647);
     }
+
+    // TODO we should output warning in this case, this looks like configuration error
+    SECTION("read int32 from a single modbus register ignoring low_first arg") {
+        std::vector<std::string> args = {
+            "low_first"
+        };
+        conv->setArgs(args);
+
+        ModbusRegisters input({1});
+        MqttValue output = conv->toMqtt(input);
+
+        REQUIRE(output.getInt() == 1);
+    }
+
 
     SECTION("write int32 to two modbus registers (low, high)") {
         std::vector<std::string> args = {

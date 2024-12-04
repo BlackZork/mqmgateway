@@ -71,7 +71,7 @@ class ConverterTools {
          * */
         static int32_t registersToInt32(const std::vector<uint16_t>& data, bool lowFirst) {
             int high = 0, low = 1;
-            if (lowFirst) {
+            if (lowFirst && data.size() > 1) {
                 high = 1;
                 low = 0;
             }
