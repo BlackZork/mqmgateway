@@ -131,7 +131,7 @@ MockedModbusContext::Slave::setError(int regNum, modmqttd::RegisterType regType,
 }
 
 std::vector<uint16_t>
-MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) {
+MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::RegData>& table, int num, int count) {
     std::vector<uint16_t> ret;
     ret.reserve(count);
     for (int i = num; i < num + count; i++) {
@@ -141,7 +141,7 @@ MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::Sla
 }
 
 uint16_t
-MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::Slave::RegData>& table, int num) {
+MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::RegData>& table, int num) {
     auto it = table.find(num);
     if (it == table.end())
         return 0;
@@ -150,7 +150,7 @@ MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::Slav
 }
 
 bool
-MockedModbusContext::Slave::hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) const {
+MockedModbusContext::Slave::hasError(const std::map<int, MockedModbusContext::RegData>& table, int num, int count) const {
     bool ret = false;
     for (int i = num; i < num + count; i++) {
         auto it = table.find(i);
@@ -316,6 +316,56 @@ MockedModbusContext::waitForModbusValue(int slaveId, int regNum, modmqttd::Regis
         } while (dur < timeout.count());
     }
     return currentVal;
+}
+
+void
+MockedModbusContext::waitForInitialPoll(std::chrono::milliseconds timeout) {
+    BOOST_LOG_SEV(log, modmqttd::Log::info) << "TEST: Waiting " << timeout.count() << "ms for initialPoll";
+
+    std::mutex m;
+    std::unique_lock<std::mutex> lck(m);
+
+    int unreadedRegisters = getUnreadedRegisterCount();
+    if (unreadedRegisters != 0) {
+        auto start = std::chrono::steady_clock::now();
+        int dur;
+        do {
+            if (mCondition->wait_for(lck, timeout) == std::cv_status::timeout)
+                break;
+            unreadedRegisters = getUnreadedRegisterCount();
+
+            if (unreadedRegisters == 0)
+                break;
+            auto end = std::chrono::steady_clock::now();
+            dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        } while (dur < timeout.count());
+    }
+    if (unreadedRegisters != 0)
+        BOOST_LOG_SEV(log, modmqttd::Log::error) << "TEST: Not all registers were read in " << timeout.count() << "ms";
+
+    REQUIRE(unreadedRegisters == 0);
+}
+
+int
+MockedModbusContext::getUnreadedRegisterCount() {
+    int ret = 0;
+    for (std::map<int, Slave>::const_iterator sit = mSlaves.cbegin(); sit != mSlaves.cend(); sit++) {
+        ret += getUnreadedRegisterCount(sit->second.mBit);
+        ret += getUnreadedRegisterCount(sit->second.mCoil);
+        ret += getUnreadedRegisterCount(sit->second.mInput);
+        ret += getUnreadedRegisterCount(sit->second.mHolding);
+    }
+    return ret;
+}
+
+int
+MockedModbusContext::getUnreadedRegisterCount(const std::map<int, RegData>& pRegData) {
+    int ret = 0;
+    for(std::map<int, RegData>::const_iterator rit = pRegData.cbegin(); rit != pRegData.cend(); rit++) {
+        if (rit->second.mReadCount == 0)
+            ret++;
+    }
+    return ret;
 }
 
 

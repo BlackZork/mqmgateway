@@ -98,6 +98,15 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         REQUIRE(is_subscribed == true);
     }
 
+    /**
+     * There is no signal after initial poll is done
+     * This function will figure it out by checking that all registers were read at least once
+     * Warning: it will not work if you setModbusRegisterValue() for register
+     * that is not in poll specification (not used in any mqtt object config)
+     */
+    void waitForInitialPoll(const char* pNetworkName, std::chrono::milliseconds timeout = defaultWaitTime()) {
+        mModbusFactory->getMockedModbusContext(pNetworkName).waitForInitialPoll(timeout);
+    }
 
     void waitForPublish(const char* topic, std::chrono::milliseconds timeout = defaultWaitTime()) {
         INFO("Checking for publish on " << topic);
