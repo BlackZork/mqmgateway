@@ -79,7 +79,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         std::set<std::string> mSubscriptions;
 
         //contains all topics published before waitForPublish/waitForFirstPublish
-        //call. Map value defines order in which topics were published
+        //call. Map value contains mqtt publish count
         std::map<std::string, int> mPublishedTopics;
 
         std::mutex mMutex;
