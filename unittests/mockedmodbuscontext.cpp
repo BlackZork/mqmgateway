@@ -35,15 +35,23 @@ MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool inter
         switch(msg.mRegisterType) {
             case modmqttd::RegisterType::COIL:
                 mCoil[regNumber].mValue = value == 1;
+                if (!internalOperation)
+                    mCoil[regNumber].mWriteCount++;
             break;
             case modmqttd::RegisterType::BIT:
                 mBit[regNumber].mValue = value == 1;
+                if (!internalOperation)
+                    mBit[regNumber].mWriteCount++;
             break;
             case modmqttd::RegisterType::HOLDING:
                 mHolding[regNumber].mValue = value;
+                if (!internalOperation)
+                    mHolding[regNumber].mWriteCount++;
             break;
             case modmqttd::RegisterType::INPUT:
                 mInput[regNumber].mValue = value;
+                if (!internalOperation)
+                    mInput[regNumber].mWriteCount++;
             break;
             default:
                 throw modmqttd::ModbusWriteException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
@@ -71,16 +79,16 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
     }
     switch(regData.mRegisterType) {
         case modmqttd::RegisterType::COIL:
-            return readRegisters(mCoil, regData.mRegister, regData.getCount());
+            return readRegisters(mCoil, regData.mRegister, regData.getCount(), internalOperation);
         break;
         case modmqttd::RegisterType::HOLDING:
-            return readRegisters(mHolding, regData.mRegister, regData.getCount());
+            return readRegisters(mHolding, regData.mRegister, regData.getCount(), internalOperation);
         break;
         case modmqttd::RegisterType::INPUT:
-            return readRegisters(mInput, regData.mRegister, regData.getCount());
+            return readRegisters(mInput, regData.mRegister, regData.getCount(), internalOperation);
         break;
         case modmqttd::RegisterType::BIT:
-            return readRegisters(mBit, regData.mRegister, regData.getCount());
+            return readRegisters(mBit, regData.mRegister, regData.getCount(), internalOperation);
         break;
         default:
             throw modmqttd::ModbusReadException(std::string("Cannot read, unknown register type ") + std::to_string(regData.mRegisterType));
@@ -131,20 +139,29 @@ MockedModbusContext::Slave::setError(int regNum, modmqttd::RegisterType regType,
 }
 
 std::vector<uint16_t>
-MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::RegData>& table, int num, int count) {
+MockedModbusContext::Slave::readRegisters(std::map<int, MockedModbusContext::RegData>& table, int num, int count, bool internalOperation) {
     std::vector<uint16_t> ret;
     ret.reserve(count);
     for (int i = num; i < num + count; i++) {
-        ret.push_back(readRegister(table, i));
+        ret.push_back(readRegister(table, i, internalOperation));
     };
     return ret;
 }
 
 uint16_t
-MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::RegData>& table, int num) {
+MockedModbusContext::Slave::readRegister(std::map<int, MockedModbusContext::RegData>& table, int num, bool internalOperation) {
     auto it = table.find(num);
-    if (it == table.end())
-        return 0;
+    if (it == table.end()) {
+        if (internalOperation)
+            return 0;
+        else {
+            table[num] = RegData();
+            it = table.find(num);
+        }
+    }
+
+    if (!internalOperation)
+        it->second.mReadCount++;
 
     return it->second.mValue;
 }

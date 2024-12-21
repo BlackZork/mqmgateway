@@ -52,8 +52,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
             private:
                 bool hasError(const std::map<int, MockedModbusContext::RegData>& table, int num, int count) const;
-                std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count);
-                uint16_t readRegister(std::map<int, RegData>& table, int num);
+                std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count, bool internalOperation);
+                uint16_t readRegister(std::map<int, RegData>& table, int num, bool internalOperation);
                 bool mDisconnected = false;
                 int mReadCount = 0;
                 int mWriteCount = 0;
