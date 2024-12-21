@@ -77,22 +77,29 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
             throw modmqttd::ModbusReadException(std::string("register read fn ") + std::to_string(regData.mRegister) + " failed");
         }
     }
+
+    std::vector<uint16_t> ret;
     switch(regData.mRegisterType) {
         case modmqttd::RegisterType::COIL:
-            return readRegisters(mCoil, regData.mRegister, regData.getCount(), internalOperation);
+            ret = readRegisters(mCoil, regData.mRegister, regData.getCount(), internalOperation);
         break;
         case modmqttd::RegisterType::HOLDING:
-            return readRegisters(mHolding, regData.mRegister, regData.getCount(), internalOperation);
+            ret = readRegisters(mHolding, regData.mRegister, regData.getCount(), internalOperation);
         break;
         case modmqttd::RegisterType::INPUT:
-            return readRegisters(mInput, regData.mRegister, regData.getCount(), internalOperation);
+            ret = readRegisters(mInput, regData.mRegister, regData.getCount(), internalOperation);
         break;
         case modmqttd::RegisterType::BIT:
-            return readRegisters(mBit, regData.mRegister, regData.getCount(), internalOperation);
+            ret = readRegisters(mBit, regData.mRegister, regData.getCount(), internalOperation);
         break;
         default:
             throw modmqttd::ModbusReadException(std::string("Cannot read, unknown register type ") + std::to_string(regData.mRegisterType));
     };
+
+    if (!internalOperation) {
+        mIOCondition->notify_all();
+    }
+    return ret;
 }
 
 bool
