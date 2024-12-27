@@ -23,15 +23,17 @@ mqtt:
 )");
 
     SECTION("is set to true then initial poll triggers publish") {
+        config.mYAML["mqtt"]["refresh"] = "100ms";
         config.mYAML["mqtt"]["objects"][0]["retain"] = "true";
         MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
         std::chrono::time_point<std::chrono::steady_clock> initialPollStart = std::chrono::steady_clock::now();
         server.start();
         server.waitForPublish("test_sensor/state");
+        // ensure that this was the first poll
         auto end = std::chrono::steady_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - initialPollStart).count();
-        REQUIRE(dur <  20);
+        REQUIRE(dur <  50);
     }
 
     SECTION("is set to false") {
