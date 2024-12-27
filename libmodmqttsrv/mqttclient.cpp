@@ -159,8 +159,15 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
                 // if object is not retained
                 // then publish state changes only
                 // if availability is already set to true
-                if (obj->getRetain() || obj->getPublishMode() == PublishMode::EVERY_POLL)
+                if (obj->getRetain()) {
                     publishState(*obj, true);
+                } else {
+                    // delete retained message
+                    if (oldAvail == AvailableFlag::NotSet)
+                        mMqttImpl->publish(obj->getStateTopic().c_str(), 0, NULL, true);
+                    if (obj->getPublishMode() == PublishMode::EVERY_POLL)
+                        publishState(*obj, true);
+                }
             }
 
             publishAvailabilityChange(*obj);

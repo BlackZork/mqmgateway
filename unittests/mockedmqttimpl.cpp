@@ -218,3 +218,14 @@ MockedMqttImpl::mqttValue(const char* topic) {
     return val;
 }
 
+bool
+MockedMqttImpl::mqttNullValue(const char* topic) {
+    std::unique_lock<std::mutex> lck(mMutex);
+    std::map<std::string, MqttValue>::const_iterator it = mTopics.find(topic);
+    if (it == mTopics.end())
+        throw MockedMqttException(std::string(topic) + " not found");
+    const MqttValue data = it->second;
+    return data.len == 0;
+}
+
+

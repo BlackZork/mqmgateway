@@ -67,6 +67,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         int getPublishCount(const char* topic);
         bool hasTopic(const char* topic);
         std::string mqttValue(const char* topic);
+        bool mqttNullValue(const char* topic);
         //returns current value on timeout
         std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout);
         //clear all topics and simulate broker disconnection

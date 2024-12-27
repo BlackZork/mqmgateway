@@ -13,7 +13,7 @@ modbus:
       port: 501
 mqtt:
   client_id: mqtt_test
-  refresh: 100ms
+  refresh: 10ms
   broker:
     host: localhost
   objects:
@@ -37,14 +37,14 @@ mqtt:
     SECTION("is set to false") {
         config.mYAML["mqtt"]["objects"][0]["retain"] = "false";
 
-        SECTION("then initial poll do not trigger publish") {
+        SECTION("then initial poll triggers null value publish") {
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
             server.start();
             server.waitForInitialPoll("tcptest");
             // wait some time for mqttclient thread to process initial poll messages
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            server.requirePublishCount("test_sensor/state", 0);
+            server.waitForPublish("test_sensor/state");
+            REQUIRE(server.mqttNullValue("test_sensor/state"));
 
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.waitForPublish("test_sensor/state");
@@ -52,7 +52,6 @@ mqtt:
         }
 
         SECTION("and publish mode is every_poll then initial poll triggers publish") {
-            config.mYAML["mqtt"]["refresh"] = "10ms";
             config.mYAML["mqtt"]["objects"][0]["publish_mode"] = "every_poll";
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
@@ -61,15 +60,19 @@ mqtt:
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
             server.stop();
 
+            // retained messsage delete and two state publishes
             int test_count = server.mMqtt->getPublishCount("test_sensor/state");
-            REQUIRE(test_count == 2);
+            REQUIRE(test_count == 3);
         }
 
         SECTION("then availability change do not publish old value") {
-            config.mYAML["mqtt"]["refresh"] = "10ms";
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
             server.start();
+
+            server.waitForPublish("test_sensor/state");
+            REQUIRE(server.mqttNullValue("test_sensor/state"));
+
             server.waitForPublish("test_sensor/availability");
             REQUIRE(server.mqttValue("test_sensor/availability") == "1");
 
@@ -88,8 +91,8 @@ mqtt:
 
             server.waitForPublish("test_sensor/state");
             REQUIRE(server.mqttValue("test_sensor/state") == "3");
-            // 2 -> 3 change only
-            server.requirePublishCount("test_sensor/state", 1);
+            // retain delete after inital poll and 2 -> 3 change only
+            server.requirePublishCount("test_sensor/state", 2);
         }
     }
 }

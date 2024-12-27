@@ -142,6 +142,12 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         return mMqtt->mqttValue(topic);
     }
 
+    bool mqttNullValue(const char* topic) {
+        bool has_topic = mMqtt->hasTopic(topic);
+        REQUIRE(has_topic);
+        return mMqtt->mqttNullValue(topic);
+    }
+
     void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val) {
         mModbusFactory->setModbusRegisterValue(network, slaveId, regNum, regtype, val);
     }
