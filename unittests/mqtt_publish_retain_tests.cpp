@@ -22,8 +22,8 @@ mqtt:
         register: tcptest.1.2
 )");
 
-    SECTION("is set to false then initial poll triggers publish") {
-        config.mYAML["mqtt"]["objects"][0]["retain"] = "false";
+    SECTION("is set to true then initial poll triggers publish") {
+        config.mYAML["mqtt"]["objects"][0]["retain"] = "true";
         MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
         std::chrono::time_point<std::chrono::steady_clock> initialPollStart = std::chrono::steady_clock::now();
@@ -34,8 +34,8 @@ mqtt:
         REQUIRE(dur <  20);
     }
 
-    SECTION("is set to true") {
-        config.mYAML["mqtt"]["objects"][0]["retain"] = "true";
+    SECTION("is set to false") {
+        config.mYAML["mqtt"]["objects"][0]["retain"] = "false";
 
         SECTION("then initial poll do not trigger publish") {
             MockedModMqttServerThread server(config.toString());
@@ -66,6 +66,7 @@ mqtt:
         }
 
         SECTION("then availability change do not publish old value") {
+            config.mYAML["mqtt"]["refresh"] = "10ms";
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
             server.start();

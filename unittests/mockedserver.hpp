@@ -127,8 +127,8 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         return topic;
     }
 
-    void publish(const char* topic, const std::string& value) {
-        mMqtt->publish(topic, value.length(), value.c_str());
+    void publish(const char* topic, const std::string& value, bool retain = false) {
+        mMqtt->publish(topic, value.length(), value.c_str(), retain);
     }
 
     void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = defaultWaitTime()) {

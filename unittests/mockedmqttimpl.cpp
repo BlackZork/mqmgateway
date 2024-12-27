@@ -35,7 +35,7 @@ MockedMqttImpl::subscribe(const char* topic) {
 }
 
 void
-MockedMqttImpl::publish(const char* topic, int len, const void* data) {
+MockedMqttImpl::publish(const char* topic, int len, const void* data, bool retain) {
     std::unique_lock<std::mutex> lck(mMutex);
 
     int publishCount = 0;

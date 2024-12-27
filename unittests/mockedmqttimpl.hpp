@@ -54,7 +54,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         virtual void stop();
 
         virtual void subscribe(const char* topic);
-        virtual void publish(const char* topic, int len, const void* data);
+        virtual void publish(const char* topic, int len, const void* data, bool retain);
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);

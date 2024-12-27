@@ -473,6 +473,10 @@ ModMqtt::parseObject(
 
     ret.setPublishMode(parsePublishMode(pData, pDefaultPublishMode));
 
+    bool retain = true;
+    if (ConfigTools::readOptionalValue<bool>(retain, pData, "retain"))
+        ret.setRetain(retain);
+
     const YAML::Node& yState = pData["state"];
 
     if (yState.IsDefined()) {
