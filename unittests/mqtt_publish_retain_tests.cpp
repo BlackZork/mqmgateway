@@ -54,12 +54,13 @@ mqtt:
         }
 
         SECTION("and publish mode is every_poll then initial poll triggers publish") {
+            config.mYAML["mqtt"]["refresh"] = "20ms";
             config.mYAML["mqtt"]["objects"][0]["publish_mode"] = "every_poll";
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.start();
-            //5 ms initail poll read, 10ms wait, 5ms second read, 5ms test tolerance
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+            //5 ms initial poll read, 20ms wait, 5ms second read, 20ms test tolerance
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
             server.stop();
 
             // retained messsage delete and two state publishes
