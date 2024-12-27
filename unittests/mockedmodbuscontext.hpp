@@ -130,8 +130,15 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
 
         void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val);
         uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
-        void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
-        void setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
+        void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, bool pFlag = true);
+        void clearModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+            setModbusRegisterReadError(network, slaveId, regNum, regtype, false);
+        }
+
+        void setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, bool pFlag = true);
+        void clearModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+            setModbusRegisterWriteError(network, slaveId, regNum, regtype, false);
+        }
 
         MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
             auto it = mModbusNetworks.find(networkName);

@@ -441,19 +441,19 @@ MockedModbusFactory::getModbusRegisterValue(const char* network, int slaveId, in
 
 
 void
-MockedModbusFactory::setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType) {
+MockedModbusFactory::setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, bool pFlag) {
     regNum--;
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
     MockedModbusContext::Slave& s(ctx->getSlave(slaveId));
-    s.setError(regNum, regType);
+    s.setError(regNum, regType, pFlag);
 }
 
 void
-MockedModbusFactory::setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType) {
+MockedModbusFactory::setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, bool pFlag) {
     regNum--;
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
     MockedModbusContext::Slave& s(ctx->getSlave(slaveId));
-    s.setError(regNum, regType);
+    s.setError(regNum, regType, pFlag);
 }
 
 void

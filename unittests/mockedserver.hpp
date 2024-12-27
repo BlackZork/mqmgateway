@@ -177,6 +177,10 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         mModbusFactory->setModbusRegisterReadError(network, slaveId, regNum, regtype);
     }
 
+    void clearModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+        mModbusFactory->clearModbusRegisterReadError(network, slaveId, regNum, regtype);
+    }
+
     MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
         return mModbusFactory->getMockedModbusContext(networkName);
     }
