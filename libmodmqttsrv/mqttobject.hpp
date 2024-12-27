@@ -201,6 +201,9 @@ class MqttObject {
         void setPublishMode(const PublishMode& pMode) { mPublishMode = pMode; }
         const PublishMode& getPublishMode() const { return mPublishMode; }
 
+        void setRetain(bool pFlag) { mRetain = pFlag; }
+        bool getRetain() const { return mRetain; }
+
         MqttObjectState mState;
 
         void dump() const;
@@ -213,6 +216,7 @@ class MqttObject {
 
         AvailableFlag mIsAvailable = AvailableFlag::NotSet;
 
+        bool mRetain = true;
         PublishMode mPublishMode;
         std::string mLastPublishedPayload;
 

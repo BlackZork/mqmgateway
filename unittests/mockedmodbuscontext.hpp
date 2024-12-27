@@ -20,11 +20,14 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         static const std::chrono::milliseconds sDefaultSlaveReadTime;
         static const std::chrono::milliseconds sDefaultSlaveWriteTime;
 
+        struct RegData {
+            uint16_t mValue = 0;
+            bool mError = false;
+            int mReadCount = 0;
+            int mWriteCount = 0;
+        };
+
         class Slave {
-            struct RegData {
-                uint16_t mValue = 0;
-                bool mError = false;
-            };
             public:
                 Slave(const std::shared_ptr<std::condition_variable>& ioCondition, int id = 0) : mIOCondition(ioCondition), mId(id) {}
                 void write(const modmqttd::RegisterWrite& msg, bool internalOperation = false);
@@ -48,9 +51,9 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 int mId;
 
             private:
-                bool hasError(const std::map<int, MockedModbusContext::Slave::RegData>& table, int num, int count) const;
-                std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count);
-                uint16_t readRegister(std::map<int, RegData>& table, int num);
+                bool hasError(const std::map<int, MockedModbusContext::RegData>& table, int num, int count) const;
+                std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count, bool internalOperation);
+                uint16_t readRegister(std::map<int, RegData>& table, int num, bool internalOperation);
                 bool mDisconnected = false;
                 int mReadCount = 0;
                 int mWriteCount = 0;
@@ -71,6 +74,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
         virtual uint16_t waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout);
         virtual uint16_t getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype);
+        virtual void waitForInitialPoll(std::chrono::milliseconds timeout);
 
 
         int getReadCount(int slaveId) const;
@@ -111,8 +115,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         int mConnectionCount = 0;
 
         std::map<int, MockedModbusContext::Slave>::iterator findOrCreateSlave(int id);
-
-
+        int getUnreadedRegisterCount();
+        int getUnreadedRegisterCount(const std::map<int, RegData>& pRegData);
 };
 
 class MockedModbusFactory : public modmqttd::IModbusFactory {
@@ -126,8 +130,15 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
 
         void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val);
         uint16_t getModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
-        void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
-        void setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype);
+        void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, bool pFlag = true);
+        void clearModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+            setModbusRegisterReadError(network, slaveId, regNum, regtype, false);
+        }
+
+        void setModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, bool pFlag = true);
+        void clearModbusRegisterWriteError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+            setModbusRegisterWriteError(network, slaveId, regNum, regtype, false);
+        }
 
         MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
             auto it = mModbusNetworks.find(networkName);

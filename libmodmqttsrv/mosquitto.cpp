@@ -176,9 +176,9 @@ Mosquitto::subscribe(const char* topic) {
 }
 
 void
-Mosquitto::publish(const char* topic, int len, const void* data) {
+Mosquitto::publish(const char* topic, int len, const void* data, bool retain) {
     int msgId;
-    mosquitto_publish(mMosq, &msgId, topic, len, data, 0, true);
+    mosquitto_publish(mMosq, &msgId, topic, len, data, 0, retain);
 }
 
 

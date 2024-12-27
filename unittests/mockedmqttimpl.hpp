@@ -54,7 +54,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         virtual void stop();
 
         virtual void subscribe(const char* topic);
-        virtual void publish(const char* topic, int len, const void* data);
+        virtual void publish(const char* topic, int len, const void* data, bool retain);
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);
@@ -67,6 +67,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         int getPublishCount(const char* topic);
         bool hasTopic(const char* topic);
         std::string mqttValue(const char* topic);
+        bool mqttNullValue(const char* topic);
         //returns current value on timeout
         std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout);
         //clear all topics and simulate broker disconnection
@@ -79,7 +80,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         std::set<std::string> mSubscriptions;
 
         //contains all topics published before waitForPublish/waitForFirstPublish
-        //call. Map value defines order in which topics were published
+        //call. Map value contains mqtt publish count
         std::map<std::string, int> mPublishedTopics;
 
         std::mutex mMutex;

@@ -98,6 +98,15 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         REQUIRE(is_subscribed == true);
     }
 
+    /**
+     * There is no signal after initial poll is done
+     * This function will figure it out by checking that all registers were read at least once
+     * Warning: it will not work if you setModbusRegisterValue() for register
+     * that is not in poll specification (not used in any mqtt object config)
+     */
+    void waitForInitialPoll(const char* pNetworkName, std::chrono::milliseconds timeout = defaultWaitTime()) {
+        mModbusFactory->getMockedModbusContext(pNetworkName).waitForInitialPoll(timeout);
+    }
 
     void waitForPublish(const char* topic, std::chrono::milliseconds timeout = defaultWaitTime()) {
         INFO("Checking for publish on " << topic);
@@ -118,8 +127,8 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         return topic;
     }
 
-    void publish(const char* topic, const std::string& value) {
-        mMqtt->publish(topic, value.length(), value.c_str());
+    void publish(const char* topic, const std::string& value, bool retain = false) {
+        mMqtt->publish(topic, value.length(), value.c_str(), retain);
     }
 
     void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = defaultWaitTime()) {
@@ -131,6 +140,12 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         bool has_topic = mMqtt->hasTopic(topic);
         REQUIRE(has_topic);
         return mMqtt->mqttValue(topic);
+    }
+
+    bool mqttNullValue(const char* topic) {
+        bool has_topic = mMqtt->hasTopic(topic);
+        REQUIRE(has_topic);
+        return mMqtt->mqttNullValue(topic);
     }
 
     void setModbusRegisterValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype, uint16_t val) {
@@ -166,6 +181,10 @@ class MockedModMqttServerThread : public ModMqttServerThread {
 
     void setModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
         mModbusFactory->setModbusRegisterReadError(network, slaveId, regNum, regtype);
+    }
+
+    void clearModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
+        mModbusFactory->clearModbusRegisterReadError(network, slaveId, regNum, regtype);
     }
 
     MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
