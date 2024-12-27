@@ -396,22 +396,22 @@ A list of topics where modbus values are published to MQTT broker and subscribed
     Sets the [MQTT RETAIN](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901104) flag for 
     all messages published for this topic. Changes state value updates in the following way:
 
-      1. If retain = true:
-          * state value is published immediately after initial poll
-          * just before the availability flag changes its value from 0 to 1, the current state value is published 
+    1. If retain = true:
+        * state value is published immediately after initial poll
+        * just before the availability flag changes its value from 0 to 1, the current state value is published 
 
-      2. If retain = false:
-    
-          When publish_mode is set to "every_poll" then the publishing behavior is the same as when `retain` flag 
-          is set to 'true'. The only difference is that all messages are published with the MQTT RETAIN flag set to false.
+    1. If retain = false:
+  
+        When publish_mode is set to "every_poll" then the publishing behavior is the same as when `retain` flag 
+        is set to 'true'. The only difference is that all messages are published with the MQTT RETAIN flag set to false.
 
-          If publish_mode is set to "on_change", then:
+        If publish_mode is set to "on_change", then:
 
-            * initial poll does not trigger publish
-            * state value changes are only published if the availability flag is already set to 1.
+          * initial poll removes old retained value from mqtt broker
+          * state value changes are only published if the availability flag is already set to 1.
 
-            This mode guarantees that the subscriber receives only recent changes. State value that 
-            was set before the initial poll or during read error period will not be published.
+          This mode guarantees that the subscriber receives only recent changes. State value that 
+          was set before the initial poll or during read error period will not be published.
 
 ### A *commands* section.
 
