@@ -100,3 +100,47 @@ mqtt:
     }
 }
 
+TEST_CASE ("When retain topic is a part of poll group") {
+
+TestConfig config(R"(
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 1
+          poll_groups:
+            - register: 2
+              register_type: holding
+              count: 2
+mqtt:
+  client_id: mqtt_test
+  refresh: 50ms
+  broker:
+    host: localhost
+  objects:
+    - topic: test_sensor
+      retain: false
+      state:
+        register: tcptest.1.2
+    - topic: other_sensor
+      state:
+        register: tcptest.1.3
+)");
+
+    SECTION("its value should be ignored if related register value is not changed") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 3);
+
+        server.start();
+        server.waitForPublish("other_sensor/state");
+
+        //this caused test_sensor value change due to null -> 3
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 33);
+        server.waitForPublish("other_sensor/state");
+
+        server.requirePublishCount("test_sensor/state", 1);
+    }
+}

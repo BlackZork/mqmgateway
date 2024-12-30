@@ -195,6 +195,8 @@ class MqttObject {
         void setAvailableValue(const MqttValue& pValue) { mAvailability.setAvailableValue(pValue); }
         AvailableFlag getAvailableFlag() const { return mIsAvailable; }
 
+        bool hasValue() const { return mState.hasAllValues(); }
+
         void setLastPublishedPayload(const std::string& pVal) { mLastPublishedPayload = pVal; }
         const std::string& getLastPublishedPayload() const { return mLastPublishedPayload; }
 

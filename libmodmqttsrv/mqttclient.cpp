@@ -151,6 +151,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 
     for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
         AvailableFlag oldAvail = obj->getAvailableFlag();
+        bool hadValue = obj->hasValue();
         obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
         AvailableFlag newAvail = obj->getAvailableFlag();
 
@@ -163,8 +164,12 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
                     publishState(*obj, true);
                 } else {
                     // delete retained message
-                    if (oldAvail == AvailableFlag::NotSet)
+                    if (oldAvail == AvailableFlag::NotSet) {
                         mMqttImpl->publish(obj->getStateTopic().c_str(), 0, NULL, true);
+                        // remember initial payload for comparsion with subsequent modbus data updates
+                        if (!obj->getRetain())
+                            obj->setLastPublishedPayload(MqttPayload::generate(*obj));
+                    }
                     if (obj->getPublishMode() == PublishMode::EVERY_POLL)
                         publishState(*obj, true);
                 }
