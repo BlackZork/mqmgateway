@@ -151,7 +151,6 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 
     for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
         AvailableFlag oldAvail = obj->getAvailableFlag();
-        bool hadValue = obj->hasValue();
         obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
         AvailableFlag newAvail = obj->getAvailableFlag();
 
