@@ -407,11 +407,17 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
         If publish_mode is set to "on_change", then:
 
-          * initial poll removes old retained value from mqtt broker
-          * state value changes are only published if the availability flag is already set to 1.
+          * initial poll sets initial state, but does not publish it.
+          * all subsequent state changes are published with the MQTT RETAIN flag set to false
+          * availability topic messages are always published with the MQTT RETAIN flag set to true
+          * if one of registers was unavailable, only the the availability flag is published after the first successful read.
 
           This mode guarantees that the subscriber receives only recent changes. State value that 
           was set before the initial poll or during read error period will not be published.
+
+          The only one exception is that MQMGateway after start will send a zero-byte payload to a topic
+          with retain flag set to false to delete old retained message if any.
+
 
 ### A *commands* section.
 
