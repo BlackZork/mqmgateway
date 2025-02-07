@@ -47,7 +47,7 @@ mqtt:
         server.waitForPublish("test_sensor/state");
         std::this_thread::sleep_for(std::chrono::milliseconds(80));
         server.stop();
-        // should respect 1.3 refresh
+        // should respect 1.2 10ms refresh
         REQUIRE(server.getPublishCount("test_sensor/state") > 5);
     }
 
