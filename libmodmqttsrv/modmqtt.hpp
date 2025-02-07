@@ -105,6 +105,7 @@ class ModMqtt {
             int pDefaultSlave,
             std::chrono::milliseconds refresh,
             PublishMode pMode,
+            std::chrono::milliseconds& pEveryPollRefreshOut,
             std::vector<MsgRegisterPollSpecification>& pSpecs
         );
 

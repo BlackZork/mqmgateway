@@ -176,8 +176,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 
             publishAvailabilityChange(*obj);
         } else {
-            bool force = obj->getPublishMode() == PublishMode::EVERY_POLL;
-            publishState(*obj, force);
+            publishState(*obj, obj->needStateRepublish());
         }
     }
 }

@@ -471,17 +471,18 @@ ModMqtt::parseObject(
     MqttObject ret(topic);
     BOOST_LOG_SEV(log, Log::debug) << "processing object " << ret.getTopic();
 
-    ret.setPublishMode(parsePublishMode(pData, pDefaultPublishMode));
-
     bool retain = true;
     if (ConfigTools::readOptionalValue<bool>(retain, pData, "retain"))
         ret.setRetain(retain);
 
+    std::chrono::milliseconds everyPollRefresh = pDefaultRefresh;
     const YAML::Node& yState = pData["state"];
+
+    PublishMode pmode = parsePublishMode(pData, pDefaultPublishMode);
 
     if (yState.IsDefined()) {
         if (yState.IsMap()) {
-            MqttObjectDataNode node(parseObjectDataNode(yState, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, ret.getPublishMode(), pSpecsOut));
+            MqttObjectDataNode node(parseObjectDataNode(yState, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, pmode, everyPollRefresh, pSpecsOut));
             // a map that contains register with optional count
             // should output a list or a scalar value
             // in this case we do not need parsed parent level
@@ -495,7 +496,7 @@ ModMqtt::parseObject(
             bool isUnnamed = false;
             for(size_t i = 0; i < yState.size(); i++) {
                 const YAML::Node& yData = yState[i];
-                MqttObjectDataNode node(parseObjectDataNode(yData, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, ret.getPublishMode(), pSpecsOut));
+                MqttObjectDataNode node(parseObjectDataNode(yData, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, pmode, everyPollRefresh, pSpecsOut));
                 //the first element defines if we have named or unnamed list
                 if (i == 0)
                     isUnnamed = node.isUnnamed();
@@ -512,6 +513,13 @@ ModMqtt::parseObject(
 
     const YAML::Node& yAvail = pData["availability"];
 
+    ret.setPublishMode(pmode, everyPollRefresh);
+    if (pmode == PublishMode::EVERY_POLL) {
+        BOOST_LOG_SEV(log, Log::debug)
+            << "Min publish rate for " << ret.getStateTopic() << " set to "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(everyPollRefresh).count() << "ms";
+    }
+
     if (!yAvail.IsDefined())
         return ret;
 
@@ -520,7 +528,8 @@ ModMqtt::parseObject(
         ret.setAvailableValue(MqttValue::fromString(availValue));
 
     if (yAvail.IsMap()) {
-        MqttObjectDataNode node(parseObjectDataNode(yAvail, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, ret.getPublishMode(), pSpecsOut));
+        std::chrono::milliseconds unused = std::chrono::milliseconds::zero();
+        MqttObjectDataNode node(parseObjectDataNode(yAvail, pDefaultNetwork, pDefaultSlaveId, pDefaultRefresh, ret.getPublishMode(), unused, pSpecsOut));
         if (!node.isScalar() && !node.hasConverter())
             throw ConfigurationException(yAvail.Mark(), "multiple registers availability must use a converter");
         ret.addAvailabilityDataNode(node);
@@ -538,6 +547,7 @@ ModMqtt::parseObjectDataNode(
     int pDefaultSlaveId,
     std::chrono::milliseconds pRefresh,
     PublishMode pMode,
+    std::chrono::milliseconds& pEveryPollRefreshOut,
     std::vector<MsgRegisterPollSpecification>& pSpecsOut
     )
 {
@@ -548,8 +558,10 @@ ModMqtt::parseObjectDataNode(
     if (ConfigTools::readOptionalValue<std::string>(name, pNode, "name"))
         node.setName(name);
 
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(pRefresh, pNode, "refresh");
-
+    if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(pRefresh, pNode, "refresh")) {
+        if (pRefresh < pEveryPollRefreshOut)
+            pEveryPollRefreshOut = pRefresh;
+    }
 
     const YAML::Node& converter = pNode["converter"];
     if (converter.IsDefined()) {
@@ -563,7 +575,7 @@ ModMqtt::parseObjectDataNode(
             throw ConfigurationException(yRegisters.Mark(), "'registers' must be a list");
         for(size_t i = 0; i < yRegisters.size(); i++) {
             const YAML::Node& yData = yRegisters[i];
-            MqttObjectDataNode childNode(parseObjectDataNode(yData, pDefaultNetwork, pDefaultSlaveId, pRefresh, pMode, pSpecsOut));
+            MqttObjectDataNode childNode(parseObjectDataNode(yData, pDefaultNetwork, pDefaultSlaveId, pRefresh, pMode, pEveryPollRefreshOut, pSpecsOut));
             //the first element defines if we have named or unnamed list
             if (i == 0)
                 isUnnamed = node.isUnnamed();

@@ -335,5 +335,29 @@ MqttObject::updateAvailablityFlag() {
     }
 }
 
+bool
+MqttObject::needStateRepublish() const {
+    if (getPublishMode() == PublishMode::ON_CHANGE)
+        return false;
+
+    // EVERY_POLL
+    // In this mode we cannot trigger publish
+    // every time register data is received.
+    // for composite topics register data
+    // can come in many parts so wait for mEveryPollPeriod to
+    // pass first
+    if (mLastPublishTime == std::chrono::steady_clock::time_point::min())
+        return true;
+
+    std::chrono::steady_clock::time_point nextPublish = mLastPublishTime + mEveryPollPeriod;
+    return nextPublish <= std::chrono::steady_clock::now();
+}
+
+void
+MqttObject::setPublishMode(const PublishMode& pMode, std::chrono::milliseconds pEveryPollRefresh) {
+    mPublishMode = pMode;
+    mEveryPollPeriod = pEveryPollRefresh;
+}
+
 
 } //namespace
