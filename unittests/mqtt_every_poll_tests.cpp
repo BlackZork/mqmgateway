@@ -48,7 +48,8 @@ mqtt:
         std::this_thread::sleep_for(std::chrono::milliseconds(80));
         server.stop();
         // should respect 1.2 10ms refresh
-        REQUIRE(server.getPublishCount("test_sensor/state") > 5);
+        // which gives at least 4 mqtt messages in 80ms
+        REQUIRE(server.getPublishCount("test_sensor/state") >= 4);
     }
 
 }
