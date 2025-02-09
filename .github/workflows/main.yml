@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "master"
+      - "ci_tests"
     paths-ignore:
       - 'README.md'
       - '.github/FUNDING.yml'
