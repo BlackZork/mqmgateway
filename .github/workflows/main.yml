@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       registry_image: ${{ steps.translation.outputs.registry_image }}
     steps:
