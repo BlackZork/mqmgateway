@@ -83,3 +83,45 @@ mqtt:
 }
 
 
+TEST_CASE ("slave with id=0 should be allowed") {
+static const std::string config = R"(
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 0
+          poll_groups:
+            - register: 1
+              register_type: input
+              count: 10
+            - register: 20
+              register_type: input
+              count: 5
+mqtt:
+  client_id: mqtt_test
+  broker:
+    host: localhost
+  objects:
+    - topic: test_switch
+      network: tcptest
+      slave: 0
+      state:
+        register: 1
+        register_type: holding
+    - topic: test_switch2
+      network: tcptest
+      state:
+        register: 0.2
+        register_type: holding
+)";
+
+    MockedModMqttServerThread server(config);
+    // should not throw config exception
+    server.start();
+    server.stop();
+}
+
+
+

@@ -390,7 +390,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
                 std::vector<std::pair<int,int>> slave_addresses(ConfigTools::readRequiredValue<std::vector<std::pair<int,int>>>(ySlave, "address"));
                 for(const std::pair<int,int>& addr_range: slave_addresses) {
 
-                    if (addr_range.first <=0 || addr_range.second > 256 || addr_range.first > addr_range.second)
+                    if (addr_range.first < 0 || addr_range.second > 256 || addr_range.first > addr_range.second)
                         throw ConfigurationException(ySlave["address"].Mark(), "Invalid slave address range " + std::to_string(addr_range.first) + "-" + std::to_string(addr_range.second));
 
                     for(int addr = addr_range.first; addr <= addr_range.second; addr++) {
@@ -760,7 +760,7 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
 
             std::set<int> created;
             for (const std::pair<int, int>& slave_range: slaves) {
-                if (slave_range.first != -1 && (slave_range.first <= 0 || slave_range.second > 256 || slave_range.first > slave_range.second))
+                if (slave_range.first != -1 && (slave_range.first < 0 || slave_range.second > 256 || slave_range.first > slave_range.second))
                     throw ConfigurationException(objdata["slave"].Mark(), std::string("Invalid slave range ") + std::to_string(slave_range.first) + "-" + std::to_string(slave_range.second));
 
                 for (int defaultSlaveId = slave_range.first; defaultSlaveId <= slave_range.second; defaultSlaveId++) {
