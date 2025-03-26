@@ -131,7 +131,8 @@ ModbusContext::disconnect() {
 
 std::vector<uint16_t>
 ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
-    if (slaveId != 0)
+    // TODO not used, make slave optional for tcp in ModMqtt::initObjects and pass -1 in this case
+    if (slaveId != -1)
         modbus_set_slave(mCtx, slaveId);
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
@@ -183,7 +184,8 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
 
 void
 ModbusContext::writeModbusRegisters(int slaveId, const RegisterWrite& msg) {
-    if (slaveId != 0)
+    // TODO not used, make slave optional for tcp in ModMqtt::initObjects and pass -1 in this case
+    if (slaveId != -1)
         modbus_set_slave(mCtx, slaveId);
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);

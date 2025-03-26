@@ -747,15 +747,14 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
         if (slaves.size() == 0)
             slaves.push_back(std::pair<int,int>(-1, -1));
 
-        for(const std::string& defaultNetwork: networks) {
-
-            if (defaultNetwork.size() != 0) {
+        for(const std::string& currentNetwork: networks) {
+            if (currentNetwork.size() != 0) {
                 std::vector<std::shared_ptr<ModbusClient>>::const_iterator cit = std::find_if(
                     mModbusClients.begin(), mModbusClients.end(),
-                    [&defaultNetwork](const std::shared_ptr<ModbusClient>& cptr) -> bool { return defaultNetwork == cptr->mNetworkName; }
+                    [&currentNetwork](const std::shared_ptr<ModbusClient>& cptr) -> bool { return currentNetwork == cptr->mNetworkName; }
                     );
                 if (cit == mModbusClients.end())
-                    throw ConfigurationException(objdata["network"].Mark(), std::string("Unknown modbus network ") + defaultNetwork);
+                    throw ConfigurationException(objdata["network"].Mark(), std::string("Unknown modbus network ") + currentNetwork);
             }
 
             std::set<int> created;
@@ -769,9 +768,9 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
 
                     MqttObject object(parseObject(
                         objdata,
-                        defaultNetwork,
+                        currentNetwork,
                         defaultSlaveId,
-                        modbusData.getSlaveName(defaultNetwork, defaultSlaveId),
+                        modbusData.getSlaveName(currentNetwork, defaultSlaveId),
                         defaultRefresh,
                         defaultPublishMode,
                         pSpecsOut)
@@ -787,7 +786,7 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
 
 
                     objects.push_back(object);
-                    nextCommandId = parseObjectCommands(object.getTopic(), nextCommandId, objdata["commands"], defaultNetwork, defaultSlaveId);
+                    nextCommandId = parseObjectCommands(object.getTopic(), nextCommandId, objdata["commands"], currentNetwork, defaultSlaveId);
                     BOOST_LOG_SEV(log, Log::debug) << "object for topic " << object.getTopic() << " created";
                     created.insert(defaultSlaveId);
                 }
