@@ -1,10 +1,11 @@
-// ©2013-2016 Cameron Desrochers.
+// ©2013-2020 Cameron Desrochers.
 // Distributed under the simplified BSD license (see the license file that
 // should have come with this header).
 
 #pragma once
 
 #include "atomicops.h"
+#include <new>
 #include <type_traits>
 #include <utility>
 #include <cassert>
@@ -12,6 +13,7 @@
 #include <new>
 #include <cstdint>
 #include <cstdlib>		// For malloc/free/abort & size_t
+#include <memory>
 #if __cplusplus > 199711L || _MSC_VER >= 1700 // C++11 or VS2012
 #include <chrono>
 #endif
@@ -20,8 +22,8 @@
 // A lock-free queue for a single-consumer, single-producer architecture.
 // The queue is also wait-free in the common path (except if more memory
 // needs to be allocated, in which case malloc is called).
-// Allocates memory sparingly (O(lg(n) times, amortized), and only once if
-// the original maximum size estimate is never exceeded.
+// Allocates memory sparingly, and only once if the original maximum size
+// estimate is never exceeded.
 // Tested on x86/x64 processors, but semantics should be correct for all
 // architectures (given the right implementations in atomicops.h), provided
 // that aligned integer and pointer accesses are naturally atomic.
@@ -46,6 +48,21 @@
 #endif
 #endif
 
+#ifndef MOODYCAMEL_MAYBE_ALIGN_TO_CACHELINE
+#if defined (__APPLE__) && defined (__MACH__) && __cplusplus >= 201703L
+// This is required to find out what deployment target we are using
+#include <AvailabilityMacros.h>
+#if !defined(MAC_OS_X_VERSION_MIN_REQUIRED) || !defined(MAC_OS_X_VERSION_10_14) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_14
+// C++17 new(size_t, align_val_t) is not backwards-compatible with older versions of macOS, so we can't support over-alignment in this case
+#define MOODYCAMEL_MAYBE_ALIGN_TO_CACHELINE
+#endif
+#endif
+#endif
+
+#ifndef MOODYCAMEL_MAYBE_ALIGN_TO_CACHELINE
+#define MOODYCAMEL_MAYBE_ALIGN_TO_CACHELINE AE_ALIGN(MOODYCAMEL_CACHE_LINE_SIZE)
+#endif
+
 #ifdef AE_VCPP
 #pragma warning(push)
 #pragma warning(disable: 4324)	// structure was padded due to __declspec(align())
@@ -56,7 +73,7 @@
 namespace moodycamel {
 
 template<typename T, size_t MAX_BLOCK_SIZE = 512>
-class ReaderWriterQueue
+class MOODYCAMEL_MAYBE_ALIGN_TO_CACHELINE ReaderWriterQueue
 {
 	// Design: Based on a queue-of-queues. The low-level queues are just
 	// circular buffers with front and tail indices indicating where the
@@ -81,30 +98,29 @@ class ReaderWriterQueue
 public:
 	typedef T value_type;
 
-	// Constructs a queue that can hold maxSize elements without further
+	// Constructs a queue that can hold at least `size` elements without further
 	// allocations. If more than MAX_BLOCK_SIZE elements are requested,
 	// then several blocks of MAX_BLOCK_SIZE each are reserved (including
 	// at least one extra buffer block).
-	explicit ReaderWriterQueue(size_t maxSize = 15)
+	AE_NO_TSAN explicit ReaderWriterQueue(size_t size = 15)
 #ifndef NDEBUG
 		: enqueuing(false)
 		,dequeuing(false)
 #endif
 	{
-		assert(maxSize > 0);
 		assert(MAX_BLOCK_SIZE == ceilToPow2(MAX_BLOCK_SIZE) && "MAX_BLOCK_SIZE must be a power of 2");
 		assert(MAX_BLOCK_SIZE >= 2 && "MAX_BLOCK_SIZE must be at least 2");
 		
 		Block* firstBlock = nullptr;
 		
-		largestBlockSize = ceilToPow2(maxSize + 1);		// We need a spare slot to fit maxSize elements in the block
+		largestBlockSize = ceilToPow2(size + 1);		// We need a spare slot to fit size elements in the block
 		if (largestBlockSize > MAX_BLOCK_SIZE * 2) {
 			// We need a spare block in case the producer is writing to a different block the consumer is reading from, and
 			// wants to enqueue the maximum number of elements. We also need a spare element in each block to avoid the ambiguity
 			// between front == tail meaning "empty" and "full".
 			// So the effective number of slots that are guaranteed to be usable at any time is the block size - 1 times the
-			// number of blocks - 1. Solving for maxSize and applying a ceiling to the division gives us (after simplifying):
-			size_t initialBlockCount = (maxSize + MAX_BLOCK_SIZE * 2 - 3) / (MAX_BLOCK_SIZE - 1);
+			// number of blocks - 1. Solving for size and applying a ceiling to the division gives us (after simplifying):
+			size_t initialBlockCount = (size + MAX_BLOCK_SIZE * 2 - 3) / (MAX_BLOCK_SIZE - 1);
 			largestBlockSize = MAX_BLOCK_SIZE;
 			Block* lastBlock = nullptr;
 			for (size_t i = 0; i != initialBlockCount; ++i) {
@@ -146,7 +162,7 @@ public:
 
 	// Note: The queue should not be accessed concurrently while it's
 	// being moved. It's up to the user to synchronize this.
-	ReaderWriterQueue(ReaderWriterQueue&& other)
+	AE_NO_TSAN ReaderWriterQueue(ReaderWriterQueue&& other)
 		: frontBlock(other.frontBlock.load()),
 		tailBlock(other.tailBlock.load()),
 		largestBlockSize(other.largestBlockSize)
@@ -171,7 +187,7 @@ public:
 
 	// Note: The queue should not be accessed concurrently while it's
 	// being moved. It's up to the user to synchronize this.
-	ReaderWriterQueue& operator=(ReaderWriterQueue&& other)
+	ReaderWriterQueue& operator=(ReaderWriterQueue&& other) AE_NO_TSAN
 	{
 		Block* b = frontBlock.load();
 		frontBlock = other.frontBlock.load();
@@ -185,7 +201,7 @@ public:
 
 	// Note: The queue should not be accessed concurrently while it's
 	// being deleted. It's up to the user to synchronize this.
-	~ReaderWriterQueue()
+	AE_NO_TSAN ~ReaderWriterQueue()
 	{
 		// Make sure we get the latest version of all variables from other CPUs:
 		fence(memory_order_sync);
@@ -215,7 +231,7 @@ public:
 	// Enqueues a copy of element if there is room in the queue.
 	// Returns true if the element was enqueued, false otherwise.
 	// Does not allocate memory.
-	AE_FORCEINLINE bool try_enqueue(T const& element)
+	AE_FORCEINLINE bool try_enqueue(T const& element) AE_NO_TSAN
 	{
 		return inner_enqueue<CannotAlloc>(element);
 	}
@@ -223,7 +239,7 @@ public:
 	// Enqueues a moved copy of element if there is room in the queue.
 	// Returns true if the element was enqueued, false otherwise.
 	// Does not allocate memory.
-	AE_FORCEINLINE bool try_enqueue(T&& element)
+	AE_FORCEINLINE bool try_enqueue(T&& element) AE_NO_TSAN
 	{
 		return inner_enqueue<CannotAlloc>(std::forward<T>(element));
 	}
@@ -231,7 +247,7 @@ public:
 #if MOODYCAMEL_HAS_EMPLACE
 	// Like try_enqueue() but with emplace semantics (i.e. construct-in-place).
 	template<typename... Args>
-	AE_FORCEINLINE bool try_emplace(Args&&... args)
+	AE_FORCEINLINE bool try_emplace(Args&&... args) AE_NO_TSAN
 	{
 		return inner_enqueue<CannotAlloc>(std::forward<Args>(args)...);
 	}
@@ -240,7 +256,7 @@ public:
 	// Enqueues a copy of element on the queue.
 	// Allocates an additional block of memory if needed.
 	// Only fails (returns false) if memory allocation fails.
-	AE_FORCEINLINE bool enqueue(T const& element)
+	AE_FORCEINLINE bool enqueue(T const& element) AE_NO_TSAN
 	{
 		return inner_enqueue<CanAlloc>(element);
 	}
@@ -248,7 +264,7 @@ public:
 	// Enqueues a moved copy of element on the queue.
 	// Allocates an additional block of memory if needed.
 	// Only fails (returns false) if memory allocation fails.
-	AE_FORCEINLINE bool enqueue(T&& element)
+	AE_FORCEINLINE bool enqueue(T&& element) AE_NO_TSAN
 	{
 		return inner_enqueue<CanAlloc>(std::forward<T>(element));
 	}
@@ -256,7 +272,7 @@ public:
 #if MOODYCAMEL_HAS_EMPLACE
 	// Like enqueue() but with emplace semantics (i.e. construct-in-place).
 	template<typename... Args>
-	AE_FORCEINLINE bool emplace(Args&&... args)
+	AE_FORCEINLINE bool emplace(Args&&... args) AE_NO_TSAN
 	{
 		return inner_enqueue<CanAlloc>(std::forward<Args>(args)...);
 	}
@@ -266,7 +282,7 @@ public:
 	// returns false instead. If the queue has at least one element,
 	// moves front to result using operator=, then returns true.
 	template<typename U>
-	bool try_dequeue(U& result)
+	bool try_dequeue(U& result) AE_NO_TSAN
 	{
 #ifndef NDEBUG
 		ReentrantGuard guard(this->dequeuing);
@@ -365,7 +381,7 @@ public:
 	// queue appears empty at the time the method is called, nullptr is
 	// returned instead.
 	// Must be called only from the consumer thread.
-	T* peek()
+	T* peek() const AE_NO_TSAN
 	{
 #ifndef NDEBUG
 		ReentrantGuard guard(this->dequeuing);
@@ -407,7 +423,7 @@ public:
 	// Removes the front element from the queue, if any, without returning it.
 	// Returns true on success, or false if the queue appeared empty at the time
 	// `pop` was called.
-	bool pop()
+	bool pop() AE_NO_TSAN
 	{
 #ifndef NDEBUG
 		ReentrantGuard guard(this->dequeuing);
@@ -474,7 +490,7 @@ public:
 	
 	// Returns the approximate number of items currently in the queue.
 	// Safe to call from both the producer and consumer threads.
-	inline size_t size_approx() const
+	inline size_t size_approx() const AE_NO_TSAN
 	{
 		size_t result = 0;
 		Block* frontBlock_ = frontBlock.load();
@@ -489,16 +505,37 @@ public:
 		return result;
 	}
 
+	// Returns the total number of items that could be enqueued without incurring
+	// an allocation when this queue is empty.
+	// Safe to call from both the producer and consumer threads.
+	//
+	// NOTE: The actual capacity during usage may be different depending on the consumer.
+	//       If the consumer is removing elements concurrently, the producer cannot add to
+	//       the block the consumer is removing from until it's completely empty, except in
+	//       the case where the producer was writing to the same block the consumer was
+	//       reading from the whole time.
+	inline size_t max_capacity() const {
+		size_t result = 0;
+		Block* frontBlock_ = frontBlock.load();
+		Block* block = frontBlock_;
+		do {
+			fence(memory_order_acquire);
+			result += block->sizeMask;
+			block = block->next.load();
+		} while (block != frontBlock_);
+		return result;
+	}
+
 
 private:
 	enum AllocationMode { CanAlloc, CannotAlloc };
 
 #if MOODYCAMEL_HAS_EMPLACE
 	template<AllocationMode canAlloc, typename... Args>
-	bool inner_enqueue(Args&&... args)
+	bool inner_enqueue(Args&&... args) AE_NO_TSAN
 #else
 	template<AllocationMode canAlloc, typename U>
-	bool inner_enqueue(U&& element)
+	bool inner_enqueue(U&& element) AE_NO_TSAN
 #endif
 	{
 #ifndef NDEBUG
@@ -614,7 +651,6 @@ private:
 	ReaderWriterQueue& operator=(ReaderWriterQueue const&) {  }
 
 
-
 	AE_FORCEINLINE static size_t ceilToPow2(size_t x)
 	{
 		// From http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
@@ -630,7 +666,7 @@ private:
 	}
 	
 	template<typename U>
-	static AE_FORCEINLINE char* align_for(char* ptr)
+	static AE_FORCEINLINE char* align_for(char* ptr) AE_NO_TSAN
 	{
 		const std::size_t alignment = std::alignment_of<U>::value;
 		return ptr + (alignment - (reinterpret_cast<std::uintptr_t>(ptr) % alignment)) % alignment;
@@ -639,20 +675,20 @@ private:
 #ifndef NDEBUG
 	struct ReentrantGuard
 	{
-		ReentrantGuard(bool& _inSection)
+		AE_NO_TSAN ReentrantGuard(weak_atomic<bool>& _inSection)
 			: inSection(_inSection)
 		{
-			assert(!inSection && "ReaderWriterQueue does not support enqueuing or dequeuing elements from other elements' ctors and dtors");
+			assert(!inSection && "Concurrent (or re-entrant) enqueue or dequeue operation detected (only one thread at a time may hold the producer or consumer role)");
 			inSection = true;
 		}
 
-		~ReentrantGuard() { inSection = false; }
+		AE_NO_TSAN ~ReentrantGuard() { inSection = false; }
 
 	private:
 		ReentrantGuard& operator=(ReentrantGuard const&);
 
 	private:
-		bool& inSection;
+		weak_atomic<bool>& inSection;
 	};
 #endif
 
@@ -675,8 +711,8 @@ private:
 
 
 		// size must be a power of two (and greater than 0)
-		Block(size_t const& _size, char* _rawThis, char* _data)
-			: front(0), localTail(0), tail(0), localFront(0), next(nullptr), data(_data), sizeMask(_size - 1), rawThis(_rawThis)
+		AE_NO_TSAN Block(size_t const& _size, char* _rawThis, char* _data)
+			: front(0UL), localTail(0), tail(0UL), localFront(0), next(nullptr), data(_data), sizeMask(_size - 1), rawThis(_rawThis)
 		{
 		}
 
@@ -689,7 +725,7 @@ private:
 	};
 	
 	
-	static Block* make_block(size_t capacity)
+	static Block* make_block(size_t capacity) AE_NO_TSAN
 	{
 		// Allocate enough memory for the block itself, as well as all the elements it will contain
 		auto size = sizeof(Block) + std::alignment_of<Block>::value - 1;
@@ -705,16 +741,16 @@ private:
 	}
 
 private:
-	weak_atomic<Block*> frontBlock;		// (Atomic) Elements are enqueued to this block
+	weak_atomic<Block*> frontBlock;		// (Atomic) Elements are dequeued from this block
 	
 	char cachelineFiller[MOODYCAMEL_CACHE_LINE_SIZE - sizeof(weak_atomic<Block*>)];
-	weak_atomic<Block*> tailBlock;		// (Atomic) Elements are dequeued from this block
+	weak_atomic<Block*> tailBlock;		// (Atomic) Elements are enqueued to this block
 
 	size_t largestBlockSize;
 
 #ifndef NDEBUG
-	bool enqueuing;
-	bool dequeuing;
+	weak_atomic<bool> enqueuing;
+	mutable weak_atomic<bool> dequeuing;
 #endif
 };
 
@@ -726,18 +762,29 @@ private:
 	typedef ::moodycamel::ReaderWriterQueue<T, MAX_BLOCK_SIZE> ReaderWriterQueue;
 	
 public:
-	explicit BlockingReaderWriterQueue(size_t maxSize = 15)
-		: inner(maxSize)
+	explicit BlockingReaderWriterQueue(size_t size = 15) AE_NO_TSAN
+		: inner(size), sema(new spsc_sema::LightweightSemaphore())
 	{ }
 
-	
+	BlockingReaderWriterQueue(BlockingReaderWriterQueue&& other) AE_NO_TSAN
+		: inner(std::move(other.inner)), sema(std::move(other.sema))
+	{ }
+
+	BlockingReaderWriterQueue& operator=(BlockingReaderWriterQueue&& other) AE_NO_TSAN
+	{
+		std::swap(sema, other.sema);
+		std::swap(inner, other.inner);
+		return *this;
+	}
+
+
 	// Enqueues a copy of element if there is room in the queue.
 	// Returns true if the element was enqueued, false otherwise.
 	// Does not allocate memory.
-	AE_FORCEINLINE bool try_enqueue(T const& element)
+	AE_FORCEINLINE bool try_enqueue(T const& element) AE_NO_TSAN
 	{
 		if (inner.try_enqueue(element)) {
-			sema.signal();
+			sema->signal();
 			return true;
 		}
 		return false;
@@ -746,23 +793,36 @@ public:
 	// Enqueues a moved copy of element if there is room in the queue.
 	// Returns true if the element was enqueued, false otherwise.
 	// Does not allocate memory.
-	AE_FORCEINLINE bool try_enqueue(T&& element)
+	AE_FORCEINLINE bool try_enqueue(T&& element) AE_NO_TSAN
 	{
 		if (inner.try_enqueue(std::forward<T>(element))) {
-			sema.signal();
+			sema->signal();
 			return true;
 		}
 		return false;
 	}
 
+#if MOODYCAMEL_HAS_EMPLACE
+	// Like try_enqueue() but with emplace semantics (i.e. construct-in-place).
+	template<typename... Args>
+	AE_FORCEINLINE bool try_emplace(Args&&... args) AE_NO_TSAN
+	{
+		if (inner.try_emplace(std::forward<Args>(args)...)) {
+			sema->signal();
+			return true;
+		}
+		return false;
+	}
+#endif
+
 
 	// Enqueues a copy of element on the queue.
 	// Allocates an additional block of memory if needed.
 	// Only fails (returns false) if memory allocation fails.
-	AE_FORCEINLINE bool enqueue(T const& element)
+	AE_FORCEINLINE bool enqueue(T const& element) AE_NO_TSAN
 	{
 		if (inner.enqueue(element)) {
-			sema.signal();
+			sema->signal();
 			return true;
 		}
 		return false;
@@ -771,23 +831,36 @@ public:
 	// Enqueues a moved copy of element on the queue.
 	// Allocates an additional block of memory if needed.
 	// Only fails (returns false) if memory allocation fails.
-	AE_FORCEINLINE bool enqueue(T&& element)
+	AE_FORCEINLINE bool enqueue(T&& element) AE_NO_TSAN
 	{
 		if (inner.enqueue(std::forward<T>(element))) {
-			sema.signal();
+			sema->signal();
 			return true;
 		}
 		return false;
 	}
+
+#if MOODYCAMEL_HAS_EMPLACE
+	// Like enqueue() but with emplace semantics (i.e. construct-in-place).
+	template<typename... Args>
+	AE_FORCEINLINE bool emplace(Args&&... args) AE_NO_TSAN
+	{
+		if (inner.emplace(std::forward<Args>(args)...)) {
+			sema->signal();
+			return true;
+		}
+		return false;
+	}
+#endif
 
 
 	// Attempts to dequeue an element; if the queue is empty,
 	// returns false instead. If the queue has at least one element,
 	// moves front to result using operator=, then returns true.
 	template<typename U>
-	bool try_dequeue(U& result)
+	bool try_dequeue(U& result) AE_NO_TSAN
 	{
-		if (sema.tryWait()) {
+		if (sema->tryWait()) {
 			bool success = inner.try_dequeue(result);
 			assert(success);
 			AE_UNUSED(success);
@@ -800,9 +873,9 @@ public:
 	// Attempts to dequeue an element; if the queue is empty,
 	// waits until an element is available, then dequeues it.
 	template<typename U>
-	void wait_dequeue(U& result)
+	void wait_dequeue(U& result) AE_NO_TSAN
 	{
-		sema.wait();
+		while (!sema->wait());
 		bool success = inner.try_dequeue(result);
 		AE_UNUSED(result);
 		assert(success);
@@ -817,9 +890,9 @@ public:
 	// Using a negative timeout indicates an indefinite timeout,
 	// and is thus functionally equivalent to calling wait_dequeue.
 	template<typename U>
-	bool wait_dequeue_timed(U& result, std::int64_t timeout_usecs)
+	bool wait_dequeue_timed(U& result, std::int64_t timeout_usecs) AE_NO_TSAN
 	{
-		if (!sema.wait(timeout_usecs)) {
+		if (!sema->wait(timeout_usecs)) {
 			return false;
 		}
 		bool success = inner.try_dequeue(result);
@@ -838,7 +911,7 @@ public:
 	// Using a negative timeout indicates an indefinite timeout,
 	// and is thus functionally equivalent to calling wait_dequeue.
 	template<typename U, typename Rep, typename Period>
-	inline bool wait_dequeue_timed(U& result, std::chrono::duration<Rep, Period> const& timeout)
+	inline bool wait_dequeue_timed(U& result, std::chrono::duration<Rep, Period> const& timeout) AE_NO_TSAN
 	{
         return wait_dequeue_timed(result, std::chrono::duration_cast<std::chrono::microseconds>(timeout).count());
 	}
@@ -850,7 +923,7 @@ public:
 	// queue appears empty at the time the method is called, nullptr is
 	// returned instead.
 	// Must be called only from the consumer thread.
-	AE_FORCEINLINE T* peek()
+	AE_FORCEINLINE T* peek() const AE_NO_TSAN
 	{
 		return inner.peek();
 	}
@@ -858,9 +931,9 @@ public:
 	// Removes the front element from the queue, if any, without returning it.
 	// Returns true on success, or false if the queue appeared empty at the time
 	// `pop` was called.
-	AE_FORCEINLINE bool pop()
+	AE_FORCEINLINE bool pop() AE_NO_TSAN
 	{
-		if (sema.tryWait()) {
+		if (sema->tryWait()) {
 			bool result = inner.pop();
 			assert(result);
 			AE_UNUSED(result);
@@ -871,20 +944,32 @@ public:
 	
 	// Returns the approximate number of items currently in the queue.
 	// Safe to call from both the producer and consumer threads.
-	AE_FORCEINLINE size_t size_approx() const
+	AE_FORCEINLINE size_t size_approx() const AE_NO_TSAN
 	{
-		return sema.availableApprox();
+		return sema->availableApprox();
 	}
 
+	// Returns the total number of items that could be enqueued without incurring
+	// an allocation when this queue is empty.
+	// Safe to call from both the producer and consumer threads.
+	//
+	// NOTE: The actual capacity during usage may be different depending on the consumer.
+	//       If the consumer is removing elements concurrently, the producer cannot add to
+	//       the block the consumer is removing from until it's completely empty, except in
+	//       the case where the producer was writing to the same block the consumer was
+	//       reading from the whole time.
+	AE_FORCEINLINE size_t max_capacity() const {
+		return inner.max_capacity();
+	}
 
 private:
 	// Disable copying & assignment
-	BlockingReaderWriterQueue(ReaderWriterQueue const&) {  }
-	BlockingReaderWriterQueue& operator=(ReaderWriterQueue const&) {  }
+	BlockingReaderWriterQueue(BlockingReaderWriterQueue const&) {  }
+	BlockingReaderWriterQueue& operator=(BlockingReaderWriterQueue const&) {  }
 	
 private:
 	ReaderWriterQueue inner;
-	spsc_sema::LightweightSemaphore sema;
+	std::unique_ptr<spsc_sema::LightweightSemaphore> sema;
 };
 
 }    // end namespace moodycamel

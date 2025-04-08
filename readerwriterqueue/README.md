@@ -1,3 +1,4 @@
+
 # A single-producer, single-consumer lock-free queue for C++
 
 This mini-repository has my very own implementation of a lock-free queue (that I designed from scratch) for C++.
@@ -6,6 +7,8 @@ It only supports a two-thread use case (one consuming, and one producing). The t
 you could use this queue completely from a single thread if you wish (but that would sort of defeat the purpose!).
 
 Note: If you need a general-purpose multi-producer, multi-consumer lock free queue, I have [one of those too][mpmc].
+
+This repository also includes a [circular-buffer SPSC queue][circular] which supports blocking on enqueue as well as dequeue.
 
 
 ## Features
@@ -25,7 +28,7 @@ Note: If you need a general-purpose multi-producer, multi-consumer lock free que
 
 ## Use
 
-Simply drop the readerwriterqueue.h and atomicops.h files into your source code and include them :-)
+Simply drop the readerwriterqueue.h (or readerwritercircularbuffer.h) and atomicops.h files into your source code and include them :-)
 A modern compiler is required (MSVC2010+, GCC 4.7+, ICC 13+, or any C++11 compliant compiler should work).
 
 Note: If you're using GCC, you really do need GCC 4.7 or above -- [4.6 has a bug][gcc46bug] that prevents the atomic fence primitives
@@ -64,14 +67,18 @@ BlockingReaderWriterQueue<int> q;
 
 std::thread reader([&]() {
     int item;
+#if 1
     for (int i = 0; i != 100; ++i) {
         // Fully-blocking:
         q.wait_dequeue(item);
-
+    }
+#else
+    for (int i = 0; i != 100; ) {
         // Blocking with timeout
         if (q.wait_dequeue_timed(item, std::chrono::milliseconds(5)))
             ++i;
     }
+#endif
 });
 std::thread writer([&]() {
     for (int i = 0; i != 100; ++i) {
@@ -90,7 +97,71 @@ means care must be taken to only call `wait_dequeue` if you're sure another elem
 will come along eventually, or if the queue has a static lifetime. This is because
 destroying the queue while a thread is waiting on it will invoke undefined behaviour.
 
-    
+The blocking circular buffer has a fixed number of slots, but is otherwise quite similar to
+use:
+
+```cpp
+BlockingReaderWriterCircularBuffer<int> q(1024);  // pass initial capacity
+
+q.try_enqueue(1);
+int number;
+q.try_dequeue(number);
+assert(number == 1);
+
+q.wait_enqueue(123);
+q.wait_dequeue(number);
+assert(number == 123);
+
+q.wait_dequeue_timed(number, std::chrono::milliseconds(10));
+```
+
+
+## CMake
+### Using targets in your project
+Using this project as a part of an existing CMake project is easy.
+
+In your CMakeLists.txt:
+```
+include(FetchContent)
+
+FetchContent_Declare(
+  readerwriterqueue
+  GIT_REPOSITORY    https://github.com/cameron314/readerwriterqueue
+  GIT_TAG           master
+)
+
+FetchContent_MakeAvailable(readerwriterqueue)
+
+add_library(my_target main.cpp)
+target_link_libraries(my_target PUBLIC readerwriterqueue)
+```
+
+In main.cpp:
+```cpp
+#include <readerwriterqueue.h>
+
+int main()
+{
+    moodycamel::ReaderWriterQueue<int> q(100);
+}
+```
+
+### Installing into system directories
+As an alternative to including the source files in your project directly,
+you can use CMake to install the library in your system's include directory:
+
+```
+mkdir build
+cd build
+cmake ..
+make install
+```
+
+Then, you can include it from your source code:
+```
+#include <readerwriterqueue/readerwriterqueue.h>
+```
+
 ## Disclaimers
 
 The queue should only be used on platforms where aligned integer and pointer access is atomic; fortunately, that
@@ -98,14 +169,6 @@ includes all modern processors (e.g. x86/x86-64, ARM, and PowerPC). *Not* for us
 
 Note that it's only been tested on x86(-64); if someone has access to other processors I'd love to run some tests on
 anything that's not x86-based.
-
-Finally, I am not an expert. This is my first foray into lock-free programming, and though I'm confident in the code,
-it's possible that there are bugs despite the effort I put into designing and testing this data structure.
-
-Use this code at your own risk; in particular, lock-free programming is a patent minefield, and this code may very
-well violate a pending patent (I haven't looked). It's worth noting that I came up with this algorithm and
-implementation from scratch, independent of any existing lock-free queues.
-
 
 ## More info
 
@@ -120,3 +183,4 @@ about lock-free programming.
 [benchmarks]: http://moodycamel.com/blog/2013/a-fast-lock-free-queue-for-c++#benchmarks
 [gcc46bug]: http://stackoverflow.com/questions/16429669/stdatomic-thread-fence-has-undefined-reference
 [mpmc]: https://github.com/cameron314/concurrentqueue
+[circular]: readerwritercircularbuffer.h
