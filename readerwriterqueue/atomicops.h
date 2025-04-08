@@ -681,16 +681,19 @@ namespace moodycamel
 		        // Is there a better way to set the initial spin count?
 		        // If we lower it to 1000, testBenaphore becomes 15x slower on my Core i7-5930K Windows PC,
 		        // as threads start hitting the kernel semaphore.
-		        int spin = 1024;
-		        while (--spin >= 0)
-		        {
-		            if (m_count.load() > 0)
-		            {
-		                m_count.fetch_add_acquire(-1);
-		                return true;
-		            }
-		            compiler_fence(memory_order_acquire);     // Prevent the compiler from collapsing the loop.
-		        }
+				// partial spinning disabled as it is not useful for most mqmgateway 
+				// workload scenarios and it takes a lot of CPU time on very slow devices like RPI Zero
+				// See https://github.com/BlackZork/mqmgateway/issues/86
+		        // int spin = 1024;
+		        // while (--spin >= 0)
+		        // {
+		        //     if (m_count.load() > 0)
+		        //     {
+		        //         m_count.fetch_add_acquire(-1);
+		        //         return true;
+		        //     }
+		        //     compiler_fence(memory_order_acquire);     // Prevent the compiler from collapsing the loop.
+		        // }
 		        oldCount = m_count.fetch_add_acquire(-1);
 				if (oldCount > 0)
 					return true;
