@@ -33,6 +33,7 @@ class ExprtkConverter : public DataConverter {
             mSymbolTable.add_function("flt32",   flt32);
             mSymbolTable.add_function("flt32be", flt32be);
             mSymbolTable.add_function("int16", int16);
+            mSymbolTable.add_function("twos32", twos32);
             mSymbolTable.add_constants();
 
             char buf[16];
@@ -57,6 +58,12 @@ class ExprtkConverter : public DataConverter {
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
         int mPrecision = -1;
+
+        static double twos32(const double highRegister, const double lowRegister) {
+            uint32_t res = ((uint16_t)highRegister) << 16 | ((uint16_t)lowRegister);
+            res -= 1;
+            return ~res;
+        }
 
         static double int32(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
