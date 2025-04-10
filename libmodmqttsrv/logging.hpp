@@ -10,6 +10,7 @@ class Log {
     public:
         enum severity
         {
+            none,
             critical,
             error,
             warn,

@@ -30,6 +30,7 @@ std::ostream& operator<< (std::ostream& strm, Log::severity level)
 {
     static const char* strings[] =
     {
+        "NONE",
         "CRITICAL",
         "ERROR",
         "WARN ",
@@ -48,6 +49,10 @@ std::ostream& operator<< (std::ostream& strm, Log::severity level)
 
 
 void Log::init_logging(severity level) {
+    if (level == modmqttd::Log::none) {
+       boost::log::core::get()->set_logging_enabled(false);
+       return;
+    }
     typedef sinks::synchronous_sink< sinks::text_ostream_backend > text_sink;
     boost::shared_ptr< text_sink > sink = boost::make_shared< text_sink >();
 
@@ -92,10 +97,6 @@ void Log::init_logging(severity level) {
     sink->set_formatter
     (
         formatter
-        // expr::stream
-        //     << expr::attr<boost::posix_time::ptime>("TimeStamp")
-        //     << ": [" << log_severity << "]\t"
-        //     << expr::smessage
     );
 
     sink->set_filter(log_severity <= level);
@@ -105,7 +106,6 @@ void Log::init_logging(severity level) {
     core->add_sink(sink);
     //TODO remove timestamp, journalctl will add it anyway?
     core->add_global_attribute("TimeStamp", attrs::local_clock());
-
 }
 
 }

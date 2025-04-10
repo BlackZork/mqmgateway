@@ -30,7 +30,7 @@ int main(int ac, char* av[]) {
 
         desc.add_options()
             ("help", "produce help message")
-            ("loglevel, l", args::value<int>(&logLevel), "set log level 1-6, higher is more verbose")
+            ("loglevel, l", args::value<int>(&logLevel), "setup logging: 0 off, 1-6 sets loglevel, higher is more verbose")
             ("config, c", args::value<string>(&configPath), "path to configuration file")
         ;
 
@@ -45,7 +45,7 @@ int main(int ac, char* av[]) {
 
         modmqttd::Log::severity level = modmqttd::Log::severity::info;
         if (vm.count("loglevel")) {
-            level = (modmqttd::Log::severity)(vm["loglevel"].as<int>() - 1);
+            level = (modmqttd::Log::severity)(vm["loglevel"].as<int>());
         }
 
         modmqttd::Log::init_logging(level);
