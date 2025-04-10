@@ -55,8 +55,8 @@ class MsgRegisterWriteFailed : public ModbusSlaveAddressRange {
 class MsgRegisterPoll : public ModbusSlaveAddressRange {
     public:
         static constexpr std::chrono::milliseconds INVALID_REFRESH = std::chrono::milliseconds(-1);
-        MsgRegisterPoll(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount=1)
-            : ModbusSlaveAddressRange(pSlaveId, pRegisterNumber, pType, pCount)
+        MsgRegisterPoll(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount=1, uint16_t errorValue=0xffff)
+            : ModbusSlaveAddressRange(pSlaveId, pRegisterNumber, pType, pCount), errorValue(errorValue)
         {
 #ifndef NDEBUG
             if (mRegister < 0)
@@ -71,6 +71,7 @@ class MsgRegisterPoll : public ModbusSlaveAddressRange {
 
         std::chrono::milliseconds mRefreshMsec = INVALID_REFRESH;
         PublishMode mPublishMode = PublishMode::ON_CHANGE;
+        uint16_t errorValue;
 };
 
 class MsgRegisterPollSpecification {

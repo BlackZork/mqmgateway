@@ -147,7 +147,12 @@ ModbusExecutor::pollRegisters(RegisterPoll& reg, bool forceSend) {
     try {
         std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
-        std::vector<uint16_t> newValues(mModbus->readModbusRegisters(reg.mSlaveId, reg));
+        std::vector<uint16_t> newValues = {reg.errorValue};
+        try {
+            newValues = mModbus->readModbusRegisters(reg.mSlaveId, reg);
+        } catch (const ModbusReadException& ex) {
+            // return;
+        }
         reg.mLastReadOk = true;
 
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
