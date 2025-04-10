@@ -11,6 +11,7 @@
 #include "single_arg_ops.hpp"
 #include "string.hpp"
 #include "uint32.hpp"
+#include "timestamp.hpp"
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
@@ -40,5 +41,7 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new BitConverter();
     else if (name == "map")
         return new MapConverter();
+    else if (name == "timestamp")
+        return new TimestampGenerator();
     return nullptr;
 }
