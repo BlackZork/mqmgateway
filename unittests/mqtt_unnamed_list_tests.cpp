@@ -263,7 +263,7 @@ SECTION ("should output nested single element array #65") {
 }
 
 
-TEST_CASE ("issue_87_bug") {
+TEST_CASE ("Unnamed state list declared as a register list with a converter") {
 
 TestConfig config(R"(
 modmqttd:
@@ -288,14 +288,14 @@ mqtt:
           converter: std.multiply(10)
 )");
 
-SECTION ("should json array with a single element") {
+SECTION ("should output json array with single element") {
     MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 8);
     server.start();
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE_JSON(server.mqttValue("test_state/state"), "[8]");
+    REQUIRE_JSON(server.mqttValue("test_state/state"), "[80]");
     server.stop();
 }
 
