@@ -37,7 +37,7 @@ class SingleArgMathConverter : public DataConverter {
         SingleArgMathConverter(int defaultPrecision) : mPrecision(defaultPrecision) {}
 
         double mDoubleArg;
-        int mPrecision;
+        int mPrecision = MqttValue::NO_PRECISION;
         bool mLowFirst = false;
 
         virtual double doMath(double value) const = 0;

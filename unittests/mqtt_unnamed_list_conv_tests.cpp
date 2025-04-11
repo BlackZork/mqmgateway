@@ -2,6 +2,8 @@
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
 #include "defaults.hpp"
+#include "yaml_utils.hpp"
+
 
 TEST_CASE ("Unnamed state list should output converted value") {
 
@@ -139,3 +141,4 @@ mqtt:
         server.stop();
     }
 }
+
