@@ -263,3 +263,42 @@ SECTION ("should output nested single element array #65") {
 }
 
 
+TEST_CASE ("issue_87_bug") {
+
+TestConfig config(R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+  converter_plugins:
+    - stdconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  refresh: 1s
+  broker:
+    host: localhost
+  objects:
+    - topic: test_state
+      state:
+        - register: tcptest.1.2
+          converter: std.multiply(10)
+)");
+
+SECTION ("should json array with a single element") {
+    MockedModMqttServerThread server(config.toString());
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 8);
+    server.start();
+
+    server.waitForPublish("test_state/state");
+
+    REQUIRE_JSON(server.mqttValue("test_state/state"), "[8]");
+    server.stop();
+}
+
+}
+
+
