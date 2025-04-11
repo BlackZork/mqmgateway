@@ -17,9 +17,16 @@ createConvertedValue(
             break;
         case MqttValue::SourceType::DOUBLE: {
             int prec = value.getDoublePrecision();
-            if (prec != MqttValue::NO_PRECISION)
+            if (prec > 0)
                 writer.SetMaxDecimalPlaces(prec);
-            writer.Double(value.getDouble());
+            else if (prec == MqttValue::NO_PRECISION)
+                // same as sstream default, see MqttValue::format(double val)
+                writer.SetMaxDecimalPlaces(6);
+
+            if (prec == 0)
+                writer.Int64(value.getInt64());
+            else
+                writer.Double(value.getDouble());
             break;
         }
         case MqttValue::SourceType::BINARY:
