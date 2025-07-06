@@ -718,8 +718,8 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
     if (!mqtt.IsDefined())
         throw ConfigurationException(config.Mark(), "mqtt section is missing");
 
-    auto defaultRefresh = std::chrono::milliseconds(5000);
-    ConfigTools::readOptionalValue<std::chrono::milliseconds>(defaultRefresh, mqtt, "refresh");
+    auto mqttDefaultRefresh = std::chrono::milliseconds(5000);
+    ConfigTools::readOptionalValue<std::chrono::milliseconds>(mqttDefaultRefresh, mqtt, "refresh");
 
     PublishMode defaultPublishMode = parsePublishMode(mqtt);
 
@@ -746,6 +746,9 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
         // default undefined slave - register address must contain slave id
         if (slaves.size() == 0)
             slaves.push_back(std::pair<int,int>(-1, -1));
+
+        auto defaultRefresh = mqttDefaultRefresh;
+        ConfigTools::readOptionalValue<std::chrono::milliseconds>(defaultRefresh, objdata, "refresh");
 
         for(const std::string& currentNetwork: networks) {
             if (currentNetwork.size() != 0) {
