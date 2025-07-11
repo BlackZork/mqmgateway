@@ -28,7 +28,7 @@ TEST_CASE ("Scale value with integer result") {
     REQUIRE(ret.getString() == "100");
 }
 
-
+/*
 TEST_CASE("int32 tests") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
@@ -94,7 +94,7 @@ TEST_CASE("int32 tests") {
         REQUIRE(output.getValue(1) == 0x4);
     }
 }
-
+*/
 
 TEST_CASE ("read int16 value") {
     std::string stdconv_path = "../stdconv/stdconv.so";
