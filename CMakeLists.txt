@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.28)
 project(modmqttd VERSION 1.0.0)
 
 option(WITHOUT_TESTS "Do not build unit tests")
@@ -12,11 +12,20 @@ if (POLICY CMP0167)
     cmake_policy(SET CMP0167 OLD)
 endif()
 
-find_package(Boost 1.54.0 REQUIRED COMPONENTS log program_options)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
+# Uncomment to test with locally installed boost
+#set(Boost_NO_BOOST_CMAKE ON)
+#set(BOOST_NO_SYSTEM_PATHS ON)
+#set(BOOST_ROOT "/path/to/boost")
+
+find_package(Boost 1.76.0 COMPONENTS filesystem log program_options REQUIRED)
 set(Boost_USE_STATIC_LIBS        OFF)
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     OFF)
 set(BOOST_ALL_DYN_LINK           ON) 
+
+message("Boost found at: ${Boost_INCLUDE_DIRS}")
 
 find_package(PkgConfig)
 pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
