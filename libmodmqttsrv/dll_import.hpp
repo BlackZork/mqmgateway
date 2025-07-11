@@ -48,10 +48,10 @@ std::shared_ptr<T>
 boost_dll_import(
     const boost::dll::fs::path& lib, 
     const char* name,
-    load_mode::type mode = load_mode::default_mode) 
+    boost::dll::load_mode::type mode) 
 {
-    boost::shared_ptr<T> ret(boost::dll::import(lib, name, mode));
-    return std::shared_ptr<T>(ret.release());
+    boost::shared_ptr<T> ret(boost::dll::import<T>(lib, name, mode));
+    return to_std(ret);
 }
 #endif //>= 1.76.0
 #endif //>= 1.88.0
