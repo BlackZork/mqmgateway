@@ -6,6 +6,7 @@
 
 
 #include "common.hpp"
+#include "dll_import.hpp"
 #include "modmqtt.hpp"
 #include "config.hpp"
 #include "queue_item.hpp"
@@ -297,7 +298,7 @@ ModMqtt::initConverterPlugin(const std::string& name) {
 
     BOOST_LOG_SEV(log, Log::debug) << "Trying to load converter plugin from " << final_path;
 
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         final_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations

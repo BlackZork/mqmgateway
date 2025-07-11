@@ -11,12 +11,6 @@
 
 namespace modmqttd {
 
-#if BOOST_VERSION >= 107600 // 1.76.0
-#define boost_dll_import boost::dll::import_symbol
-#else
-#define boost_dll_import boost::dll::import
-#endif
-
 class ConfigurationException : public ModMqttException {
     public:
         ConfigurationException(const YAML::Mark& mark, const char* what);

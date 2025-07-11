@@ -1,13 +1,13 @@
 #include <libmodmqttsrv/config.hpp>
 #include "catch2/catch_all.hpp"
-#include <boost/dll/import.hpp>
+#include "libmodmqttsrv/dll_import.hpp"
 
 #include "libmodmqttconv/converterplugin.hpp"
 
 TEST_CASE("A float32 value should be read") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -73,7 +73,7 @@ TEST_CASE("A float32 value should be read") {
 TEST_CASE("A float32 value should be written") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations

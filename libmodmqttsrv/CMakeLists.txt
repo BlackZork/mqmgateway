@@ -11,6 +11,7 @@ add_library(modmqttsrv
     debugtools.hpp
     default_command_converter.cpp
     default_command_converter.hpp
+    dll_import.hpp
     logging.cpp
     logging.hpp
     modbus_client.cpp 

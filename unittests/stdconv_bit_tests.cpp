@@ -1,6 +1,6 @@
 #include <libmodmqttsrv/config.hpp>
 #include "catch2/catch_all.hpp"
-#include <boost/dll/import.hpp>
+#include "libmodmqttsrv/dll_import.hpp"
 
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttconv/convexception.hpp"
@@ -9,7 +9,7 @@
 TEST_CASE("Bit converter") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations

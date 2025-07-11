@@ -1,14 +1,13 @@
-#include <libmodmqttsrv/config.hpp>
 #include "catch2/catch_all.hpp"
-#include <boost/dll/import.hpp>
 
 #include "libmodmqttconv/converterplugin.hpp"
-
+#include "libmodmqttsrv/config.hpp"
+#include "libmodmqttsrv/dll_import.hpp"
 
 TEST_CASE("When reading int8 byte from single register") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -39,7 +38,7 @@ TEST_CASE("When reading int8 byte from single register") {
 TEST_CASE("When reading uint8 byte from single register") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations

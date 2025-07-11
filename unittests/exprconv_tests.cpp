@@ -1,13 +1,13 @@
-#include <boost/dll/import.hpp>
 #include <catch2/catch_all.hpp>
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttsrv/config.hpp"
+#include "libmodmqttsrv/dll_import.hpp"
 
 #ifdef HAVE_EXPRTK
 
 TEST_CASE ("A number should be converted by exprtk") {
     std::string stdconv_path = "../exprconv/exprconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -36,7 +36,7 @@ TEST_CASE ("A number should be converted by exprtk") {
 
 TEST_CASE("A 32-bit number should be converted by exprtk") {
     std::string stdconv_path = "../exprconv/exprconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -121,7 +121,7 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
 
 TEST_CASE ("A uint16_t register data should be converted to exprtk value") {
     std::string stdconv_path = "../exprconv/exprconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
