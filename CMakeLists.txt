@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.13)
 project(modmqttd VERSION 1.0.0)
 
 option(WITHOUT_TESTS "Do not build unit tests")
