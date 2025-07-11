@@ -19,7 +19,7 @@ endif()
 #set(BOOST_NO_SYSTEM_PATHS ON)
 #set(BOOST_ROOT "/path/to/boost")
 
-find_package(Boost 1.76.0 COMPONENTS filesystem log program_options REQUIRED)
+find_package(Boost 1.54.0 COMPONENTS filesystem log program_options REQUIRED)
 set(Boost_USE_STATIC_LIBS        OFF)
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     OFF)
