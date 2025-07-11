@@ -5,7 +5,7 @@
 
 TEST_CASE("When a string") {
     std::string stdconv_path = "../stdconv/stdconv.so";
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations

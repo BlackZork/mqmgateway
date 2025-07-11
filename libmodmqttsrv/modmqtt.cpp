@@ -256,7 +256,7 @@ ModMqtt::initServer(const YAML::Node& config) {
             std::string path = path_node.as<std::string>();
 
             try {
-                boost::shared_ptr<ConverterPlugin> plugin = initConverterPlugin(path);
+                std::shared_ptr<ConverterPlugin> plugin = initConverterPlugin(path);
                 if (hasConverterPlugin(plugin->getName())) {
                     throw ConfigurationException(config.Mark(), std::string("Converter plugin ") + plugin->getName() + " already loaded");
                 }
@@ -270,7 +270,7 @@ ModMqtt::initServer(const YAML::Node& config) {
     }
 }
 
-boost::shared_ptr<ConverterPlugin>
+std::shared_ptr<ConverterPlugin>
 ModMqtt::initConverterPlugin(const std::string& name) {
     std::string final_path;
     boost::filesystem::path current_path = name;
@@ -297,7 +297,7 @@ ModMqtt::initConverterPlugin(const std::string& name) {
 
     BOOST_LOG_SEV(log, Log::debug) << "Trying to load converter plugin from " << final_path;
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         final_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -672,7 +672,7 @@ ModMqtt::createConverterInstance(const std::string pluginName, const std::string
     auto it = std::find_if(
         mConverterPlugins.begin(),
         mConverterPlugins.end(),
-        [&pluginName](const boost::shared_ptr<ConverterPlugin>& plugin)
+        [&pluginName](const std::shared_ptr<ConverterPlugin>& plugin)
             -> bool { return plugin->getName() == pluginName; }
 
     );
@@ -944,7 +944,7 @@ ModMqtt::hasConverterPlugin(const std::string& name) const {
     auto it = std::find_if(
         mConverterPlugins.begin(),
         mConverterPlugins.end(),
-        [&name](const boost::shared_ptr<ConverterPlugin>& plugin)
+        [&name](const std::shared_ptr<ConverterPlugin>& plugin)
             -> bool { return plugin->getName() == name; }
 
     );

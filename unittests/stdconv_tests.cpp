@@ -8,7 +8,7 @@
 TEST_CASE ("Scale value with integer result") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -28,10 +28,11 @@ TEST_CASE ("Scale value with integer result") {
     REQUIRE(ret.getString() == "100");
 }
 
+
 TEST_CASE("int32 tests") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -44,8 +45,7 @@ TEST_CASE("int32 tests") {
         ModbusRegisters input({32768,1});
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == -2147483647);
-    }
+        REQUIRE(output.getString() == "-2147483647");   }
 
     SECTION("read int32 from two modbus registers (low, high)") {
         std::vector<std::string> args = {
@@ -95,10 +95,11 @@ TEST_CASE("int32 tests") {
     }
 }
 
+
 TEST_CASE ("read int16 value") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
@@ -117,7 +118,7 @@ TEST_CASE ("read int16 value") {
 TEST_CASE("uint32 tests") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
         stdconv_path,
         "converter_plugin",
         boost::dll::load_mode::append_decorations
