@@ -4,6 +4,8 @@
 
 #include "libmodmqttconv/converterplugin.hpp"
 
+#include "testnumbers.hpp"
+
 TEST_CASE("A float32 value should be read") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
@@ -13,49 +15,47 @@ TEST_CASE("A float32 value should be read") {
         boost::dll::load_mode::append_decorations
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("float32"));
-    std::vector<std::string> args;
-
-    const float expected = -123.456f; // 0xc2f6e979 in IEEE 754 hex representation
-    const std::string expectedString = "-123.456001";
 
     SECTION("when two registers contains a float ABCD format") {
-        const ModbusRegisters input({0xc2f6, 0xe979});
+        const ModbusRegisters input({TestNumbers::Float::AB, TestNumbers::Float::CD});
 
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
-        REQUIRE(output.getString() == expectedString);
+        REQUIRE(output.getDouble() == TestNumbers::Float::ABCD_as_float);
+
+        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::ABCD_as_float, 0));
+        REQUIRE(output.getString() == "-1.234567");
     }
 
     SECTION("when two registers contains a float CDAB format") {
-        const ModbusRegisters input({0xe979, 0xc2f6});
+        const ModbusRegisters input({TestNumbers::Float::CD, TestNumbers::Float::AB});
 
         conv->setArgs(std::vector<std::string>({"-1", "low_first"}));
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
-        REQUIRE(output.getString() == expectedString);
+        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::ABCD_as_float, 0));
+        REQUIRE(output.getString() == std::to_string(TestNumbers::Float::ABCD_as_float));
     }
 
     SECTION("when two registers contains a float BADC format") {
-        const ModbusRegisters input({0xf6c2, 0x79e9});
+        const ModbusRegisters input({TestNumbers::Float::BA, TestNumbers::Float::DC});
 
         conv->setArgs(std::vector<std::string>({"-1", "high_first", "swap_bytes"}));
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
-        REQUIRE(output.getString() == expectedString);
+        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::ABCD_as_float, 0));
+        REQUIRE(output.getString() == std::to_string(TestNumbers::Float::ABCD_as_float));
     }
 
 
     SECTION("when two registers contains a float DCBA format") {
-        const ModbusRegisters input({0x79e9, 0xf6c2});
+        const ModbusRegisters input({TestNumbers::Float::DC, TestNumbers::Float::BA});
 
         conv->setArgs(std::vector<std::string>({"-1", "low_first", "swap_bytes"}));
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(expected, 0));
-        REQUIRE(output.getString() == expectedString);
+        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::ABCD_as_float, 0));
+        REQUIRE(output.getString() == std::to_string(TestNumbers::Float::ABCD_as_float));
     }
 
     SECTION("when precision is set") {

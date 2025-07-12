@@ -5,7 +5,7 @@
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttconv/convexception.hpp"
 
-#include "defaults.hpp"
+#include "testnumbers.hpp"
 
 TEST_CASE("int32 tests") {
     std::string stdconv_path = "../stdconv/stdconv.so";
@@ -20,10 +20,10 @@ TEST_CASE("int32 tests") {
 
     SECTION("read int32 from two modbus registers (high, low)") {
 
-        ModbusRegisters input({TestNumbers::AB,TestNumbers::CD});
+        ModbusRegisters input({TestNumbers::Int::AB,TestNumbers::Int::CD});
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::ABCD_as_int32);   }
+        REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);   }
 
     SECTION("read int32 from two modbus registers (low, high)") {
         std::vector<std::string> args = {
@@ -31,10 +31,10 @@ TEST_CASE("int32 tests") {
         };
         conv->setArgs(args);
 
-        ModbusRegisters input({TestNumbers::AB,TestNumbers::CD});
+        ModbusRegisters input({TestNumbers::Int::AB,TestNumbers::Int::CD});
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::CDAB_as_int32);
+        REQUIRE(output.getInt() == TestNumbers::Int::CDAB_as_int32);
     }
 
     // TODO we should output warning in this case, this looks like configuration error
@@ -44,10 +44,10 @@ TEST_CASE("int32 tests") {
         };
         conv->setArgs(args);
 
-        ModbusRegisters input({TestNumbers::AB});
+        ModbusRegisters input({TestNumbers::Int::AB});
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::AB);
+        REQUIRE(output.getInt() == TestNumbers::Int::AB);
     }
 
 
@@ -57,19 +57,19 @@ TEST_CASE("int32 tests") {
         };
         conv->setArgs(args);
 
-        MqttValue input(TestNumbers::ABCD_as_int32);
+        MqttValue input(TestNumbers::Int::ABCD_as_int32);
         ModbusRegisters output = conv->toModbus(input, 2);
 
-        REQUIRE(output.getValue(0) == TestNumbers::CD);
-        REQUIRE(output.getValue(1) == TestNumbers::AB);
+        REQUIRE(output.getValue(0) == TestNumbers::Int::CD);
+        REQUIRE(output.getValue(1) == TestNumbers::Int::AB);
     }
 
     SECTION("write int32 to two modbus registers (high, low)") {
-        MqttValue input(TestNumbers::ABCD_as_int32);
+        MqttValue input(TestNumbers::Int::ABCD_as_int32);
         ModbusRegisters output = conv->toModbus(input, 2);
 
-        REQUIRE(output.getValue(0) == TestNumbers::AB);
-        REQUIRE(output.getValue(1) == TestNumbers::CD);
+        REQUIRE(output.getValue(0) == TestNumbers::Int::AB);
+        REQUIRE(output.getValue(1) == TestNumbers::Int::CD);
     }
 }
 
