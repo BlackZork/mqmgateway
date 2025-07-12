@@ -81,12 +81,12 @@ TEST_CASE("A float32 value should be written") {
     std::shared_ptr<DataConverter> conv(plugin->getConverter("float32"));
     std::vector<std::string> args;
 
-    std::string val("-123.456001");
+    std::string val("-1.234567");
     MqttValue input = MqttValue::fromBinary(val.c_str(), val.length());
 
     SECTION("to two registers in ABCD format") {
         const ModbusRegisters converted = conv->toModbus(input, 2);
-        const ModbusRegisters expected({0xc2f6, 0xe979});
+        const ModbusRegisters expected({TestNumbers::Float::AB, TestNumbers::Float::CD});
 
         REQUIRE(converted.values() == expected.values());
     }
@@ -94,7 +94,7 @@ TEST_CASE("A float32 value should be written") {
     SECTION("to two registers in CDAB format") {
         conv->setArgs(std::vector<std::string>({"-1", "low_first"}));
         const ModbusRegisters converted = conv->toModbus(input, 2);
-        const ModbusRegisters expected({0xe979, 0xc2f6});
+        const ModbusRegisters expected({TestNumbers::Float::CD, TestNumbers::Float::AB});
 
         REQUIRE(converted.values() == expected.values());
     }
@@ -102,7 +102,7 @@ TEST_CASE("A float32 value should be written") {
     SECTION("to two registers in BADC format") {
         conv->setArgs(std::vector<std::string>({"-1", "high_first", "swap_bytes"}));
         const ModbusRegisters converted = conv->toModbus(input, 2);
-        const ModbusRegisters expected({0xf6c2, 0x79e9});
+        const ModbusRegisters expected({TestNumbers::Float::BA, TestNumbers::Float::DC});
 
         REQUIRE(converted.values() == expected.values());
     }
@@ -110,7 +110,7 @@ TEST_CASE("A float32 value should be written") {
     SECTION("to two registers in DCBA format") {
         conv->setArgs(std::vector<std::string>({"-1", "low_first", "swap_bytes"}));
         const ModbusRegisters converted = conv->toModbus(input, 2);
-        const ModbusRegisters expected({0x79e9, 0xf6c2});
+        const ModbusRegisters expected({TestNumbers::Float::DC, TestNumbers::Float::BA});
 
         REQUIRE(converted.values() == expected.values());
     }
