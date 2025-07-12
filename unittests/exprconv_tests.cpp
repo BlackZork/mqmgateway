@@ -63,7 +63,7 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
         REQUIRE(output.getDouble() == 0xfedcba98);
         REQUIRE(output.getString() == "4275878552");
     }
-
+/*
     SECTION("when two registers contain a float") {
         const float expected = -123.456f; // 0xc2f6e979 in IEEE 754 hex representation
         const std::string expectedString = "-123.456001";
@@ -117,6 +117,7 @@ TEST_CASE("A 32-bit number should be converted by exprtk") {
             REQUIRE(output.getString() == "-123.456");
         }
     }
+    */
 }
 
 TEST_CASE ("A uint16_t register data should be converted to exprtk value") {

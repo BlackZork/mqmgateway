@@ -20,6 +20,12 @@ class Int {
         static constexpr int32_t CDAB_as_int32 = -1009475150;
         static constexpr int32_t DCBA_as_int32 = -725372255;
         static constexpr int32_t BADC_as_int32 = -1298017085;
+
+        static constexpr uint32_t ABCD_as_uint32 = 2712847316;
+        static constexpr uint32_t CDAB_as_uint32 = 3285492146;
+        static constexpr uint32_t DCBA_as_uint32 = 3569595041;
+        static constexpr uint32_t BADC_as_uint32 = 2996950211;
+
 };
 
 class Float {
