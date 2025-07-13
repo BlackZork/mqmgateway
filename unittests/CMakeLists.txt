@@ -69,6 +69,7 @@ add_executable(tests
     stdconv_float_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp
+    stdconv_uint32_tests.cpp
     testnumbers.cpp
     testnumbers.hpp
     two_slaves_tests.cpp

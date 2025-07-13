@@ -32,11 +32,8 @@ class FloatConverter : public DataConverter {
             CastData.in_value = value.getDouble();
 
             std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(CastData.out_value, mLowFirst, registerCount)
+                ConverterTools::int32ToRegisters(CastData.out_value, mLowFirst, mSwapBytes, registerCount)
             );
-
-            if (mSwapBytes)
-                ConverterTools::swapByteOrder(regdata);
             return ModbusRegisters(regdata);
         }
 

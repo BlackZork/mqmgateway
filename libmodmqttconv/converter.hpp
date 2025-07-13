@@ -69,16 +69,16 @@ class ConverterTools {
         /**
          * Converts single or two registers to int32_t
          * */
-        static int32_t registersToInt32(const std::vector<uint16_t>& data, bool lowFirst) {
+        static int32_t registersToInt32(const std::vector<uint16_t>& data, bool lowFirst, bool swapBytes) {
             int high = 0, low = 1;
             if (lowFirst && data.size() > 1) {
                 high = 1;
                 low = 0;
             }
-            int32_t val = data[high];
+            int32_t val = setByteOrder(data[high], swapBytes);
             if (data.size() > 1) {
                 val = val << 16;
-                val += data[low];
+                val += setByteOrder(data[low], swapBytes);
             }
             return val;
         }
@@ -87,14 +87,15 @@ class ConverterTools {
          * Converts int32 to single or two registers
          * */
 
-        static std::vector<uint16_t> int32ToRegisters(int32_t val, bool lowFirst, int registerCount) {
+        static std::vector<uint16_t> int32ToRegisters(int32_t val, bool lowFirst, bool swapBytes, int registerCount) {
             std::vector<uint16_t> ret;
-            ret.push_back(val);
+            ret.push_back(setByteOrder(val, swapBytes));
             if (registerCount == 2) {
+                uint16_t v = setByteOrder(val >> 16, swapBytes);
                 if (!lowFirst)
-                    ret.insert(ret.begin(), val >> 16);
+                    ret.insert(ret.begin(), v);
                 else
-                    ret.push_back(val >> 16);
+                    ret.push_back(v);
             }
             return ret;
         }
@@ -114,7 +115,9 @@ class ConverterTools {
          * @param value A register containing bytes A and B in order AB
          * @return A register containing bytes A and B in order BA
          */
-        static uint16_t swapByteOrder(uint16_t value) {
+        static uint16_t setByteOrder(uint16_t value, bool swap = false) {
+            if (!swap)
+                return value;
             return ((value & 0x00ff) << 8) | ((value & 0xff00) >> 8);
         }
 
@@ -125,7 +128,7 @@ class ConverterTools {
          */
         static void swapByteOrder(std::vector<uint16_t>& registers) {
             for (size_t i = 0; i < registers.size(); i++) {
-                registers[i] = swapByteOrder(registers[i]);
+                registers[i] = setByteOrder(registers[i], true);
             }
         }
 
@@ -142,9 +145,6 @@ class ConverterTools {
         template <typename T>
         static T toNumber(const uint16_t highRegister, const uint16_t lowRegister, const bool swapBytes = false) {
             std::vector<uint16_t> registers({highRegister, lowRegister});
-            if (swapBytes) {
-                swapByteOrder(registers);
-            }
 
             assert(sizeof(float) == sizeof(T));
             union {
@@ -152,7 +152,7 @@ class ConverterTools {
                 T out_value;
             } CastData;
 
-            CastData.in_value = registersToInt32(registers, false);
+            CastData.in_value = registersToInt32(registers, false, swapBytes);
             return CastData.out_value;
         }
 };

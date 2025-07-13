@@ -10,7 +10,7 @@ class SingleArgMathConverter : public DataConverter {
             if (data.getCount() == 1) {
                 val = data.getValue(0);
             } else {
-                val = ConverterTools::registersToInt32(data.values(), mLowFirst);
+                val = ConverterTools::registersToInt32(data.values(), mLowFirst, mSwapBytes);
             }
             return MqttValue::fromDouble(doMath(val), mPrecision);
         }
@@ -18,17 +18,23 @@ class SingleArgMathConverter : public DataConverter {
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
             ModbusRegisters ret;
             int32_t val = doMath(value.getDouble());
-            return ConverterTools::int32ToRegisters(val, mLowFirst, registerCount);
+            return ConverterTools::int32ToRegisters(val, mLowFirst, mSwapBytes, registerCount);
         }
 
         virtual void setArgs(const std::vector<std::string>& args) {
             mDoubleArg = ConverterTools::getDoubleArg(0, args);
-            if (args.size() > 1) {
-                mPrecision = ConverterTools::getIntArg(1, args);
-            }
-            if (args.size() > 2) {
-                std::string first_byte = ConverterTools::getArg(2, args);
-                mLowFirst = (first_byte == "low_first");
+            switch (args.size()) {
+                case 4: {
+                    std::string swapBytes = ConverterTools::getArg(3, args);
+                    mSwapBytes = (swapBytes == "swap_bytes");
+                }
+                case 3: {
+                    std::string firstByte = ConverterTools::getArg(2, args);
+                    mLowFirst = (firstByte == "low_first");
+                }
+                case 2: {
+                    mPrecision = ConverterTools::getIntArg(1, args);
+                }
             }
         }
 
@@ -39,6 +45,7 @@ class SingleArgMathConverter : public DataConverter {
         double mDoubleArg;
         int mPrecision = MqttValue::NO_PRECISION;
         bool mLowFirst = false;
+        bool mSwapBytes = false;
 
         virtual double doMath(double value) const = 0;
 };
