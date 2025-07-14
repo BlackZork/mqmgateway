@@ -35,8 +35,8 @@ TEST_CASE("exprtk should read float from two registers") {
 
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::ABCD_as_float, 0));
-        REQUIRE(output.getString() == std::to_string(TestNumbers::Float::ABCD_as_float));
+        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::CDAB_as_float, 0));
+        REQUIRE(output.getString() == std::to_string(TestNumbers::Float::CDAB_as_float));
     }
 
     SECTION("and byte order is BADC") {
@@ -55,8 +55,8 @@ TEST_CASE("exprtk should read float from two registers") {
 
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::ABCD_as_float, 0));
-        REQUIRE(output.getString() == std::to_string(TestNumbers::Float::ABCD_as_float));
+        REQUIRE_THAT(output.getDouble(), Catch::Matchers::WithinULP(TestNumbers::Float::CDAB_as_float, 0));
+        REQUIRE(output.getString() == std::to_string(TestNumbers::Float::CDAB_as_float));
     }
 
     SECTION("and precision is set") {

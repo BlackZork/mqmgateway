@@ -29,9 +29,11 @@ class ExprtkConverter : public DataConverter {
 
         virtual void setArgs(const std::vector<std::string>& args) {
             mSymbolTable.add_function("int32",   int32);
+            mSymbolTable.add_function("int32bs",   int32bs);
             mSymbolTable.add_function("uint32",  uint32);
+            mSymbolTable.add_function("uint32bs",  uint32bs);
             mSymbolTable.add_function("flt32",   flt32);
-            mSymbolTable.add_function("flt32be", flt32be);
+            mSymbolTable.add_function("flt32bs", flt32bs);
             mSymbolTable.add_function("int16", int16);
             mSymbolTable.add_constants();
 
@@ -59,19 +61,27 @@ class ExprtkConverter : public DataConverter {
         int mPrecision = -1;
 
         static double int32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, false);
+        }
+
+        static double int32bs(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
         }
 
         static double uint32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, false);
+        }
+
+        static double uint32bs(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, true);
         }
 
         static double flt32(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<float>(highRegister, lowRegister, true);
+            return ConverterTools::toNumber<float>(highRegister, lowRegister, false);
         }
 
-        static double flt32be(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<float>(highRegister, lowRegister);
+        static double flt32bs(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<float>(highRegister, lowRegister, true);
         }
 
         static double int16(const double regValue) {
