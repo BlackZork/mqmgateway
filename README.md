@@ -680,12 +680,14 @@ MQMGateway contains *std* library with basic converters ready to use:
       - divisor (required)
       - precision (optional)
       - low_first (optional)
+      - swap_bytes (optional)
 
 
     Divides value by divisor and rounds to (precision) digits after the decimal.
     For modbus data supports uint16 in single register and uint32 value in two registers.
     For int32 mode the first modbus register holds higher byte, the second holds lower byte if 'low first' is not passed.
     With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
+    With 'swap_bytes' argument bytes in both modbus registers will be swapped before division
 
   * **multiply**
 
@@ -695,8 +697,9 @@ MQMGateway contains *std* library with basic converters ready to use:
       - multipler (required)
       - precision (optional)
       - low_first (optional)
+      - swap_bytes (optional)
 
-    Multiples value. See 'divide' for description of 'precision' and 'low_first' arguments.
+    Multiples value. See 'divide' for description of 'precision', 'low_first' and 'swap_bytes' arguments.
 
   * **int8**
 
@@ -731,10 +734,12 @@ MQMGateway contains *std* library with basic converters ready to use:
 
     Arguments:
       - low_first (optional)
+      - swap_bytes (optional)
 
     Combines two modbus registers into one 32bit value or writes 32bit mqtt value to two modbus registers.
     Without arguments the first modbus register holds higher byte, the second holds lower byte.
     With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
+    With 'swap_bytes' argument bytes in both modbus registers will be swapped before conversion
 
 
   * **uint32**
@@ -743,6 +748,7 @@ MQMGateway contains *std* library with basic converters ready to use:
 
     Arguments:
       - low_first (optional)
+      - swap_bytes (optional)
 
     Same as int32, but modbus registers are interpreted as unsingned int32.
 
@@ -893,12 +899,16 @@ Register values are defined as R0..Rn variables.
     where _A_ is the most significant byte (MSB) and _D_ is the least-significant byte (LSB).
       - `int32(R0, R1)`:   Cast to signed integer _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
       - `int32(R1, R0)`:   Cast to signed integer _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
+      - `int32bs(R0, R1)`:   Cast to signed integer _ABCD_ from `R0` == _BA_ and `R1` == _DC_.
+      - `int32bs(R1, R0)`:   Cast to signed integer _ABCD_ from `R0` == _DC_ and `R1` == _BA_.
       - `uint32(R0, R1)`:  Cast to unsigned integer _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
       - `uint32(R1, R0)`:  Cast to unsigned integer _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
+      - `uint32bs(R0, R1)`:  Cast to unsigned integer _ABCD_ from `R0` == _BA_ and `R1` == _DC_.
+      - `uint32bs(R1, R0)`:  Cast to unsigned integer _ABCD_ from `R0` == _DC_ and `R1` == _BA_.
       - `flt32(R0, R1)`:   Cast to float _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
       - `flt32(R1, R0)`:   Cast to float _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
-      - `flt32be(R0, R1)`: Cast to float _ABCD_ from `R0` == _BA_ and `R1` == _DC_.
-      - `flt32be(R1, R0)`: Cast to float _ABCD_ from `R0` == _DC_ and `R1` == _BA_.
+      - `flt32bs(R0, R1)`: Cast to float _ABCD_ from `R0` == _BA_ and `R1` == _DC_.
+      - `flt32bs(R1, R0)`: Cast to float _ABCD_ from `R0` == _DC_ and `R1` == _BA_.
 
     &nbsp;
 
