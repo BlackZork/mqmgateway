@@ -40,7 +40,7 @@ TEST_CASE("exprtk should read float from two registers") {
     }
 
     SECTION("and byte order is BADC") {
-        conv->setArgs({"flt32be(R0, R1)"});
+        conv->setArgs({"flt32bs(R0, R1)"});
         const ModbusRegisters input({TestNumbers::Float::BA, TestNumbers::Float::DC});
 
         MqttValue output = conv->toMqtt(input);
@@ -50,7 +50,7 @@ TEST_CASE("exprtk should read float from two registers") {
     }
 
     SECTION("and byte order is DCBA") {
-        conv->setArgs({"flt32(R1, R0)"});
+        conv->setArgs({"flt32bs(R1, R0)"});
         const ModbusRegisters input({TestNumbers::Float::BA, TestNumbers::Float::DC});
 
         MqttValue output = conv->toMqtt(input);
