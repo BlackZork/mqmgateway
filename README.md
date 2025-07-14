@@ -939,7 +939,7 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
   objects:
     - topic: test_state
       state:
-        converter: expr.evaluate("flt32be(R0, R1)", 3)
+        converter: expr.evaluate("flt32bs(R0, R1)", 3)
         register: tcptest.1.2
         register_type: input
         count: 2
