@@ -57,7 +57,7 @@ class RegisterPoll : public RegisterCommand {
         // if we cannot read register in this time MsgRegisterReadFailed is sent
         static constexpr int DefaultReadErrorCount = 3;
 
-        RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int pRegCount, std::chrono::milliseconds pRrefreshMsec, PublishMode pPublishMode);
+        RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int pRegCount, std::chrono::milliseconds pRrefreshMsec, PublishMode pPublishMode, uint16_t errorValue = 0xffff);
 
         virtual int getRegister() const { return mRegister; };
         virtual int getCount() const { return mLastValues.size(); }
@@ -76,6 +76,8 @@ class RegisterPoll : public RegisterCommand {
         std::chrono::steady_clock::time_point mFirstErrorTime;
 
         PublishMode mPublishMode = PublishMode::ON_CHANGE;
+
+        std::uint16_t errorValue;
     private:
         std::vector<uint16_t> mLastValues;
 };
