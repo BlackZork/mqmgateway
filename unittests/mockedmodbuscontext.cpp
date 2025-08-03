@@ -20,11 +20,11 @@ MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool inter
         mWriteCount++;
         if (mDisconnected) {
             errno = EIO;
-            throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
+            throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterType) + " failed");
         }
         if (hasError(msg.mRegister, msg.mRegisterType, msg.getCount())) {
             errno = EIO;
-            throw modmqttd::ModbusWriteException(std::string("register write fn ") + std::to_string(msg.mRegister) + " failed");
+            throw modmqttd::ModbusWriteException(std::string("register write fn ") + std::to_string(msg.mRegisterType) + " failed");
         }
     }
 
@@ -70,11 +70,11 @@ MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool int
         mReadCount++;
         if (mDisconnected) {
             errno = EIO;
-            throw modmqttd::ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + " failed");
+            throw modmqttd::ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegisterType) + " failed");
         }
         if (hasError(regData.mRegister, regData.mRegisterType, regData.getCount())) {
             errno = EIO;
-            throw modmqttd::ModbusReadException(std::string("register read fn ") + std::to_string(regData.mRegister) + " failed");
+            throw modmqttd::ModbusReadException(std::string("register read fn ") + std::to_string(regData.mRegisterType) + " failed");
         }
     }
 

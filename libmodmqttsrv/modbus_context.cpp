@@ -177,7 +177,7 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
             throw ModbusContextException(std::string("Cannot read, unknown register type ") + std::to_string(regData.mRegisterType));
     }
     if (retCode == -1)
-        throw ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + std::string(" failed with return code ") + std::to_string(retCode));
+        throw ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegisterType) + std::string(" failed with return code ") + std::to_string(retCode));
 
     return ret;
 }
@@ -227,7 +227,7 @@ ModbusContext::writeModbusRegisters(int slaveId, const RegisterWrite& msg) {
             throw ModbusContextException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
     }
     if (retCode == -1)
-        throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
+        throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterType) + " failed");
 }
 
 } //namespace
