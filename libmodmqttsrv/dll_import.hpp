@@ -9,9 +9,9 @@ namespace modmqttd {
 template<class T>
 std::shared_ptr<T>
 boost_dll_import(
-    const boost::dll::fs::path& lib, 
+    const boost::dll::fs::path& lib,
     const char* name,
-    boost::dll::load_mode::type mode = boost::dll::load_mode::default_mode) 
+    boost::dll::load_mode::type mode = boost::dll::load_mode::default_mode)
     {
         return boost::dll::import_symbol<T>(lib, name, mode);
     }
@@ -33,20 +33,21 @@ boost_dll_import(
 template <class T>
 std::shared_ptr<T>
 boost_dll_import(
-    const boost::dll::fs::path& lib, 
+    const boost::dll::fs::path& lib,
     const char* name,
-    boost::dll::load_mode::type mode = boost::dll::load_mode::default_mode) 
+    boost::dll::load_mode::type mode = boost::dll::load_mode::default_mode)
 {
     boost::shared_ptr<T> ret(boost::dll::import_symbol<T>(lib, name, mode));
     return as_std_shared_ptr(ret);
 }
 
 #else
+template <class T>
 std::shared_ptr<T>
 boost_dll_import(
-    const boost::dll::fs::path& lib, 
+    const boost::dll::fs::path& lib,
     const char* name,
-    boost::dll::load_mode::type mode = boost::dll::load_mode::default_mode) 
+    boost::dll::load_mode::type mode = boost::dll::load_mode::default_mode)
 {
     boost::shared_ptr<T> ret(boost::dll::import<T>(lib, name, mode));
     return as_std_shared_ptr(ret);
