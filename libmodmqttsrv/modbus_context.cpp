@@ -183,11 +183,11 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
 
 void
 ModbusContext::writeModbusRegisters(int slaveId, const RegisterWrite& msg) {
-    if (slaveId != 0)
-        modbus_set_slave(mCtx, slaveId);
-    else
-        modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
+    modbus_set_slave(mCtx, slaveId);
 
+    bool is_broadcast = (modbus_get_slave(mCtx) == MODBUS_BROADCAST_ADDRESS);
+
+    modbus_set_response_timeout(mCtx, 0, is_broadcast ? 0 : 500000); // 500ms for broadcast, 0ms for others
 
     int retCode;
     switch(msg.mRegisterType) {
@@ -223,6 +223,10 @@ ModbusContext::writeModbusRegisters(int slaveId, const RegisterWrite& msg) {
         break;
         default:
             throw ModbusContextException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
+    }
+    if(is_broadcast) {
+        BOOST_LOG_SEV(log, Log::debug) << "Ignoring response timeout due to broadcast write";
+        return;
     }
     if (retCode == -1)
         throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
