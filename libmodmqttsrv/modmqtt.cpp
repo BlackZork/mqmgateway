@@ -737,6 +737,8 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
     for(std::size_t i = 0; i < config_objects.size(); i++) {
         const YAML::Node& objdata = config_objects[i];
 
+        auto objectRefresh = defaultRefresh;
+        ConfigTools::readOptionalValue<std::chrono::milliseconds>(objectRefresh, objdata, "refresh");
 
         std::vector<std::string> networks;
         ConfigTools::readOptionalValue<std::vector<std::string>>(networks, objdata, "network");
@@ -775,7 +777,7 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
                         currentNetwork,
                         defaultSlaveId,
                         modbusData.getSlaveName(currentNetwork, defaultSlaveId),
-                        defaultRefresh,
+                        objectRefresh,
                         defaultPublishMode,
                         pSpecsOut)
                     );
