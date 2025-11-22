@@ -34,6 +34,7 @@ class ModMqttServerThread {
 
         void start() {
             mInitError = false;
+            mException.reset();
             mServerThread.reset(new std::thread(run_server, std::ref(mConfig), std::ref(*this)));
         }
 
