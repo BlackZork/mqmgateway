@@ -10,16 +10,21 @@ class Log {
     public:
         enum severity
         {
-            none,
-            critical,
-            error,
-            warn,
-            info,
-            debug,
-            trace
+            none = 0,
+            critical = 1,
+            error = 2,
+            warn = 3,
+            info = 4,
+            debug = 5,
+            trace = 6
         };
 
+        static std::string get_pattern_prefix();
         static void init_logging(severity level);
+    private:
+        static void init_boost_logging(severity level);
+        static void init_spdlog_logging(severity level);
+
 };
 
 }

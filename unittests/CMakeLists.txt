@@ -83,6 +83,7 @@ target_link_libraries(tests
     Catch2::Catch2
     yaml-cpp
     ${Boost_LIBRARIES}
+    spdlog::spdlog
     ${LIBMODBUS_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${CMAKE_DL_LIBS}

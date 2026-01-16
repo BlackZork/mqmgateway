@@ -35,6 +35,7 @@ find_package(Threads)
 
 find_package(yaml-cpp REQUIRED)
 find_package(RapidJSON REQUIRED)
+find_package(spdlog REQUIRED)
 
 find_path(EXPRTK_INCLUDE_DIR "exprtk.hpp")
 message(STATUS "EXPRTK_INCLUDE_DIR => ${EXPRTK_INCLUDE_DIR}")
