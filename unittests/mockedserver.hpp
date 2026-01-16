@@ -1,16 +1,15 @@
 #pragma once
 
 #include <thread>
+#include <iostream>
 
-#include "catch2/catch_all.hpp"
 #include "libmodmqttsrv/modmqtt.hpp"
 
 #include "mockedmqttimpl.hpp"
 #include "mockedmodbuscontext.hpp"
 #include "defaults.hpp"
 
-
-#include <iostream>
+#include "catch2/catch_all.hpp"
 
 class ModMqttServerThread {
     public:
@@ -26,8 +25,16 @@ class ModMqttServerThread {
             CHECK(mException.get() == nullptr);
         }
 
+        template <typename T> void requireException(const std::string& messagePart) {
+            CHECK(mException.get() != nullptr);
+            const std::exception& ex(*mException);
+            CHECK(typeid(T) == typeid(ex));
+            CHECK_THAT(ex.what(), Catch::Matchers::ContainsSubstring(messagePart));
+        }
+
         void start() {
             mInitError = false;
+            mException.reset();
             mServerThread.reset(new std::thread(run_server, std::ref(mConfig), std::ref(*this)));
         }
 

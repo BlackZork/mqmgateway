@@ -90,6 +90,17 @@
     },
     "cmake.configureOnOpen": true,
     "testMate.cpp.debug.configTemplate": {
+    "type": "lldb",
+    //"MIMode": "lldb",
+    "program": "${exec}",
+    "args": "${argsArray}",
+    "cwd": "${cwd}",
+    "env": "${envObj}",
+    "sourceFileMap": "${sourceFileMapObj}",
+    "externalConsole": false
+    }
+    /*
+    "testMate.cpp.debug.configTemplate": {
         "type": "cppvsdbg",
         "linux": { 
             "type": "cppdbg", 
@@ -113,4 +124,5 @@
             "MQM_TEST_DEFAULT_WAIT_MS": "300000" //5 min
           }        
       }    
+    */
 }

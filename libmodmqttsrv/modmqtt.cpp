@@ -75,8 +75,11 @@ class RegisterConfigName {
             // for hex use 0-based
             mRegisterNumber = std::stoi(matches[3], nullptr, 0);
             std::string regNumMatch = matches[3].str();
-            if(!(regNumMatch.size() > 1 && (regNumMatch[1] == 'x' || regNumMatch[1] == 'X')))
+            if(!(regNumMatch.size() > 1 && (regNumMatch[1] == 'x' || regNumMatch[1] == 'X'))) {
+                if (mRegisterNumber == 0)
+                    throw ConfigurationException(data["register"].Mark(), "Use hex address for 0-based register number");
                 mRegisterNumber--;
+            }
         };
         std::string mNetworkName;
         int mSlaveId = 0;
@@ -734,6 +737,8 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
     for(std::size_t i = 0; i < config_objects.size(); i++) {
         const YAML::Node& objdata = config_objects[i];
 
+        auto objectRefresh = defaultRefresh;
+        ConfigTools::readOptionalValue<std::chrono::milliseconds>(objectRefresh, objdata, "refresh");
 
         std::vector<std::string> networks;
         ConfigTools::readOptionalValue<std::vector<std::string>>(networks, objdata, "network");
@@ -772,7 +777,7 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
                         currentNetwork,
                         defaultSlaveId,
                         modbusData.getSlaveName(currentNetwork, defaultSlaveId),
-                        defaultRefresh,
+                        objectRefresh,
                         defaultPublishMode,
                         pSpecsOut)
                     );
