@@ -1,5 +1,6 @@
-#include "modbus_thread.hpp"
+#include "logging.hpp"
 
+#include "modbus_thread.hpp"
 #include "debugtools.hpp"
 #include "modmqtt.hpp"
 #include "modbus_types.hpp"
@@ -45,13 +46,15 @@ ModbusThread::configure(const ModbusNetworkConfig& config) {
         mDelayBeforeFirstCommand = config.getDelayBeforeFirstCommand();
 
     if (mDelayBeforeCommand != nullptr) {
-        BOOST_LOG_SEV(log, Log::info) << "Network default delay before every command set to "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(*mDelayBeforeCommand).count() << "ms";
+        spdlog::info("Network default delay before every command set to {}",
+            std::chrono::duration_cast<std::chrono::milliseconds>(*mDelayBeforeCommand)
+        );
     }
 
     if (mDelayBeforeFirstCommand != nullptr) {
-        BOOST_LOG_SEV(log, Log::info) << "Network default delay when slave changes set to"
-            << std::chrono::duration_cast<std::chrono::milliseconds>(*mDelayBeforeFirstCommand).count() << "ms";
+        spdlog::info("Network default delay when slave changes set to",
+            std::chrono::duration_cast<std::chrono::milliseconds>(*mDelayBeforeFirstCommand)
+        );
     }
 
     mMaxReadRetryCount = config.mMaxReadRetryCount;
@@ -83,19 +86,23 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     }
 
     mScheduler.setPollSpecification(registerMap);
-    BOOST_LOG_SEV(log, Log::debug) << "Poll specification set, got " << registerMap.size() << " slaves," << spec.mRegisters.size() << " registers to poll:";
+    spdlog::debug("Poll specification set, got {} slaves, {} registers to poll:",
+        registerMap.size(),
+        spec.mRegisters.size()
+    );
     for (auto sit = registerMap.begin(); sit != registerMap.end(); sit++) {
         for (auto it = sit->second.begin(); it != sit->second.end(); it++) {
 
-            BOOST_LOG_SEV(log, Log::debug)
-            << mNetworkName
-            << ", slave " << sit->first
-            << ", register " << (*it)->mRegister << ":" << (*it)->mRegisterType
-            << ", count=" << (*it)->getCount()
-            << ", poll every " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh).count() << "ms"
-            << ", queue " << ((*it)->mPublishMode == PublishMode::ON_CHANGE ? "on change" : "always")
-            << ", min f_delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeFirstCommand()).count() << "ms"
-            << ", min delay " << std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeCommand()).count() << "ms";
+            spdlog::debug("slave {}, register {}:{} count={}, poll every {}, queue {}, min f_delay {}, min delay {}",
+                sit->first,
+                (*it)->mRegister,
+                (int)(*it)->mRegisterType,
+                (*it)->getCount(),
+                std::chrono::duration_cast<std::chrono::milliseconds>((*it)->mRefresh),
+                (*it)->mPublishMode == PublishMode::ON_CHANGE ? "on change" : "always",
+                std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeFirstCommand()),
+                std::chrono::duration_cast<std::chrono::milliseconds>((*it)->getDelayBeforeCommand())
+            );
         }
     }
     mExecutor.setupInitialPoll(registerMap);
@@ -131,7 +138,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
         } else if (item.isSameAs(typeid(MsgRegisterPollSpecification))) {
             setPollSpecification(*item.getData<MsgRegisterPollSpecification>());
         } else if (item.isSameAs(typeid(EndWorkMessage))) {
-            BOOST_LOG_SEV(log, Log::debug) << "Got exit command";
+            spdlog::debug("Got exit command");
             item.getData<EndWorkMessage>(); //free QueueItem memory
             mShouldRun = false;
         } else if (item.isSameAs(typeid(MsgRegisterValues))) {
@@ -143,7 +150,7 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             //no per-slave config attributes defined yet
             updateFromSlaveConfig(*item.getData<ModbusSlaveConfig>());
         } else {
-            BOOST_LOG_SEV(log, Log::error) << "Unknown message received, ignoring";
+            spdlog::error("Unknown message received, ignoring");
         }
         gotItem = mToModbusQueue.try_dequeue(item);
     } while(gotItem);
@@ -189,7 +196,7 @@ constructIdleWaitMessage(const std::chrono::steady_clock::duration& idleWaitDura
 void
 ModbusThread::run() {
     try {
-        BOOST_LOG_SEV(log, Log::debug) << "Modbus thread started";
+        spdlog::debug("Modbus thread started");
         const int maxReconnectTime = 60;
         std::chrono::steady_clock::duration idleWaitDuration = std::chrono::steady_clock::duration::max();
         std::chrono::steady_clock::time_point nextPollTimePoint = std::chrono::steady_clock::now();
@@ -199,10 +206,10 @@ ModbusThread::run() {
                 if (!mModbus->isConnected()) {
                     if (idleWaitDuration > std::chrono::seconds(maxReconnectTime))
                         idleWaitDuration = std::chrono::seconds(0);
-                    BOOST_LOG_SEV(log, Log::info) << "modbus: connecting";
+                    spdlog::info("modbus: connecting");
                     mModbus->connect();
                     if (mModbus->isConnected()) {
-                        BOOST_LOG_SEV(log, Log::info) << "modbus: connected";
+                        spdlog::info("modbus: connected");
                         mWatchdog.reset();
                         sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, true)));
                         // if modbus network was disconnected
@@ -226,8 +233,10 @@ ModbusThread::run() {
                             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> regsToPoll = mScheduler.getRegistersToPoll(schedulerWaitDuration, now);
                             nextPollTimePoint = now + schedulerWaitDuration;
                             mExecutor.addPollList(regsToPoll);
-                            BOOST_LOG_SEV(log, Log::trace) << "Scheduling " << regsToPoll.size() << " registers to execute" <<
-                                ", next schedule in " << std::chrono::duration_cast<std::chrono::milliseconds>(schedulerWaitDuration).count() << "ms";
+                            spdlog::trace("Scheduling {} registers to execute, next schedule in {}",
+                                regsToPoll.size(),
+                                std::chrono::duration_cast<std::chrono::milliseconds>(schedulerWaitDuration)
+                            );
                         }
 
                         if (mExecutor.allDone()) {
@@ -240,7 +249,7 @@ ModbusThread::run() {
                         }
                     } else {
                         if (!mMqttConnected)
-                            BOOST_LOG_SEV(log, Log::info) << "Waiting for mqtt network to become online";
+                            spdlog::info("Waiting for mqtt network to become online");
 
                         idleWaitDuration = std::chrono::steady_clock::duration::max();
                     }
@@ -259,11 +268,11 @@ ModbusThread::run() {
             if (mShouldRun) {
                 if (mModbus && mModbus->isConnected() && mWatchdog.isReconnectRequired()) {
                     if (mWatchdog.isDeviceRemoved()) {
-                        BOOST_LOG_SEV(log, Log::error) << "Device " << mWatchdog.getDevicePath() << " was removed, forcing reconnect";
+                        spdlog::error("Device {} was removed, forcing reconnect");
                     } else {
-                        BOOST_LOG_SEV(log, Log::error) << "Cannot execute any command in last "
-                            << std::chrono::duration_cast<std::chrono::seconds>(mWatchdog.getCurrentErrorPeriod()).count() << "s"
-                            << ", reconnecting";
+                        spdlog::error("Cannot execute any command in last {}, reconnecting",
+                            std::chrono::duration_cast<std::chrono::seconds>(mWatchdog.getCurrentErrorPeriod())
+                        );
                     }
                     mWatchdog.reset();
                     mModbus->disconnect();
@@ -281,11 +290,11 @@ ModbusThread::run() {
         };
         if (mModbus && mModbus->isConnected())
             mModbus->disconnect();
-        BOOST_LOG_SEV(log, Log::debug) << "Modbus thread " << mNetworkName << " ended";
+        spdlog::debug("Modbus thread  ended");
     } catch (const std::exception& ex) {
-        BOOST_LOG_SEV(log, Log::critical) << "Error in modbus thread " << mNetworkName << ": " << ex.what();
+        spdlog::critical("Error in modbus thread: {}", ex);
     } catch (...) {
-        BOOST_LOG_SEV(log, Log::critical) << "Unknown error in modbus thread " << mNetworkName;
+        spdlog::critical("Unknown error in modbus thread");
     }
 }
 

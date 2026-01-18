@@ -1,9 +1,8 @@
 #pragma once
 
+#include "defs.h"
 #include "exceptions.hpp"
 #include "logging.hpp"
-#include <fmt/std.h>
-#include "defs.h"
 
 // https://stackoverflow.com/questions/58177815/how-to-actually-detect-musl-libc
 #ifndef _GNU_SOURCE
