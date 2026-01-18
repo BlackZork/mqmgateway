@@ -9,6 +9,7 @@
 #include "libmodmqttsrv/modbus_context.hpp"
 #include "libmodmqttsrv/debugtools.hpp"
 #include "libmodmqttsrv/register_poll.hpp"
+#include "libmodmqttsrv/threadutils.hpp"
 
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveReadTime = std::chrono::milliseconds(5);
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveWriteTime = std::chrono::milliseconds(10);
@@ -233,6 +234,7 @@ MockedModbusContext::readModbusRegisters(int slaveId, const modmqttd::RegisterPo
 
 void
 MockedModbusContext::init(const modmqttd::ModbusNetworkConfig& config) {
+    modmqttd::ThreadUtils::set_thread_name(mNetworkName.c_str());
     mNetworkName = config.mName;
     std::string fname = std::string("_") + mNetworkName;
     if (config.mType == modmqttd::ModbusNetworkConfig::Type::RTU)

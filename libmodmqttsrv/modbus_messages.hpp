@@ -75,8 +75,6 @@ class MsgRegisterPoll : public ModbusSlaveAddressRange {
 
 class MsgRegisterPollSpecification {
     public:
-        static boost::log::sources::severity_logger<Log::severity> log;
-
         MsgRegisterPollSpecification(const std::string& networkName) : mNetworkName(networkName) {}
 
         /*!

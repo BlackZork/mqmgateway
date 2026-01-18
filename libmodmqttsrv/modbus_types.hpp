@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-
 #include "logging.hpp"
 
 namespace modmqttd {
@@ -45,3 +44,5 @@ class ModbusSlaveAddressRange : public ModbusAddressRange {
 };
 
 }
+
+

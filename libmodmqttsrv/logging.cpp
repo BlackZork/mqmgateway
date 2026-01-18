@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <spdlog/common.h>
 #include <spdlog/sinks/stdout_sinks.h>
 #include <sys/stat.h>
 #include <string>
@@ -200,7 +201,6 @@ void Log::init_spdlog_logging(severity level) {
 
         spdlog::set_formatter(std::move(formatter));
         spdlog::set_level(to_spdlog_level(level));
-        spdlog::flush_on(spdlog::level::info);
     } catch (const std::exception&) {
         // fallback: set global level only
         spdlog::set_level(to_spdlog_level(level));
