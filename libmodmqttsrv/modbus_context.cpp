@@ -1,5 +1,4 @@
-#include <spdlog/spdlog.h>
-
+#include "logging.hpp"
 #include "modbus_context.hpp"
 #include "register_poll.hpp"
 

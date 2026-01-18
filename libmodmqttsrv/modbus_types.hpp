@@ -12,6 +12,8 @@ enum RegisterType {
     INPUT = 4
 };
 
+extern auto format_as(RegisterType f);
+
 class ModbusAddressRange {
     protected:
         static boost::log::sources::severity_logger<Log::severity> log;

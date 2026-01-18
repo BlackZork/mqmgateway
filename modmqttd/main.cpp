@@ -4,8 +4,6 @@
 #include <boost/filesystem.hpp>
 #include <memory>
 #include <pthread.h>
-#include <spdlog/logger.h>
-#include <spdlog/spdlog.h>
 #include "libmodmqttsrv/common.hpp"
 #include "libmodmqttsrv/modmqtt.hpp"
 #include "config.hpp"

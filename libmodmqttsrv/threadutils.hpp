@@ -1,8 +1,7 @@
 #pragma once
 
-#include "logging.hpp"
 #include "defs.h"
-#include <spdlog/spdlog.h>
+#include "logging.hpp"
 #include <sstream>
 
 namespace modmqttd {

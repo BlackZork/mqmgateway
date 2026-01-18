@@ -5,8 +5,8 @@
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
-#include <spdlog/logger.h>
-#include <spdlog/sinks/stdout_sinks.h>
+#include <fmt/std.h>
+#include <spdlog/spdlog.h>
 
 namespace modmqttd {
 

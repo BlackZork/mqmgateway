@@ -1,6 +1,6 @@
 #include <iomanip>
 #include <cassert>
-#include <spdlog/spdlog.h>
+#include "logging.hpp"
 
 #include "modbus_executor.hpp"
 #include "modbus_messages.hpp"

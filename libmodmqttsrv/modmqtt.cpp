@@ -1,4 +1,3 @@
-#include <spdlog/spdlog.h>
 #include <string>
 #include <regex>
 #include <yaml-cpp/yaml.h>
@@ -7,6 +6,7 @@
 
 
 #include "common.hpp"
+#include "logging.hpp"
 #include "dll_import.hpp"
 #include "modmqtt.hpp"
 #include "config.hpp"
