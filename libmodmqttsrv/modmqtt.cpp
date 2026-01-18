@@ -135,8 +135,6 @@ parsePayloadType(const YAML::Node& data) {
     throw ConfigurationException(data.Mark(), std::string("Unknown payload type ") + ptype);
 }
 
-boost::log::sources::severity_logger<Log::severity> ModMqtt::log;
-
 ModMqtt::ModMqtt()
 {
     // unit tests create main class multiple times

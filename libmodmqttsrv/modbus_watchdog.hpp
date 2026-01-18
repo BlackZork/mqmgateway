@@ -23,7 +23,6 @@ class ModbusWatchdog {
         }
 
     private:
-        static boost::log::sources::severity_logger<Log::severity> log;
         static constexpr std::chrono::milliseconds sDeviceCheckPeriod = std::chrono::milliseconds(300);
 
         ModbusWatchdogConfig mConfig;

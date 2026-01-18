@@ -22,7 +22,6 @@ class ModbusThread {
             moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
         void run();
     private:
-        boost::log::sources::severity_logger<Log::severity> log;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mToModbusQueue;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
 

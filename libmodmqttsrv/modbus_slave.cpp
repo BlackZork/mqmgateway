@@ -5,8 +5,6 @@
 
 namespace modmqttd {
 
-boost::log::sources::severity_logger<Log::severity> ModbusSlaveConfig::log;
-
 ModbusSlaveConfig::ModbusSlaveConfig(int pAddress, const YAML::Node& data)
     : mAddress(pAddress)
 {

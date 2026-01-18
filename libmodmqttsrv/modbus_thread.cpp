@@ -279,7 +279,7 @@ ModbusThread::run() {
                     sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, false)));
                 } else {
                     QueueItem item;
-                    BOOST_LOG_SEV(log, Log::trace) << constructIdleWaitMessage(idleWaitDuration);
+                    spdlog::trace(constructIdleWaitMessage(idleWaitDuration));
                     if (!mToModbusQueue.wait_dequeue_timed(item, idleWaitDuration))
                         continue;
                     dispatchMessages(item);

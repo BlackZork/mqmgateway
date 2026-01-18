@@ -10,8 +10,6 @@
 
 namespace modmqttd {
 
-boost::log::sources::severity_logger<Log::severity> ModbusExecutor::log;
-
 #if __cplusplus < 201703L
 constexpr short ModbusExecutor::WRITE_BATCH_SIZE;
 #endif

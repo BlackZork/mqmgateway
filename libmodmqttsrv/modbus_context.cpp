@@ -4,8 +4,6 @@
 
 namespace modmqttd {
 
-boost::log::sources::severity_logger<Log::severity> ModbusContext::log;
-
 void
 ModbusContext::init(const ModbusNetworkConfig& config)
 {
@@ -111,10 +109,10 @@ ModbusContext::connect() {
     if (modbus_connect(mCtx) == -1) {
         switch(mNetworkType) {
             case ModbusNetworkConfig::Type::TCPIP:
-                BOOST_LOG_SEV(log, Log::error) << "modbus: connection to " << mNetworkAddress << " failed("<< errno << ") : " << modbus_strerror(errno);
+                spdlog::error("connection to {} failed({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
             break;
             case ModbusNetworkConfig::Type::RTU:
-                BOOST_LOG_SEV(log, Log::error) << "modbus: cannot open " << mNetworkAddress << " ("<< errno << ") : " << modbus_strerror(errno);
+                spdlog::error("cannot open {} ({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
             break;
         }
         mIsConnected = false;

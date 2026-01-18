@@ -49,8 +49,6 @@ class ModbusExecutor {
         const std::shared_ptr<RegisterCommand>& getLastCommand() const { return mLastCommand; }
 
     private:
-        static  boost::log::sources::severity_logger<Log::severity> log;
-
         std::shared_ptr<IModbusContext> mModbus;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mToModbusQueue;

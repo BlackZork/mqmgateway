@@ -3,8 +3,6 @@
 
 namespace modmqttd {
 
-boost::log::sources::severity_logger<Log::severity> ModbusScheduler::log;
-
 std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>
 ModbusScheduler::getRegistersToPoll(
     std::chrono::steady_clock::duration& outDuration,
