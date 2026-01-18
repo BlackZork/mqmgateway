@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
+
+include(CheckSymbolExists)
+
 project(modmqttd VERSION 1.0.0)
 
 option(WITHOUT_TESTS "Do not build unit tests")
@@ -18,6 +21,11 @@ endif()
 #set(Boost_NO_BOOST_CMAKE ON)
 #set(BOOST_NO_SYSTEM_PATHS ON)
 #set(BOOST_ROOT "/path/to/boost")
+
+list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+list(APPEND CMAKE_REQUIRED_LIBRARIES pthread)
+CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
+list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 
 find_package(Boost 1.54.0 COMPONENTS filesystem log program_options REQUIRED)
 set(Boost_USE_STATIC_LIBS        OFF)

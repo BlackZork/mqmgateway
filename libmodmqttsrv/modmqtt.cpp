@@ -16,6 +16,7 @@
 #include "modbus_slave.hpp"
 #include "conv_name_parser.hpp"
 #include "yaml_converters.hpp"
+#include "threadutils.hpp"
 
 #include <csignal>
 #include <iostream>
@@ -157,6 +158,8 @@ void ModMqtt::init(const std::string& configPath) {
 
 void
 ModMqtt::init(const YAML::Node& config) {
+    ThreadUtils::set_thread_name("modmqtt");
+
     initServer(config);
     initBroker(config);
 
