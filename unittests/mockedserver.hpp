@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "libmodmqttsrv/modmqtt.hpp"
+#include "libmodmqttsrv/threadutils.hpp"
 
 #include "mockedmqttimpl.hpp"
 #include "mockedmodbuscontext.hpp"
@@ -63,6 +64,7 @@ class ModMqttServerThread {
         }
     protected:
         static void run_server(const std::string& config, ModMqttServerThread& master) {
+            modmqttd::ThreadUtils::set_thread_name("test");
             try {
                 YAML::Node cfg = YAML::Load(config);
                 master.mServer.init(cfg);

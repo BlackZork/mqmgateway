@@ -1,10 +1,16 @@
 #pragma once
 
+#include <thread>
+
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
+#include <spdlog/logger.h>
+#include <spdlog/sinks/stdout_sinks.h>
 
 namespace modmqttd {
+
+extern thread_local std::string g_thread_name;
 
 class Log {
     public:
@@ -19,7 +25,7 @@ class Log {
             trace = 6
         };
 
-        static std::string get_pattern_prefix();
+        static constexpr const char* loggerName = "modmqttd";
         static void init_logging(severity level);
     private:
         static void init_boost_logging(severity level);

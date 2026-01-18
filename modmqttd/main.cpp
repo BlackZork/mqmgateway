@@ -2,27 +2,32 @@
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <memory>
+#include <pthread.h>
+#include <spdlog/logger.h>
+#include <spdlog/spdlog.h>
 #include "libmodmqttsrv/common.hpp"
 #include "libmodmqttsrv/modmqtt.hpp"
 #include "config.hpp"
+#include "libmodmqttsrv/logging.hpp"
+#include "libmodmqttsrv/threadutils.hpp"
 
 namespace args = boost::program_options;
 using namespace std;
 
 modmqttd::ModMqtt server;
 
-void logCriticalError(std::shared_ptr<boost::log::sources::severity_logger<modmqttd::Log::severity>>& log,
-        const char* message)
-{
-    if (log != NULL)
-        BOOST_LOG_SEV(*log, modmqttd::Log::critical) << message;
+void logCriticalError(const char* message) {
+    if (spdlog::get(modmqttd::Log::loggerName) != NULL)
+        spdlog::critical(message);
     else
         cerr << message << endl;
 }
 
 int main(int ac, char* av[]) {
-    std::shared_ptr<boost::log::sources::severity_logger<modmqttd::Log::severity>> log;
     std::string configPath;
+    modmqttd::ThreadUtils::set_thread_name("main");
+
     try {
         args::options_description desc("Arguments");
 
@@ -49,25 +54,23 @@ int main(int ac, char* av[]) {
         }
 
         modmqttd::Log::init_logging(level);
-        // temporary logger used in main before classes are initalized
-        log.reset(new boost::log::sources::severity_logger<modmqttd::Log::severity>());
         // TODO add version information
-        BOOST_LOG_SEV(*log, modmqttd::Log::info) << "modmqttd is starting";
+        spdlog::info("modmqttd is starting");
 
         server.init(configPath);
         server.start();
 
-        BOOST_LOG_SEV(*log, modmqttd::Log::info) << "modmqttd stopped";
+        spdlog::info("modmqttd stopped");
         return EXIT_SUCCESS;
     } catch (const YAML::BadFile& ex) {
         if (configPath == "")
             configPath = boost::filesystem::current_path().native();
         std::string msg = "Failed to load configuration from "s + configPath;
-        logCriticalError(log, msg.c_str());
+        logCriticalError(msg.c_str());
     } catch (const std::exception& ex) {
-        logCriticalError(log, ex.what());
+        logCriticalError(ex.what());
     } catch (...) {
-        logCriticalError(log, "Unknown initialization error occured");
+        logCriticalError("Unknown initialization error occured");
     }
     return EXIT_FAILURE;
 }

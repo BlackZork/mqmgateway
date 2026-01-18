@@ -15,9 +15,11 @@
 #include <boost/log/sinks.hpp>
 #include <boost/core/null_deleter.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <spdlog/pattern_formatter.h>
 
 #include <spdlog/spdlog.h>
 
+#include "defs.h"
 #include "logging.hpp"
 
 namespace sinks = boost::log::sinks;
@@ -25,6 +27,8 @@ namespace expr = boost::log::expressions;
 namespace attrs = boost::log::attributes;
 
 namespace modmqttd {
+
+thread_local std::string g_thread_name;
 
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_severity, "Severity", Log::severity)
 
@@ -49,6 +53,31 @@ std::ostream& operator<< (std::ostream& strm, Log::severity level)
     return strm;
 }
 
+bool
+log_timestamp() {
+    bool ret = true;
+
+    const char* js = std::getenv("JOURNAL_STREAM");
+    if (js != nullptr) {
+        std::string jstr(js);
+        size_t t = jstr.find(':');
+        if (jstr.size() > 2 &&  t > 0) {
+            std::string env_inode(jstr.substr(t+1));
+            if (!env_inode.empty()) {
+                struct stat file_stat;
+                int code, inode;
+                code = fstat (2, &file_stat);
+                if (code >= 0) {
+                    inode = file_stat.st_ino;
+                    if (std::to_string(inode) == env_inode)
+                        ret = false;
+                }
+            };
+        }
+    }
+    return ret;
+}
+
 void Log::init_boost_logging(severity level) {
     if (level == modmqttd::Log::none) {
        boost::log::core::get()->set_logging_enabled(false);
@@ -62,32 +91,10 @@ void Log::init_boost_logging(severity level) {
 
     boost::log::formatter formatter;
 
-    bool log_timestamp = true;
-
-    //check JOURNAL_STREAM indoe vs stderr inode
-    const char* js = std::getenv("JOURNAL_STREAM");
-    if (js != nullptr) {
-        std::string jstr(js);
-        size_t t = jstr.find(':');
-        if (jstr.size() > 2 &&  t > 0) {
-            std::string env_inode(jstr.substr(t+1));
-            if (!env_inode.empty()) {
-                struct stat file_stat;
-                int ret, inode;
-                ret = fstat (2, &file_stat);
-                if (ret >= 0) {
-                    inode = file_stat.st_ino;
-                    if (std::to_string(inode) == env_inode)
-                        log_timestamp = false;
-                }
-            };
-        }
-    }
-
     auto ts_format = expr::stream << expr::attr<boost::posix_time::ptime>("TimeStamp") << ": ";
     auto log_format = expr::stream << "[" << log_severity << "] " << expr::smessage;
 
-    if (log_timestamp) {
+    if (log_timestamp()) {
         //TODO how to use log_format ?
         auto format = ts_format << "[" << log_severity << "] " << expr::smessage;
         formatter = format;
@@ -109,6 +116,42 @@ void Log::init_boost_logging(severity level) {
     core->add_global_attribute("TimeStamp", attrs::local_clock());
 }
 
+// custom flag prints cached name
+struct thread_name_flag : public spdlog::custom_flag_formatter {
+    void format(const spdlog::details::log_msg &, const std::tm &, spdlog::memory_buf_t &dest) override {
+        if (!g_thread_name.empty()) {
+            fmt::format_to(std::back_inserter(dest), "{}", g_thread_name);
+        } else {
+            auto hid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+            fmt::format_to(std::back_inserter(dest), "tid:{}", hid);
+        }
+    }
+    std::unique_ptr<custom_flag_formatter> clone() const override {
+        return spdlog::details::make_unique<thread_name_flag>();
+    }
+};
+
+struct uppercase_level_flag : public spdlog::custom_flag_formatter {
+    void format(const spdlog::details::log_msg &msg, const std::tm &, spdlog::memory_buf_t &dest) override {
+        const char* name = nullptr;
+        switch (msg.level) {
+            case spdlog::level::trace:    name = "TRACE"; break;
+            case spdlog::level::debug:    name = "DEBUG"; break;
+            case spdlog::level::info:     name = "INFO "; break;
+            case spdlog::level::warn:     name = "WARN "; break;
+            case spdlog::level::err:      name = "ERROR"; break;
+            case spdlog::level::critical: name = "CRIT "; break;
+            case spdlog::level::off:      name = "OFF  "; break;
+            default:                      name = "???  "; break;
+        }
+        fmt::format_to(std::back_inserter(dest), "{}", name);
+    }
+
+    std::unique_ptr<custom_flag_formatter> clone() const override {
+        return spdlog::details::make_unique<uppercase_level_flag>();
+    }
+};
+
 spdlog::level::level_enum
 to_spdlog_level(Log::severity s) {
     switch(s) {
@@ -123,31 +166,6 @@ to_spdlog_level(Log::severity s) {
     }
 }
 
-std::string
-Log::get_pattern_prefix() {
-    std::string ret;
-
-    const char* js = std::getenv("JOURNAL_STREAM");
-    if (js != nullptr) {
-        std::string jstr(js);
-        size_t t = jstr.find(':');
-        if (jstr.size() > 2 &&  t > 0) {
-            std::string env_inode(jstr.substr(t+1));
-            if (!env_inode.empty()) {
-                struct stat file_stat;
-                int code, inode;
-                code = fstat (2, &file_stat);
-                if (code >= 0) {
-                    inode = file_stat.st_ino;
-                    if (std::to_string(inode) == env_inode)
-                        ret = "%Y-%m-%d %H:%M:%S.%e";
-                }
-            };
-        }
-    }
-    return ret;
-}
-
 void Log::init_spdlog_logging(severity level) {
     if (level == Log::none) {
         spdlog::set_level(spdlog::level::off);
@@ -157,37 +175,30 @@ void Log::init_spdlog_logging(severity level) {
     try {
         // create stderr sink (thread-safe)
         auto sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
-        auto logger = std::make_shared<spdlog::logger>("modmqttd", sink);
+        auto logger = std::make_shared<spdlog::logger>(loggerName, sink);
         spdlog::set_default_logger(logger);
 
-        bool log_timestamp = true;
-        const char* js = std::getenv("JOURNAL_STREAM");
-        if (js != nullptr) {
-            std::string jstr(js);
-            size_t t = jstr.find(':');
-            if (jstr.size() > 2 &&  t > 0) {
-                std::string env_inode(jstr.substr(t+1));
-                if (!env_inode.empty()) {
-                    struct stat file_stat;
-                    int ret, inode;
-                    ret = fstat (2, &file_stat);
-                    if (ret >= 0) {
-                        inode = file_stat.st_ino;
-                        if (std::to_string(inode) == env_inode)
-                            log_timestamp = false;
-                    }
-                };
-            }
-        }
+        auto formatter = std::make_unique<spdlog::pattern_formatter>();
+        formatter->add_flag<thread_name_flag>('T');
+        formatter->add_flag<uppercase_level_flag>('l');
 
-        if (log_timestamp) {
+        std::string pattern("[%l] %t %v");
+        #ifdef HAVE_PTHREAD_SETNAME_NP
+            int pos = pattern.find("%t");
+            if (pos != std::string::npos) {
+                pattern.replace(pos, 2, "%T");
+            }
+        #endif
+
+        if (log_timestamp()) {
             // include milliseconds and colored level tag
-            spdlog::set_pattern("%Y-%m-%d %H:%M:%S.%e [%^%l%$] %v");
+            formatter->set_pattern("%Y-%m-%d %H:%M:%S.%f " + pattern);
         } else {
             // leave timestamp to systemd/journald
-            spdlog::set_pattern("[%l] %v");
+            formatter->set_pattern(pattern);
         }
 
+        spdlog::set_formatter(std::move(formatter));
         spdlog::set_level(to_spdlog_level(level));
         spdlog::flush_on(spdlog::level::info);
     } catch (const std::exception&) {
