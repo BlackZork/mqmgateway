@@ -8,6 +8,7 @@
 #include "config.hpp"
 #include "libmodmqttsrv/logging.hpp"
 #include "libmodmqttsrv/threadutils.hpp"
+#include "version.hpp"
 
 namespace args = boost::program_options;
 using namespace std;
@@ -52,7 +53,7 @@ int main(int ac, char* av[]) {
 
         modmqttd::Log::init_logging(level);
         // TODO add version information
-        spdlog::info("modmqttd is starting");
+        spdlog::info("modmqttd {} is starting", FULL_VERSION);
 
         server.init(configPath);
         server.start();

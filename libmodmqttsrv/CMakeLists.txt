@@ -64,4 +64,4 @@ configure_file(
 
 target_include_directories (modmqttsrv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 set_target_properties(modmqttsrv PROPERTIES VERSION ${PROJECT_VERSION})
-set_target_properties(modmqttsrv PROPERTIES SOVERSION 1)
+set_target_properties(modmqttsrv PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
