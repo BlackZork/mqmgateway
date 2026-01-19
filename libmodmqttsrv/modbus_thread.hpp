@@ -18,6 +18,7 @@ class ModbusThread {
         static void sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item);
 
         ModbusThread(
+            const std::string pNetworkName,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
         void run();

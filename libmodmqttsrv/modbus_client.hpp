@@ -45,7 +45,7 @@ class ModbusClient {
         void stop();
         ~ModbusClient() { stop(); }
     private:
-        static void threadLoop(moodycamel::BlockingReaderWriterQueue<QueueItem>& in, moodycamel::BlockingReaderWriterQueue<QueueItem>& out);
+        static void threadLoop(const std::string& pNetworkName, moodycamel::BlockingReaderWriterQueue<QueueItem>& in, moodycamel::BlockingReaderWriterQueue<QueueItem>& out);
 
         ModbusClient(const ModbusClient&);
         std::shared_ptr<std::thread> mModbusThread;

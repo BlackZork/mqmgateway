@@ -5,7 +5,7 @@
 #include "modmqtt.hpp"
 #include "modbus_types.hpp"
 #include "modbus_context.hpp"
-
+#include "threadutils.hpp"
 
 namespace modmqttd {
 
@@ -24,9 +24,11 @@ ModbusThread::sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueI
 }
 
 ModbusThread::ModbusThread(
+    const std::string pNetworkName,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
-    : mToModbusQueue(toModbusQueue),
+    : mNetworkName(pNetworkName),
+      mToModbusQueue(toModbusQueue),
       mFromModbusQueue(fromModbusQueue),
       mExecutor(fromModbusQueue, toModbusQueue)
 {
@@ -34,7 +36,10 @@ ModbusThread::ModbusThread(
 
 void
 ModbusThread::configure(const ModbusNetworkConfig& config) {
-    mNetworkName = config.mName;
+    if (mNetworkName != config.mName) {
+        mNetworkName = config.mName;
+        ThreadUtils::set_thread_name(mNetworkName.c_str());
+    }
     mModbus = ModMqtt::getModbusFactory().getContext(config.mName);
     mModbus->init(config);
     mExecutor.init(mModbus);

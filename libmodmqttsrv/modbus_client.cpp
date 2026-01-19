@@ -9,8 +9,7 @@ namespace modmqttd {
 void
 ModbusClient::init(const ModbusNetworkConfig& config) {
     mNetworkName = config.mName;
-    ThreadUtils::set_thread_name(mNetworkName.c_str());
-    mModbusThread.reset(new std::thread(threadLoop, std::ref(mToModbusQueue), std::ref(mFromModbusQueue)));
+    mModbusThread.reset(new std::thread(threadLoop, std::ref(mNetworkName), std::ref(mToModbusQueue), std::ref(mFromModbusQueue)));
     mToModbusQueue.enqueue(QueueItem::create(config));
 };
 
@@ -24,10 +23,12 @@ void ModbusClient::stop() {
 
 void
 ModbusClient::threadLoop(
+    const std::string& pNetworkName,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
 {
-    ModbusThread thread(toModbusQueue, fromModbusQueue);
+    ThreadUtils::set_thread_name(pNetworkName.c_str());
+    ModbusThread thread(pNetworkName, toModbusQueue, fromModbusQueue);
     thread.run();
 };
 
