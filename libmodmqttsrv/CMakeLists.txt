@@ -57,6 +57,11 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/defs.h
 )
 
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.hpp
+)
+
 target_include_directories (modmqttsrv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 set_target_properties(modmqttsrv PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(modmqttsrv PROPERTIES SOVERSION 1)

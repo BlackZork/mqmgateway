@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
 
-include(CheckSymbolExists)
 
-project(modmqttd VERSION 1.0.0)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+include(CheckSymbolExists)
+include(git_version)
+
+project(modmqttd VERSION 0.0.0)
+get_version_from_git()
 
 option(WITHOUT_TESTS "Do not build unit tests")
 set(build_unittests)
