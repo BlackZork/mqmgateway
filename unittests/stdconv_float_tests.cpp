@@ -9,10 +9,9 @@
 TEST_CASE("A float32 value should be read") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("float32"));
 
@@ -73,10 +72,9 @@ TEST_CASE("A float32 value should be read") {
 TEST_CASE("A float32 value should be written") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("float32"));
     std::vector<std::string> args;

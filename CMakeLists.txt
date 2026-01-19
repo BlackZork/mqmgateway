@@ -27,7 +27,7 @@ list(APPEND CMAKE_REQUIRED_LIBRARIES pthread)
 CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
 list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 
-find_package(Boost 1.54.0 COMPONENTS filesystem program_options REQUIRED)
+find_package(Boost 1.54.0 COMPONENTS program_options REQUIRED)
 set(Boost_USE_STATIC_LIBS        OFF)
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     OFF)

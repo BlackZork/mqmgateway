@@ -10,10 +10,9 @@
 TEST_CASE("when std.int32") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("int32"));
@@ -23,7 +22,7 @@ TEST_CASE("when std.int32") {
         ModbusRegisters input({TestNumbers::Int::AB,TestNumbers::Int::CD});
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);   
+        REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);
     }
 
     SECTION("converts two modbus registers (high, low) with byte swap") {
@@ -36,7 +35,7 @@ TEST_CASE("when std.int32") {
         ModbusRegisters input({TestNumbers::Int::BA,TestNumbers::Int::DC});
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);   
+        REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);
     }
 
 

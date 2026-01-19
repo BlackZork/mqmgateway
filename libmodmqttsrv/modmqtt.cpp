@@ -278,11 +278,11 @@ ModMqtt::initServer(const YAML::Node& config) {
 std::shared_ptr<ConverterPlugin>
 ModMqtt::initConverterPlugin(const std::string& name) {
     std::string final_path;
-    boost::filesystem::path current_path = name;
+    std::filesystem::path current_path = name;
     auto path_it = mConverterPaths.begin();
     do {
         spdlog::debug("Checking {}", current_path.c_str());
-        if (boost::filesystem::exists(current_path)) {
+        if (std::filesystem::exists(current_path)) {
             final_path = current_path.string();
             break;
         }
@@ -302,10 +302,9 @@ ModMqtt::initConverterPlugin(const std::string& name) {
 
     spdlog::debug("Trying to load converter plugin from ", final_path);
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         final_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
 
     return plugin;

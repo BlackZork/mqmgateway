@@ -1,9 +1,6 @@
-#include <boost/filesystem.hpp>
 #include "config.hpp"
 #include "common.hpp"
 #include "yaml_converters.hpp"
-
-namespace fs = boost::filesystem;
 
 namespace modmqttd {
 
@@ -89,8 +86,8 @@ MqttBrokerConfig::MqttBrokerConfig(const YAML::Node& source) {
         mPort = 8883;
         YAML::Node cafileNode(ConfigTools::setOptionalValueFromNode<std::string>(mCafile, source["tls"], "cafile"));
         if (cafileNode.IsDefined()) {
-            fs::path filePath(mCafile);
-            if (!fs::exists(filePath) || fs::is_directory(filePath)) {
+            std::filesystem::path filePath(mCafile);
+            if (!std::filesystem::exists(filePath) || std::filesystem::is_directory(filePath)) {
                 throw ConfigurationException(cafileNode.Mark(), "CA file '" + mCafile + "' is not a readable file");
             }
         }

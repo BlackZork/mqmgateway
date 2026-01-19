@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
 #include <memory>
 #include <pthread.h>
 #include "libmodmqttsrv/common.hpp"
@@ -62,7 +61,7 @@ int main(int ac, char* av[]) {
         return EXIT_SUCCESS;
     } catch (const YAML::BadFile& ex) {
         if (configPath == "")
-            configPath = boost::filesystem::current_path().native();
+            configPath = std::filesystem::current_path().native();
         std::string msg = "Failed to load configuration from "s + configPath;
         logCriticalError(msg.c_str());
     } catch (const std::exception& ex) {

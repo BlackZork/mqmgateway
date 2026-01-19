@@ -1,5 +1,4 @@
 #include "modbus_watchdog.hpp"
-#include "boost/filesystem.hpp"
 
 namespace modmqttd {
 
@@ -31,7 +30,7 @@ ModbusWatchdog::inspectCommand(const RegisterCommand& command) {
         if (!mConfig.mDevicePath.empty()) {
             auto now = std::chrono::steady_clock::now();
             if (!mDeviceRemoved && (mLastCommandOk || (now - mLastDeviceCheckTime) > sDeviceCheckPeriod)) {
-                mDeviceRemoved = !boost::filesystem::exists(mConfig.mDevicePath.c_str());
+                mDeviceRemoved = !std::filesystem::exists(mConfig.mDevicePath.c_str());
                 mLastDeviceCheckTime = now;
                 if (mDeviceRemoved) {
                     spdlog::warn("Detected device {} removal", mConfig.mDevicePath);

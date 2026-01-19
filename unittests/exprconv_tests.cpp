@@ -7,10 +7,9 @@
 
 TEST_CASE ("A number should be converted by exprtk") {
     std::string stdconv_path = "../exprconv/exprconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("evaluate"));
 
@@ -35,10 +34,9 @@ TEST_CASE ("A number should be converted by exprtk") {
 
 TEST_CASE ("A uint16_t register data should be converted to exprtk value") {
     std::string stdconv_path = "../exprconv/exprconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("evaluate"));
 

@@ -9,10 +9,9 @@
 TEST_CASE("A number value should be divided") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("divide"));
     std::vector<std::string> args = {
@@ -114,10 +113,9 @@ TEST_CASE("A number value should be divided") {
 TEST_CASE("When precision of divided mqtt value ") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("divide"));
     std::vector<std::string> args = {
