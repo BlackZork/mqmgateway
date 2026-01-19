@@ -38,8 +38,12 @@ For a commercial-friendly license and support please see http://mqmgateway.zork.
 
 # Third-party licenses
 
-This software includes "A single-producer, single-consumer lock-free queue for C++" written by
+This software includes:
+
+1. "A single-producer, single-consumer lock-free queue for C++" written by
 Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.md)
+
+2. "[Argh! Frustration-free command line processing](https://github.com/adishavit/argh)". License terms in [LICENSE](argh/LICENSE)
 
 # Installation
 
@@ -50,7 +54,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
    You can aslo use `branch=<tagname>` to clone specific release or download sources from [Releases page](https://github.com/BlackZork/mqmgateway/releases)
 
 1. Install dependencies:
-   1. boost
+   1. libspdlog
    1. libmodbus
    1. mosquitto
    1. yaml-cpp
@@ -949,11 +953,10 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
 
 Custom converters can be added by creating a C++ dynamically loaded library with conversion classes. There is a header only libmodmqttconv that provide base classes for plugin and converter implementations.
 
-Here is a minimal example of custom conversion plugin with help of boost dll library loader:
+Here is a minimal example of custom conversion plugin:
 
 ```C++
 
-#include <boost/config.hpp> // for BOOST_SYMBOL_EXPORT
 #include "libmodmqttconv/converterplugin.hpp"
 
 class MyConverter : public DataConverter {
@@ -1003,7 +1006,7 @@ class MyPlugin : ConverterPlugin {
 };
 
 // modmqttd search for "converter_plugin" C symbol in loaded dll
-extern "C" BOOST_SYMBOL_EXPORT MyPlugin converter_plugin;
+extern "C" MyPlugin converter_plugin;
 MyPlugin converter_plugin;
 
 ```

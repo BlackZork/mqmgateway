@@ -1,4 +1,3 @@
-#include <fmt/std.h>
 #include "modbus_messages.hpp"
 
 #include <deque>

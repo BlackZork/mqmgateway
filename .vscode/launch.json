@@ -9,7 +9,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/modmqttd/modmqttd",
-            "args": ["--loglevel","6"],
+            "args": ["--loglevel=6"],
             "stopOnEntry": false,
             "cwd": "${workspaceFolder}/modmqttd",
             /*

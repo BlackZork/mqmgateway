@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <boost/program_options.hpp>
+#include "argh/argh.h"
 #include <memory>
 #include <pthread.h>
 #include "libmodmqttsrv/common.hpp"
@@ -10,8 +10,7 @@
 #include "libmodmqttsrv/threadutils.hpp"
 #include "version.hpp"
 
-namespace args = boost::program_options;
-using namespace std;
+using namespace std::string_literals;
 
 modmqttd::ModMqtt server;
 
@@ -19,40 +18,64 @@ void logCriticalError(const char* message) {
     if (spdlog::get(modmqttd::Log::loggerName) != NULL)
         spdlog::critical(message);
     else
-        cerr << message << endl;
+        std::cerr << message << std::endl;
 }
 
+constexpr const char* USAGE = R"(
+Usage:
+  -c, --config     path to configuration file
+  -l, --loglevel   setup logging: 0 off, 1-6 sets loglevel, higher is more verbose
+  -v, --version    print modmqttd version
+  --help           this help message
+)";
+
 int main(int ac, char* av[]) {
-    std::string configPath;
     modmqttd::ThreadUtils::set_thread_name("main");
+    std::string configPath;
 
     try {
-        args::options_description desc("Arguments");
+        argh::parser cmdl(ac, av, argh::parser::PREFER_PARAM_FOR_UNREG_OPTION);
+        cmdl.add_params({ "-l", "--loglevel", "-c", "--config" });
 
-        int logLevel;
+        int logLevel = -1;
 
-        desc.add_options()
-            ("help", "produce help message")
-            ("loglevel, l", args::value<int>(&logLevel), "setup logging: 0 off, 1-6 sets loglevel, higher is more verbose")
-            ("config, c", args::value<string>(&configPath), "path to configuration file")
-        ;
-
-        args::variables_map vm;
-        args::store(args::parse_command_line(ac, av, desc), vm);
-        args::notify(vm);
-
-        if (vm.count("help")) {
-            cout << desc << "\n";
-            return EXIT_SUCCESS;
+        for(auto& flag: cmdl.flags()) {
+            if (flag == "help") {
+                std::cout << "modmqttd v." << FULL_VERSION << std::endl;
+                std::cout << USAGE << std::endl;
+                return EXIT_SUCCESS;
+            } else if (flag == "version" || flag == "v") {
+                std::cout << FULL_VERSION << std::endl;
+                return EXIT_SUCCESS;
+            } else {
+                std::cerr << "Unknown flag '" << flag << "', use --help for available options" << std::endl;
+                return EXIT_FAILURE;
+            }
         }
 
+        for(auto param: cmdl.params()) {
+            if (param.first == "config" || param.first == "c") {
+                configPath = param.second;
+            } else if (param.first == "loglevel" || param.first == "l") {
+                if (!(cmdl({"l", "loglevel"}) >> logLevel)) {
+                    std::cerr << "Cannot parse loglevel value" << std::endl;
+                    return EXIT_FAILURE;
+                }
+                if (logLevel < 0 || logLevel > 6) {
+                    std::cerr << "loglevel must be between 0 and 6" << std::endl;
+                    return EXIT_FAILURE;
+                }
+            }
+        }
+
+
         modmqttd::Log::severity level = modmqttd::Log::severity::info;
-        if (vm.count("loglevel")) {
-            level = (modmqttd::Log::severity)(vm["loglevel"].as<int>());
+        if (logLevel != -1) {
+            level = (modmqttd::Log::severity)(logLevel);
         }
 
         modmqttd::Log::init_logging(level);
-        // TODO add version information
+
         spdlog::info("modmqttd {} is starting", FULL_VERSION);
 
         server.init(configPath);

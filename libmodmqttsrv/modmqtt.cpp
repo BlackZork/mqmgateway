@@ -1,9 +1,6 @@
 #include <string>
 #include <regex>
 #include <yaml-cpp/yaml.h>
-#include <boost/dll/import.hpp>
-#include <boost/algorithm/string.hpp>
-
 
 #include "common.hpp"
 #include "logging.hpp"
@@ -18,6 +15,8 @@
 #include "conv_name_parser.hpp"
 #include "yaml_converters.hpp"
 #include "threadutils.hpp"
+#include "strutils.hpp"
+
 
 #include <csignal>
 #include <iostream>
@@ -45,7 +44,7 @@ class RegisterConfigName {
     public:
         RegisterConfigName(const YAML::Node& data, const std::string& default_network, int default_slave) {
             std::string str = ConfigTools::readRequiredString(data, "register");
-            boost::trim(str);
+            StrUtils::trim(str);
 
             std::regex re("^([a-zA-Z][a-zA-Z0-9]+\\.)?([0-9]+\\.)?((0[xX])?[0-9a-fA-F]+)$");
             std::cmatch matches;

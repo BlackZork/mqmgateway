@@ -4,7 +4,6 @@
 #include <regex>
 
 #include <yaml-cpp/yaml.h>
-#include <boost/version.hpp>
 
 #include "exceptions.hpp"
 #include "logging.hpp"

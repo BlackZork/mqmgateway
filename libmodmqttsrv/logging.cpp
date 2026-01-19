@@ -6,9 +6,6 @@
 #include <ostream>
 #include <fstream>
 #include <iomanip>
-#include <boost/parameter/keyword.hpp>
-#include <boost/core/null_deleter.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <spdlog/pattern_formatter.h>
 
 #include <spdlog/spdlog.h>

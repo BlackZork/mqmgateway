@@ -10,8 +10,6 @@ ModbusScheduler::getRegistersToPoll(
 ) {
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> ret;
 
-    //BOOST_LOG_SEV(log, Log::trace) << "initial outduration " << std::chrono::duration_cast<std::chrono::milliseconds>(outDuration).count();
-
     outDuration = std::chrono::steady_clock::duration::max();
     for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.begin();
         slave != mRegisterMap.end(); slave++)
@@ -23,8 +21,6 @@ ModbusScheduler::getRegistersToPoll(
 
             auto time_passed = timePoint - reg.mLastRead;
             auto time_to_poll = reg.mRefresh;
-
-            //BOOST_LOG_SEV(log, Log::trace) << "time passed: " << std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll).count();
 
             if (time_passed >= reg.mRefresh) {
                 spdlog::trace("Register {}.{}  added, last read {} ago",
