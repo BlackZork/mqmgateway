@@ -1,6 +1,6 @@
 #pragma once
 
-#include <fmt/std.h>
+#include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
 namespace modmqttd {

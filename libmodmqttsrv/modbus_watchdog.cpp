@@ -1,3 +1,4 @@
+#include <filesystem>
 #include "modbus_watchdog.hpp"
 
 namespace modmqttd {

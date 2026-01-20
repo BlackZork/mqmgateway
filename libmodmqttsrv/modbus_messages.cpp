@@ -9,8 +9,6 @@ namespace modmqttd {
 constexpr std::chrono::milliseconds MsgRegisterPoll::INVALID_REFRESH;
 #endif
 
-auto format_as(RegisterType f) { return fmt::underlying(f); }
-
 void
 MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
     ModbusAddressRange::merge(other);
@@ -106,7 +104,7 @@ MsgRegisterPollSpecification::merge(const MsgRegisterPoll& poll) {
             poll.mSlaveId,
             poll.mRegister,
             poll.mCount,
-            poll.mRegisterType,
+            (int)poll.mRegisterType,
             poll.mRefreshMsec,
             mNetworkName
         );

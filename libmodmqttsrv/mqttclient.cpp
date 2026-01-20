@@ -309,9 +309,9 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
             (*it)->sendCommand(command, reg_values);
         }
     } catch (const ConvException& ex) {
-        spdlog::error("Converter error for {}: {}", topic, ex);
+        spdlog::error("Converter error for {}: {}", topic, ex.what());
     } catch (const MqttPayloadConversionException& ex) {
-        spdlog::error("Value error for {}: {}", topic, ex);
+        spdlog::error("Value error for {}: {}", topic, ex.what());
     } catch (const ObjectCommandNotFoundException&) {
         spdlog::error("No command for topic {}, dropping message", topic);
     }

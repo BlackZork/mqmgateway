@@ -297,7 +297,7 @@ ModbusThread::run() {
             mModbus->disconnect();
         spdlog::debug("Modbus thread  ended");
     } catch (const std::exception& ex) {
-        spdlog::critical("Error in modbus thread: {}", ex);
+        spdlog::critical("Error in modbus thread: {}", ex.what());
     } catch (...) {
         spdlog::critical("Unknown error in modbus thread");
     }

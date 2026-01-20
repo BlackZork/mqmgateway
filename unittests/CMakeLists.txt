@@ -85,6 +85,7 @@ target_link_libraries(tests
     spdlog::spdlog
     fmt::fmt
     ${LIBMODBUS_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
+    Threads::Threads
+    -lpthread
     ${CMAKE_DL_LIBS}
 )

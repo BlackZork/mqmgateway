@@ -16,6 +16,9 @@ endif()
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 list(APPEND CMAKE_REQUIRED_LIBRARIES pthread)
 CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
@@ -25,7 +28,8 @@ find_package(PkgConfig)
 pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
 pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
 
-find_package(Threads)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
 find_package(RapidJSON REQUIRED)
