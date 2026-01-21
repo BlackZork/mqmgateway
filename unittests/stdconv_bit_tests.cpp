@@ -20,7 +20,10 @@ TEST_CASE("Bit converter") {
         ModbusRegisters data;
         data.appendValue(0x80);
 
-        conv->setArgs(std::vector<std::string>({"8"}));
+        ConverterArgValues args;
+        args.addArgValue("bit", ConverterArgType::INT, "8");
+
+        conv->setArgValues(args);
         MqttValue ret = conv->toMqtt(data);
 
         REQUIRE(ret.getString() == "1");
@@ -30,7 +33,10 @@ TEST_CASE("Bit converter") {
         ModbusRegisters data;
         data.appendValue(0x7FFF);
 
-        conv->setArgs(std::vector<std::string>({"16"}));
+        ConverterArgValues args;
+        args.addArgValue("bit", ConverterArgType::INT, "16");
+
+        conv->setArgValues(args);
         MqttValue ret = conv->toMqtt(data);
 
         REQUIRE(ret.getString() == "0");
@@ -40,8 +46,11 @@ TEST_CASE("Bit converter") {
         ModbusRegisters data;
         data.appendValue(0x7FFF);
 
+        ConverterArgValues args;
+        args.addArgValue("bit", ConverterArgType::INT, "20");
+
         REQUIRE_THROWS_AS(
-            conv->setArgs(std::vector<std::string>({"20"})),
+            conv->setArgValues(args),
             ConvException
         );
     }

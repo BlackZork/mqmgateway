@@ -4,6 +4,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include "common.hpp"
+#include "libmodmqttconv/convargs.hpp"
 #include "logging.hpp"
 #include "dll_import.hpp"
 #include "modmqtt.hpp"
@@ -658,7 +659,10 @@ ModMqtt::createConverter(const YAML::Node& node) const {
         if (conv == nullptr)
             throw ConfigurationException(node.Mark(), "Converter " + spec.plugin + "." + spec.converter + " not found");
         try {
-            conv->setArgs(spec.args);
+            if (spec.arguments != "()") {
+                ConverterArgValues values = ConverterNameParser::parseArgs(conv->getArgs(), spec.arguments);
+                conv->setArgValues(values);
+            }
         } catch (const std::exception& ex) {
             throw ConfigurationException(node.Mark(), ex.what());
         }

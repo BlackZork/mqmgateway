@@ -12,22 +12,19 @@ using namespace std::string_literals;
 namespace modmqttd {
 
 ConverterSpecification
-ConverterNameParser::parse(const ConverterArgs& args, const std::string& spec) {
+ConverterNameParser::parse(const std::string& spec) {
     std::regex re(RE_CONV);
 
     std::cmatch matches;
     if (!std::regex_match(spec.c_str(), matches, re))
-        throw ConvNameParserException("Supply converter spec in form: plugin.converter(arg1, arg2, …)");
+        throw ConvNameParserException("Supply converter spec in form: plugin.converter(value1, param=value2, …)");
 
     ConverterSpecification ret;
 
     ret.plugin = matches[1];
     ret.converter = matches[2];
 
-    std::string argsStr = matches[3];
-    if (argsStr != "()")
-        parseArgs(ret, args, argsStr);
-
+    ret.arguments = matches[3];
     return ret;
 }
 
@@ -36,8 +33,10 @@ getEscapedChar(const char& c) {
     return c;
 };
 
-void
-ConverterNameParser::parseArgs(ConverterSpecification& spec, const ConverterArgs& args, const std::string& argSpec) {
+ConverterArgValues
+ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& argSpec) {
+    ConverterArgValues ret;
+
     ConverterArgs::const_iterator it = args.begin();
 
     std::stack<aState> currentState;
@@ -62,11 +61,11 @@ ConverterNameParser::parseArgs(ConverterSpecification& spec, const ConverterArgs
                 switch(currentState.top()) {
                     case SCAN:
                         if (arg_value.empty())
-                            throw ConvNameParserException("Argument " + std::to_string(spec.getArgCount() + 1) + " is empty");
+                            throw ConvNameParserException("Argument " + std::to_string(ret.count() + 1) + " is empty");
 
                         if (it == args.end())
                             throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(args.size()));
-                        spec.addArgValue(it->mName, it->mArgType, arg_value);
+                        ret.addArgValue(it->mName, it->mArgType, arg_value);
                         it++;
                         arg_value.clear();
 
@@ -139,14 +138,16 @@ ConverterNameParser::parseArgs(ConverterSpecification& spec, const ConverterArgs
             if (arg_value.size()) {
                 if (it == args.end())
                     throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(args.size()));
-                spec.addArgValue(it->mName, it->mArgType, arg_value);
+                ret.addArgValue(it->mName, it->mArgType, arg_value);
             }
             break;
         case STRING:
-            throw ConvNameParserException("Argument "s + std::to_string(spec.getArgCount()) + " is an unterminated string");
+            throw ConvNameParserException("Argument "s + std::to_string(ret.count()) + " is an unterminated string");
         case ESCAPE:
-            throw ConvNameParserException("Argument "s + std::to_string(spec.getArgCount()) + " has an invalid escape sequence");
+            throw ConvNameParserException("Argument "s + std::to_string(ret.count()) + " has an invalid escape sequence");
     }
+
+    return ret;
 }
 
 }; //namespace

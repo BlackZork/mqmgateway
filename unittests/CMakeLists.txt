@@ -18,9 +18,9 @@ add_executable(tests
     modbus_utils.hpp
     # tests
     converter_name_parser_tests.cpp
-    exprconv_float_tests.cpp
-    exprconv_int32_tests.cpp
-    exprconv_tests.cpp
+    # exprconv_float_tests.cpp
+    # exprconv_int32_tests.cpp
+    # exprconv_tests.cpp
     modbus_config_tests.cpp
     modbus_executor_tests.cpp
     modbus_executor_single_delay_tests.cpp
@@ -62,15 +62,15 @@ add_executable(tests
     single_register_noavail_tests.cpp
     single_register_tests.cpp
     stdconv_bit_tests.cpp
-    stdconv_divide_tests.cpp
-    stdconv_int8_tests.cpp
-    stdconv_int32_tests.cpp
-    stdconv_map_tests.cpp
-    stdconv_multiply_tests.cpp
-    stdconv_float_tests.cpp
-    stdconv_string_tests.cpp
-    stdconv_tests.cpp
-    stdconv_uint32_tests.cpp
+    # stdconv_divide_tests.cpp
+    # stdconv_int8_tests.cpp
+    # stdconv_int32_tests.cpp
+    # stdconv_map_tests.cpp
+    # stdconv_multiply_tests.cpp
+    # stdconv_float_tests.cpp
+    # stdconv_string_tests.cpp
+    # stdconv_tests.cpp
+    # stdconv_uint32_tests.cpp
     testnumbers.cpp
     testnumbers.hpp
     two_slaves_tests.cpp

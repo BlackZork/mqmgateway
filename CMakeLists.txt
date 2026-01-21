@@ -36,8 +36,8 @@ find_package(RapidJSON REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED) 
 
-find_path(EXPRTK_INCLUDE_DIR "exprtk.hpp")
-message(STATUS "EXPRTK_INCLUDE_DIR => ${EXPRTK_INCLUDE_DIR}")
+#find_path(EXPRTK_INCLUDE_DIR "exprtk.hpp")
+#message(STATUS "EXPRTK_INCLUDE_DIR => ${EXPRTK_INCLUDE_DIR}")
 
 include_directories(${YAML_CPP_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIRS} .)
 
