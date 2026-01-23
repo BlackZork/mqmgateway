@@ -28,6 +28,12 @@ ConverterNameParser::parse(const std::string& spec) {
     return ret;
 }
 
+const std::string&
+validateArgName(const std::string& argName) {
+    //TODO check for chars outside a-zA-Z0-9
+    return argName;
+}
+
 char
 getEscapedChar(const char& c) {
     return c;
@@ -35,14 +41,17 @@ getEscapedChar(const char& c) {
 
 ConverterArgValues
 ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& argSpec) {
-    ConverterArgValues ret;
+    ConverterArgValues ret(args);
 
     ConverterArgs::const_iterator it = args.begin();
+
+    bool use_arg_order = true;
 
     std::stack<aState> currentState;
     currentState.push(SCAN);
 
-    std::string str_token;
+    std::string argname;
+    std::string argvalue;
     char str_delimiter = 0x0;
 
     for(const char& c: argSpec) {
@@ -50,10 +59,28 @@ ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& arg
             case '\\':
                 switch(currentState.top()) {
                     case SCAN: currentState.push(ESCAPE); break;
-                    case ARGNAME: ; break;
-                    case ARGVALUE: str_token += c; break;
+                    case ARGVALUE: argvalue += c; break;
                     case ESCAPE:
-                        str_token += getEscapedChar(c);
+                        argvalue += getEscapedChar(c);
+                        currentState.pop();
+                    break;
+                }
+            break;
+            case '=':
+                switch(currentState.top()) {
+                    case SCAN:
+                        if (argvalue.empty())
+                            throw ConvNameParserException("Missing name for argument " + std::to_string(ret.count() + 1));
+                        if (!argname.empty())
+                            throw ConvNameParserException("Name for argument " + std::to_string(ret.count() + 1) + " already set to " + argname);
+                        argname = validateArgName(argvalue);
+                        argvalue.clear();
+                    break;
+                    case ARGVALUE:
+                        throw ConvNameParserException("Name for argument " + std::to_string(ret.count() + 1) + " cannot be quoted");
+                    break;
+                    case ESCAPE:
+                        argvalue += getEscapedChar(c);
                         currentState.pop();
                     break;
                 }
@@ -61,20 +88,28 @@ ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& arg
             case ',':
                 switch(currentState.top()) {
                     case SCAN:
-                        if (str_token.empty())
+                        if (argvalue.empty())
                             throw ConvNameParserException("Argument " + std::to_string(ret.count() + 1) + " is empty");
 
-                        if (it == args.end())
-                            throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(args.size()));
-                        ret.addArgValue(it->mName, it->mArgType, str_token);
-                        it++;
-                        str_token.clear();
+                        if (!argname.empty()) {
+                            use_arg_order = false;
+                        } else {
+                            if (!use_arg_order)
+                                throw ConvNameParserException("Cannot use positional argument after named argument "s + std::to_string(args.size()));
 
-                        break;
-                    case ARGNAME: ; break;
-                    case ARGVALUE: str_token += c; break;
+                            if (it == args.end())
+                                throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(args.size()));
+                            argname = it->mName;
+                            it++;
+                        }
+
+                        ret.setArgValue(argname, it->mArgType, argvalue);
+                        argname.clear();
+                        argvalue.clear();
+                    break;
+                    case ARGVALUE: argvalue += c; break;
                     case ESCAPE:
-                        str_token += getEscapedChar(c);
+                        argvalue += getEscapedChar(c);
                         currentState.pop();
                     break;
                 }
@@ -85,15 +120,14 @@ ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& arg
                         currentState.push(ARGVALUE);
                         str_delimiter = c;
                     break;
-                    case ARGNAME: ; break;
                     case ARGVALUE:
                         if (str_delimiter == c)
                             currentState.pop();
                         else
-                            str_token += c;
-                        break;
+                            argvalue += c;
+                    break;
                     case ESCAPE:
-                        str_token += getEscapedChar(c);
+                        argvalue += getEscapedChar(c);
                         currentState.pop();
                     break;
                 }
@@ -104,15 +138,14 @@ ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& arg
                         currentState.push(ARGVALUE);
                         str_delimiter = c;
                     break;
-                    case ARGNAME: ; break;
                     case ARGVALUE:
                         if (str_delimiter == c)
                             currentState.pop();
                         else
-                            str_token += c;
+                            argvalue += c;
                         break;
                     case ESCAPE:
-                        str_token += getEscapedChar(c);
+                        argvalue += getEscapedChar(c);
                         currentState.pop();
                     break;
                 }
@@ -120,19 +153,17 @@ ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& arg
             case ' ':
                 switch(currentState.top()) {
                     case SCAN: break;
-                    case ARGNAME: ; break;
-                    case ARGVALUE: str_token += c; break;
-                    case ESCAPE: str_token += getEscapedChar(c); currentState.pop(); break;
+                    case ARGVALUE: argvalue += c; break;
+                    case ESCAPE: argvalue += getEscapedChar(c); currentState.pop(); break;
                 }
             break;
             default:
                 switch(currentState.top()) {
                     case SCAN:
-                        str_token += c;
+                        argvalue += c;
                         break;
-                    case ARGNAME: ; break;
-                    case ARGVALUE: str_token += c; break;
-                    case ESCAPE: str_token += getEscapedChar(c); currentState.pop(); break;
+                    case ARGVALUE: argvalue += c; break;
+                    case ESCAPE: argvalue += getEscapedChar(c); currentState.pop(); break;
                 }
 
             break;
@@ -141,13 +172,12 @@ ConverterNameParser::parseArgs(const ConverterArgs& args, const std::string& arg
 
     switch(currentState.top()) {
         case SCAN:
-            if (str_token.size()) {
+            if (argvalue.size()) {
                 if (it == args.end())
                     throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(args.size()));
-                ret.addArgValue(it->mName, it->mArgType, str_token);
+                ret.setArgValue(it->mName, it->mArgType, argvalue);
             }
             break;
-        case ARGNAME: ; break;
         case ARGVALUE:
             throw ConvNameParserException("Argument "s + std::to_string(ret.count()) + " is an unterminated string");
         case ESCAPE:

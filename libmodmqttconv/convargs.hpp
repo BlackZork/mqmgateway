@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <stdexcept>
 #include <vector>
@@ -37,9 +38,11 @@ class ConverterArgValue {
     public:
         ConverterArgType mArgType = ConverterArgType::INVALID;
 
-        ConverterArgValue(ConverterArgType argType, const std::string& value)
-            : mArgType(argType), mValue(value)
+        ConverterArgValue(ConverterArgType argType)
+            : mArgType(argType)
         {}
+
+        void setValue(const std::string& value) { mValue = value; }
 
         std::string as_str() const {return mValue; };
         int as_int() const { return ConverterTools::toInt(mValue); }
@@ -57,30 +60,39 @@ class ConverterArgValue {
 
 class ConverterArgValues {
     public:
+        ConverterArgValues(const ConverterArgs& args) {
+            for(auto it = args.begin(); it != args.end(); it++) {
+                mValues.insert({it->mName, ConverterArgValue(it->mArgType)});
+            }
+        }
+
         const ConverterArgValue& getArgValue(const std::string& name) const {
             std::map<std::string, ConverterArgValue>::const_iterator it =
-                args.find(name);
-            if (it == args.end())
+                mValues.find(name);
+            if (it == mValues.end())
                 throw std::invalid_argument("no value for "s + name);
             return it->second;
         }
 
         bool hasArgValue(const std::string& name) {
             std::map<std::string, ConverterArgValue>::const_iterator it =
-                args.find(name);
-            return it != args.end();
+                mValues.find(name);
+            return it != mValues.end();
         }
 
-        void addArgValue(const std::string& name, ConverterArgType argType, const std::string& value) {
-            args.insert({name, ConverterArgValue(argType, value)});
+        void setArgValue(const std::string& name, ConverterArgType argType, const std::string& value) {
+            auto it = mValues.find(name);
+            if (it == mValues.end())
+                throw std::invalid_argument("Wrong parameter name "s + name);
+            it->second.setValue(value);
         }
 
-        int count() const { return args.size(); }
+        int count() const { return mValues.size(); }
 
         ConverterArgValue operator[](const std::string& argName) const {
             const ConverterArgValue val(getArgValue(argName));
             return val;
         }
     private:
-        std::map<std::string, ConverterArgValue> args;
+        std::map<std::string, ConverterArgValue> mValues;
 };

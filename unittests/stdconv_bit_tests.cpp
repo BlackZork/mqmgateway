@@ -20,8 +20,8 @@ TEST_CASE("Bit converter") {
         ModbusRegisters data;
         data.appendValue(0x80);
 
-        ConverterArgValues args;
-        args.addArgValue("bit", ConverterArgType::INT, "8");
+        ConverterArgValues args(conv->getArgs());
+        args.setArgValue("bit", ConverterArgType::INT, "8");
 
         conv->setArgValues(args);
         MqttValue ret = conv->toMqtt(data);
@@ -33,8 +33,8 @@ TEST_CASE("Bit converter") {
         ModbusRegisters data;
         data.appendValue(0x7FFF);
 
-        ConverterArgValues args;
-        args.addArgValue("bit", ConverterArgType::INT, "16");
+        ConverterArgValues args(conv->getArgs());
+        args.setArgValue("bit", ConverterArgType::INT, "16");
 
         conv->setArgValues(args);
         MqttValue ret = conv->toMqtt(data);
@@ -46,8 +46,8 @@ TEST_CASE("Bit converter") {
         ModbusRegisters data;
         data.appendValue(0x7FFF);
 
-        ConverterArgValues args;
-        args.addArgValue("bit", ConverterArgType::INT, "20");
+        ConverterArgValues args(conv->getArgs());
+        args.setArgValue("bit", ConverterArgType::INT, "20");
 
         REQUIRE_THROWS_AS(
             conv->setArgValues(args),
