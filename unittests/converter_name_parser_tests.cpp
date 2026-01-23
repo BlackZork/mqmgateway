@@ -127,7 +127,16 @@ TEST_CASE("Converter arguments") {
 TEST_CASE("Converter params") {
     ConverterArgs args;
 
-    args.add("a", ConverterArgType::STRING,"");
+    args.add("a", ConverterArgType::STRING,"def");
+
+    SECTION("should pass default value if not provided") {
+
+        ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "");
+
+        REQUIRE(values.count() == 1);
+        REQUIRE(values["a"].as_str()  == "def");
+    }
+
     SECTION("should be parsed with single int param") {
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "a=1");
@@ -158,17 +167,11 @@ TEST_CASE("Converter params") {
         );
     }
 
-    SECTION("should throw exception for quoted param name") {
+    SECTION("should throw exception for double assignment char") {
         REQUIRE_THROWS_AS(
-            modmqttd::ConverterNameParser::parseArgs(args, "\"a\"=1"),
+            modmqttd::ConverterNameParser::parseArgs(args, "a==1"),
             modmqttd::ConvNameParserException
         );
     }
 
-    SECTION("should throw exception for double assignment char") {
-        REQUIRE_THROWS_AS(
-            modmqttd::ConverterNameParser::parseArgs(args, " a ==1"),
-            modmqttd::ConvNameParserException
-        );
-    }
 }

@@ -29,6 +29,8 @@ class ConverterArg {
             : mName(argName), mArgType(argType), mDefaultValue(std::to_string(defvalue))
         {}
 
+        const std::string& getDefaultValue() const { return mDefaultValue; }
+
         std::string mName;
         ConverterArgType mArgType;
 
@@ -54,9 +56,11 @@ class ConverterArgValue {
     public:
         ConverterArgType mArgType = ConverterArgType::INVALID;
 
-        ConverterArgValue(ConverterArgType argType)
+        ConverterArgValue(ConverterArgType argType, const std::string& defValue)
             : mArgType(argType)
-        {}
+        {
+            setValue(defValue);
+        }
 
         void setValue(const std::string& value) { mValue = value; }
 
@@ -78,7 +82,7 @@ class ConverterArgValues {
     public:
         ConverterArgValues(const ConverterArgs& args) {
             for(auto it = args.begin(); it != args.end(); it++) {
-                mValues.insert({it->mName, ConverterArgValue(it->mArgType)});
+                mValues.insert({it->mName, ConverterArgValue(it->mArgType, it->getDefaultValue())});
             }
         }
 
