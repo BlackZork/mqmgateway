@@ -25,7 +25,8 @@ class ConverterNameParser {
     private:
         typedef enum {
             SCAN,
-            STRING,
+            ARGNAME,
+            ARGVALUE,
             ESCAPE
         } aState;
 
