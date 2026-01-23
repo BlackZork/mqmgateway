@@ -7,6 +7,7 @@
 #include <string>
 
 #include "convtools.hpp"
+#include "libmodmqttconv/convexception.hpp"
 
 using namespace std::string_literals;
 
@@ -18,18 +19,33 @@ enum ConverterArgType {
 
 class ConverterArg {
     public:
-        ConverterArg(const std::string& argName, ConverterArgType argType)
-            : mName(argName), mArgType((argType))
+        ConverterArg(const std::string& argName, ConverterArgType argType, const std::string& defvalue)
+            : mName(argName), mArgType(argType), mDefaultValue(defvalue)
+        {}
+        ConverterArg(const std::string& argName, ConverterArgType argType, int defvalue)
+            : mName(argName), mArgType(argType), mDefaultValue(std::to_string(defvalue))
+        {}
+        ConverterArg(const std::string& argName, ConverterArgType argType, double defvalue)
+            : mName(argName), mArgType(argType), mDefaultValue(std::to_string(defvalue))
         {}
 
         std::string mName;
         ConverterArgType mArgType;
+
+    private:
+        std::string mDefaultValue;
 };
 
 class ConverterArgs : public std::vector<ConverterArg> {
     public:
-        void add(const std::string& argName, ConverterArgType argType) {
-            this->push_back(ConverterArg(argName, argType));
+        void add(const std::string& argName, ConverterArgType argType, const std::string& defValue) {
+            this->push_back(ConverterArg(argName, argType, defValue));
+        }
+        void add(const std::string& argName, ConverterArgType argType, int defValue) {
+            this->push_back(ConverterArg(argName, argType, defValue));
+        }
+        void add(const std::string& argName, ConverterArgType argType, double defValue) {
+            this->push_back(ConverterArg(argName, argType, defValue));
         }
 };
 

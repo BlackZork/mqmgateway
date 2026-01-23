@@ -16,6 +16,8 @@ class DataConverter {
         /**
             Returns values set in yaml for converter instance by
             name defined in getArgs()
+
+            Should throw ConvArgValidationException if arguments are invalid
         */
         virtual void setArgValues(const ConverterArgValues& values) {};
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include "libmodmqttconv/convargs.hpp"
 #include "libmodmqttconv/converter.hpp"
 
@@ -13,7 +12,7 @@ class BitmaskConverter : public DataConverter {
 
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
-            ret.push_back(ConverterArg("mask", ConverterArgType::INT));
+            ret.push_back(ConverterArg("mask", ConverterArgType::INT, 0xffff));
             return ret;
         };
 
@@ -23,7 +22,7 @@ class BitmaskConverter : public DataConverter {
 
         virtual ~BitmaskConverter() {}
     private:
-        uint16_t mask = 0xffff;
+        uint16_t mask;
 };
 
 
@@ -36,7 +35,7 @@ class BitConverter : public DataConverter {
 
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
-            ret.push_back(ConverterArg("bit", ConverterArgType::INT));
+            ret.push_back(ConverterArg("bit", ConverterArgType::INT, -1));
             return ret;
         };
 
@@ -49,5 +48,5 @@ class BitConverter : public DataConverter {
 
         virtual ~BitConverter() {}
     private:
-        uint8_t bitNumber = -1;
+        uint8_t bitNumber;
 };

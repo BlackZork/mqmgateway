@@ -658,15 +658,16 @@ ModMqtt::createConverter(const YAML::Node& node) const {
         std::shared_ptr<DataConverter> conv = createConverterInstance(spec.plugin, spec.converter);
         if (conv == nullptr)
             throw ConfigurationException(node.Mark(), "Converter " + spec.plugin + "." + spec.converter + " not found");
+
         try {
             if (spec.arguments != "()") {
                 ConverterArgValues values = ConverterNameParser::parseArgs(conv->getArgs(), spec.arguments);
                 conv->setArgValues(values);
             }
+            return conv;
         } catch (const std::exception& ex) {
             throw ConfigurationException(node.Mark(), ex.what());
         }
-        return conv;
     } catch (const ConvNameParserException& ex) {
         throw ConfigurationException(node.Mark(), ex.what());
     }

@@ -23,12 +23,6 @@ class ConverterNameParser {
         static ConverterSpecification parse(const std::string& spec);
         static ConverterArgValues parseArgs(const ConverterArgs& args, const std::string& arguments);
     private:
-        typedef enum {
-            SCAN,
-            ARGVALUE,
-            ESCAPE
-        } aState;
-
         static constexpr char const* RE_CONV = "([a-z0-9]+)\\.([a-z0-9]+)\\s?\\((.*)\\)";
 };
 

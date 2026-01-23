@@ -32,7 +32,7 @@ TEST_CASE("Converter arguments") {
     ConverterArgs args;
 
     SECTION("should be parsed with single int arg") {
-        args.add("intval", ConverterArgType::INT);
+        args.add("intval", ConverterArgType::INT, 0);
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "1");
 
         REQUIRE(values.count() == 1);
@@ -41,7 +41,7 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with single str arg") {
 
-        args.add("strval", ConverterArgType::STRING);
+        args.add("strval", ConverterArgType::STRING, "");
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "\"foo\"");
 
@@ -51,7 +51,7 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with with single str arg space ended") {
 
-        args.add("strval", ConverterArgType::STRING);
+        args.add("strval", ConverterArgType::STRING, "");
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "\"foo \"");
 
@@ -61,7 +61,7 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with single int arg surrounded by spaces") {
 
-        args.add("intval", ConverterArgType::INT);
+        args.add("intval", ConverterArgType::INT, 0);
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, " 1 ");
 
@@ -71,8 +71,8 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with two int args") {
 
-        args.add("intval1", ConverterArgType::INT);
-        args.add("intval2", ConverterArgType::INT);
+        args.add("intval1", ConverterArgType::INT,0);
+        args.add("intval2", ConverterArgType::INT,0);
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "1,2");
 
@@ -83,8 +83,8 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with two int and str args") {
 
-        args.add("intval1", ConverterArgType::INT);
-        args.add("strval2", ConverterArgType::STRING);
+        args.add("intval1", ConverterArgType::INT,0);
+        args.add("strval2", ConverterArgType::STRING,"");
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "1,\"2\"");
 
@@ -95,7 +95,7 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with single quote arg") {
 
-        args.add("strval", ConverterArgType::STRING);
+        args.add("strval", ConverterArgType::STRING,"");
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "'1'");
 
@@ -105,7 +105,7 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with single quote arg and double quote value") {
 
-        args.add("strval", ConverterArgType::STRING);
+        args.add("strval", ConverterArgType::STRING,"");
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "'\"'");
 
@@ -115,7 +115,7 @@ TEST_CASE("Converter arguments") {
 
     SECTION("should be parsed with double quote arg and single quote value") {
 
-        args.add("strval", ConverterArgType::STRING);
+        args.add("strval", ConverterArgType::STRING,"");
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "\"'\"");
 
@@ -127,8 +127,8 @@ TEST_CASE("Converter arguments") {
 TEST_CASE("Converter params") {
     ConverterArgs args;
 
+    args.add("a", ConverterArgType::STRING,"");
     SECTION("should be parsed with single int param") {
-        args.add("a", ConverterArgType::STRING);
 
         ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "a=1");
 
@@ -136,11 +136,38 @@ TEST_CASE("Converter params") {
         REQUIRE(values["a"].as_str()  == "1");
     }
 
-    SECTION("should throw exception for unknown param name") {
-        args.add("a", ConverterArgType::STRING);
+    SECTION("should be parsed with spaces between param and value") {
 
+        ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "a = 1");
+
+        REQUIRE(values.count() == 1);
+        REQUIRE(values["a"].as_str()  == "1");
+    }
+
+    SECTION("should throw exception for unknown param name") {
         REQUIRE_THROWS_AS(
             modmqttd::ConverterNameParser::parseArgs(args, "b=1"),
+            modmqttd::ConvNameParserException
+        );
+    }
+
+    SECTION("should throw exception for empty param name") {
+        REQUIRE_THROWS_AS(
+            modmqttd::ConverterNameParser::parseArgs(args, "=1"),
+            modmqttd::ConvNameParserException
+        );
+    }
+
+    SECTION("should throw exception for quoted param name") {
+        REQUIRE_THROWS_AS(
+            modmqttd::ConverterNameParser::parseArgs(args, "\"a\"=1"),
+            modmqttd::ConvNameParserException
+        );
+    }
+
+    SECTION("should throw exception for double assignment char") {
+        REQUIRE_THROWS_AS(
+            modmqttd::ConverterNameParser::parseArgs(args, " a ==1"),
             modmqttd::ConvNameParserException
         );
     }
