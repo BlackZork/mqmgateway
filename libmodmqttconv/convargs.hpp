@@ -53,11 +53,14 @@ class ConverterArgs : public std::vector<ConverterArg> {
 
 
 class ConverterArgValue {
+    private:
+        std::string mArgName;
+        std::string mValue;
     public:
-        ConverterArgType mArgType = ConverterArgType::INVALID;
+        ConverterArgType mArgType;
 
-        ConverterArgValue(ConverterArgType argType, const std::string& defValue)
-            : mArgType(argType)
+        ConverterArgValue(const std::string& argName, ConverterArgType argType, const std::string& defValue)
+            : mArgName(argName), mArgType(argType)
         {
             setValue(defValue);
         }
@@ -67,29 +70,41 @@ class ConverterArgValue {
         std::string as_str() const {return mValue; };
 
         int as_int() const {
-            int base = 10;
-            if (mValue.rfind("0x") == 0)
-                base = 16;
-            return ConverterTools::toInt(mValue, base);
+            try {
+                int base = 10;
+                if (mValue.rfind("0x") == 0)
+                    base = 16;
+                return ConverterTools::toInt(mValue, base);
+            } catch (const std::exception& ex) {
+                throw ConvException("Invalid"s + mArgName + " int value:" + ex.what());
+            }
         }
 
-        double as_double() const { return ConverterTools::toDouble(mValue); }
+        double as_double() const {
+            try {
+                return ConverterTools::toDouble(mValue);
+            } catch (const std::exception& ex) {
+                throw ConvException("Invalid"s + mArgName + " double value:" + ex.what());
+            }
+        }
 
         uint16_t as_uint16() const {
-            int ret = ConverterTools::toInt(mValue, 16);
-            if (ret < 0 || ret > 0xffff)
-                throw std::out_of_range("value out of range");
-            return (uint16_t)ret;
+            try {
+                int ret = ConverterTools::toInt(mValue, 16);
+                if (ret < 0 || ret > 0xffff)
+                    throw std::out_of_range("value out of range");
+                return (uint16_t)ret;
+            } catch (const std::exception& ex) {
+                throw ConvException("Invalid"s + mArgName + " uint16 value:" + ex.what());
+            }
         }
-    private:
-        std::string mValue;
 };
 
 class ConverterArgValues {
     public:
         ConverterArgValues(const ConverterArgs& args) {
             for(auto it = args.begin(); it != args.end(); it++) {
-                mValues.insert({it->mName, ConverterArgValue(it->mArgType, it->getDefaultValue())});
+                mValues.insert({it->mName, ConverterArgValue(it->mName, it->mArgType, it->getDefaultValue())});
             }
         }
 
