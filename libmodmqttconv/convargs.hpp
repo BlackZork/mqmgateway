@@ -65,7 +65,14 @@ class ConverterArgValue {
         void setValue(const std::string& value) { mValue = value; }
 
         std::string as_str() const {return mValue; };
-        int as_int() const { return ConverterTools::toInt(mValue); }
+
+        int as_int() const {
+            int base = 10;
+            if (mValue.rfind("0x") == 0)
+                base = 16;
+            return ConverterTools::toInt(mValue, base);
+        }
+
         double as_double() const { return ConverterTools::toDouble(mValue); }
 
         uint16_t as_uint16() const {

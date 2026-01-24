@@ -21,7 +21,7 @@ TEST_CASE("Bit converter") {
         data.appendValue(0x80);
 
         ConverterArgValues args(conv->getArgs());
-        args.setArgValue("bit", ConverterArgType::INT, "8");
+        args.setArgValue("bit", ConverterArgType::INT, "0x8");
 
         conv->setArgValues(args);
         MqttValue ret = conv->toMqtt(data);
@@ -42,7 +42,7 @@ TEST_CASE("Bit converter") {
         REQUIRE(ret.getString() == "0");
     }
 
-    SECTION("should raise ConversionException if arg is out of range") {
+    SECTION("should raise ConvException if arg is out of range") {
         ModbusRegisters data;
         data.appendValue(0x7FFF);
 

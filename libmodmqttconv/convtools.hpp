@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <vector>
 
+using namespace std::string_literals;
+
 /**
  *    Helper functions for DataConverter interface.
  **/
@@ -19,16 +21,22 @@ class ConverterTools {
          * Converts string argument to double
          * */
         static double toDouble(const std::string& arg) {
-           double val = std::stod(arg, nullptr);
-           return val;
+            std::size_t pos;
+            double val = std::stod(arg, &pos);
+            if (pos != arg.length())
+                throw std::invalid_argument(arg + " has unparsable chars starting from idx=" + std::to_string(pos) + " when converting to double");
+            return val;
         }
 
         /**
          * Converts string argument to int
          * */
         static int toInt(const std::string& arg, int base = 10) {
-           int val = std::stoi(arg, nullptr, base);
-           return val;
+            std::size_t pos;
+            int val = std::stoi(arg, &pos, base);
+            if (pos != arg.length())
+                throw std::invalid_argument(arg + " has unparsable chars starting from idx=" + std::to_string(pos) + " when converting to int");
+            return val;
         }
 
         /**
