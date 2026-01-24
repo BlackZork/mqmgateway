@@ -5,25 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "modmqttd",
+            "name": "modmqttd (lldb)",
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/modmqttd/modmqttd",
             "args": ["--loglevel=6"],
             "stopOnEntry": false,
             "cwd": "${workspaceFolder}/modmqttd",
-            /*
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]*/
-        }
-        /*        
+            "initCommands": [
+            ],
+        },
         {
             "name": "modmqttd",
             "type": "cppdbg",
@@ -37,32 +28,10 @@
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
+                    "text": "-enable-pretty-printing"
                 }
             ]
         },
-        {
-            "name": "(gdb) Launch",
-            "type": "cppdbg",
-            "request": "launch",
-            // Resolved by CMake Tools:
-            "program": "${command:cmake.launchTargetPath}",
-            "args": [],
-            // unit test launch
-            //"args": ["Register id specified as hex should be parsed"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },        
         {
             "name": "modmqttd remote",
             "type": "cppdbg",
@@ -82,6 +51,5 @@
                 }
             ]
         }        
-        */
     ]
 }
