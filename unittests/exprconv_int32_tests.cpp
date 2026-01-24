@@ -14,20 +14,23 @@ TEST_CASE ("exprtk should read") {
         "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("evaluate"));
+    ConverterArgValues args(conv->getArgs());
 
     SECTION("int32 from two registers") {
-        conv->setArgs({"int32(R0, R1)"});
+        args.setArgValue("expression", ConverterArgType::STRING, "int32(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::AB, TestNumbers::Int::CD});
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);
     }
 
     SECTION("int32 from two registers byte swapped") {
-        conv->setArgs({"int32bs(R0, R1)"});
+        args.setArgValue("expression", ConverterArgType::STRING, "int32bs(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::BA, TestNumbers::Int::DC});
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);
@@ -35,18 +38,20 @@ TEST_CASE ("exprtk should read") {
 
 
     SECTION("uint32 from two registers") {
-        conv->setArgs({"uint32(R0, R1)"});
+        args.setArgValue("expression", ConverterArgType::STRING, "uint32(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::AB, TestNumbers::Int::CD});
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt64() == TestNumbers::Int::ABCD_as_uint32);
     }
 
     SECTION("uint32 from two registers byte swapped") {
-        conv->setArgs({"uint32bs(R0, R1)"});
+        args.setArgValue("expression", ConverterArgType::STRING, "uint32bs(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::BA, TestNumbers::Int::DC});
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt64() == TestNumbers::Int::ABCD_as_uint32);

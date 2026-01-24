@@ -27,7 +27,14 @@ class ExprtkConverter : public DataConverter {
             return MqttValue::fromDouble(ret, mPrecision);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("expression", ConverterArgType::STRING, "");
+            ret.add("precision", ConverterArgType::INT, -1);
+            return ret;
+        }
+
+        virtual void setArgValues(const ConverterArgValues& values) {
             mSymbolTable.add_function("int32",   int32);
             mSymbolTable.add_function("int32bs",   int32bs);
             mSymbolTable.add_function("uint32",  uint32);
@@ -44,12 +51,11 @@ class ExprtkConverter : public DataConverter {
             }
 
             mExpression.register_symbol_table(mSymbolTable);
-            if (!mParser.compile(ConverterTools::getArg(0, args), mExpression)) {
+            if (!mParser.compile(values["expression"].as_str(), mExpression)) {
                 throw ConvException(std::string("Exprtk ") + mParser.error());
             }
 
-            if (args.size() == 2)
-                mPrecision = ConverterTools::getIntArg(1, args);
+            mPrecision = values["precision"].as_int();
         }
 
         virtual ~ExprtkConverter() {}
@@ -58,7 +64,7 @@ class ExprtkConverter : public DataConverter {
         exprtk::parser<double> mParser;
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
-        int mPrecision = -1;
+        int mPrecision;
 
         static double int32(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, false);

@@ -18,9 +18,9 @@ add_executable(tests
     modbus_utils.hpp
     # tests
     converter_name_parser_tests.cpp
-    # exprconv_float_tests.cpp
-    # exprconv_int32_tests.cpp
-    # exprconv_tests.cpp
+     exprconv_float_tests.cpp
+    exprconv_int32_tests.cpp
+    exprconv_tests.cpp
     modbus_config_tests.cpp
     modbus_executor_tests.cpp
     modbus_executor_single_delay_tests.cpp
