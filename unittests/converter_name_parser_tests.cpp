@@ -122,6 +122,16 @@ TEST_CASE("Converter arguments") {
         REQUIRE(values.count() == 1);
         REQUIRE(values["strval"].as_str()  == "'");
     }
+
+    SECTION("should throw ConvNameParserException if too many arguments are provided") {
+
+        args.add("strval", ConverterArgType::STRING,"");
+
+        REQUIRE_THROWS_AS(
+            modmqttd::ConverterNameParser::parseArgs(args, "1,2"),
+            modmqttd::ConvNameParserException
+        );
+    }
 }
 
 TEST_CASE("Converter params") {
@@ -153,23 +163,53 @@ TEST_CASE("Converter params") {
         REQUIRE(values["a"].as_str()  == "1");
     }
 
-    SECTION("should throw exception for unknown param name") {
+    SECTION("should throw if param name is unknown") {
         REQUIRE_THROWS_AS(
             modmqttd::ConverterNameParser::parseArgs(args, "b=1"),
             modmqttd::ConvNameParserException
         );
     }
 
-    SECTION("should throw exception for empty param name") {
+    SECTION("should throw if param name is empty") {
         REQUIRE_THROWS_AS(
             modmqttd::ConverterNameParser::parseArgs(args, "=1"),
             modmqttd::ConvNameParserException
         );
     }
 
-    SECTION("should throw exception for double assignment char") {
+    SECTION("should throw if there are too many assignment chars") {
         REQUIRE_THROWS_AS(
             modmqttd::ConverterNameParser::parseArgs(args, "a==1"),
+            modmqttd::ConvNameParserException
+        );
+    }
+
+    SECTION("should throw if param is set more than once") {
+        REQUIRE_THROWS_AS(
+            modmqttd::ConverterNameParser::parseArgs(args, "a=1, a=2"),
+            modmqttd::ConvNameParserException
+        );
+    }
+}
+
+
+TEST_CASE("Converter args and params") {
+    ConverterArgs args;
+
+    args.add("arg", ConverterArgType::STRING,"a");
+    args.add("param", ConverterArgType::STRING,"p");
+
+    SECTION("should set default value if param is not provided") {
+        ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "arg=set");
+
+        REQUIRE(values.count() == 2);
+        REQUIRE(values["arg"].as_str() == "set");
+        REQUIRE(values["param"].as_str() == "p");
+    }
+
+    SECTION("should throw if arg is after param") {
+        REQUIRE_THROWS_AS(
+            modmqttd::ConverterNameParser::parseArgs(args, "arg=2, 4"),
             modmqttd::ConvNameParserException
         );
     }

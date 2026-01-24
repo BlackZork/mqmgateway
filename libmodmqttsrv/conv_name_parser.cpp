@@ -28,9 +28,10 @@ class ConverterArgParser {
         ConverterArgs mArgs;
         bool mUseArgOrder = true;
         std::stack<aState> mCurrentState;
-        std::string argname;
-        std::string argvalue;
+        std::string mArgName;
+        std::string mArgValue;
         ConverterArgs::const_iterator mCurrentPosArgIterator;
+        std::vector<std::string> mProcessedArgs;
 
         void setArgValue(ConverterArgValues& values, const std::string& argName, ConverterArgType argType, const std::string& argValue);
         char getEscapedChar(const char& c) { return c; };
@@ -46,7 +47,7 @@ ConverterArgParser::validateArgName(const std::string& argName) {
 void
 ConverterArgParser::setArgValue(ConverterArgValues& values, const std::string& argName, ConverterArgType argType, const std::string& argValue) {
     try {
-        if (!argname.empty()) {
+        if (!mArgName.empty()) {
             mUseArgOrder = false;
         } else {
             if (!mUseArgOrder)
@@ -54,15 +55,20 @@ ConverterArgParser::setArgValue(ConverterArgValues& values, const std::string& a
 
             if (mCurrentPosArgIterator == mArgs.end())
                 throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(mArgs.size()));
-            argname = mCurrentPosArgIterator->mName;
+            mArgName = mCurrentPosArgIterator->mName;
             mCurrentPosArgIterator++;
         }
 
-        values.setArgValue(argname, mCurrentPosArgIterator->mArgType, argvalue);
-        argname.clear();
-        argvalue.clear();
+        auto it = std::find(mProcessedArgs.begin(), mProcessedArgs.end(), mArgName);
+        if (it != mProcessedArgs.end())
+            throw ConvNameParserException(mArgName + " already set");
+
+        values.setArgValue(mArgName, mCurrentPosArgIterator->mArgType, mArgValue);
+        mProcessedArgs.push_back(mArgName);
+        mArgName.clear();
+        mArgValue.clear();
     } catch (const std::exception& ex) {
-        throw ConvNameParserException("Error setting argument " + argname + ":" + ex.what());
+        throw ConvNameParserException("Error setting argument " + mArgName + ":" + ex.what());
     }
 };
 
@@ -70,8 +76,8 @@ ConverterArgValues
 ConverterArgParser::parse(const std::string& argStr) {
     ConverterArgValues ret(mArgs);
 
+    mProcessedArgs.clear();
     mCurrentPosArgIterator = mArgs.begin();
-
     mCurrentState.push(SCAN);
 
     char str_delimiter = 0x0;
@@ -81,9 +87,9 @@ ConverterArgParser::parse(const std::string& argStr) {
             case '\\':
                 switch(mCurrentState.top()) {
                     case SCAN: mCurrentState.push(ESCAPE); break;
-                    case ARGVALUE: argvalue += c; break;
+                    case ARGVALUE: mArgValue += c; break;
                     case ESCAPE:
-                        argvalue += getEscapedChar(c);
+                        mArgValue += getEscapedChar(c);
                         mCurrentState.pop();
                     break;
                 }
@@ -91,18 +97,18 @@ ConverterArgParser::parse(const std::string& argStr) {
             case '=':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        if (argvalue.empty())
+                        if (mArgValue.empty())
                             throw ConvNameParserException("Missing name for argument " + std::to_string(ret.count() + 1));
-                        if (!argname.empty())
-                            throw ConvNameParserException("Name for argument " + std::to_string(ret.count() + 1) + " already set to " + argname);
-                        argname = validateArgName(argvalue);
-                        argvalue.clear();
+                        if (!mArgName.empty())
+                            throw ConvNameParserException("Name for argument " + std::to_string(ret.count() + 1) + " already set to " + mArgName);
+                        mArgName = validateArgName(mArgValue);
+                        mArgValue.clear();
                     break;
                     case ARGVALUE:
                         throw ConvNameParserException("Name for argument " + std::to_string(ret.count() + 1) + " cannot be quoted");
                     break;
                     case ESCAPE:
-                        argvalue += getEscapedChar(c);
+                        mArgValue += getEscapedChar(c);
                         mCurrentState.pop();
                     break;
                 }
@@ -110,13 +116,13 @@ ConverterArgParser::parse(const std::string& argStr) {
             case ',':
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        if (argvalue.empty())
+                        if (mArgValue.empty())
                             throw ConvNameParserException("Argument " + std::to_string(ret.count() + 1) + " is empty");
-                        setArgValue(ret, argname, mCurrentPosArgIterator->mArgType, argvalue);
+                        setArgValue(ret, mArgName, mCurrentPosArgIterator->mArgType, mArgValue);
                     break;
-                    case ARGVALUE: argvalue += c; break;
+                    case ARGVALUE: mArgValue += c; break;
                     case ESCAPE:
-                        argvalue += getEscapedChar(c);
+                        mArgValue += getEscapedChar(c);
                         mCurrentState.pop();
                     break;
                 }
@@ -131,10 +137,10 @@ ConverterArgParser::parse(const std::string& argStr) {
                         if (str_delimiter == c)
                             mCurrentState.pop();
                         else
-                            argvalue += c;
+                            mArgValue += c;
                     break;
                     case ESCAPE:
-                        argvalue += getEscapedChar(c);
+                        mArgValue += getEscapedChar(c);
                         mCurrentState.pop();
                     break;
                 }
@@ -149,10 +155,10 @@ ConverterArgParser::parse(const std::string& argStr) {
                         if (str_delimiter == c)
                             mCurrentState.pop();
                         else
-                            argvalue += c;
+                            mArgValue += c;
                         break;
                     case ESCAPE:
-                        argvalue += getEscapedChar(c);
+                        mArgValue += getEscapedChar(c);
                         mCurrentState.pop();
                     break;
                 }
@@ -160,17 +166,17 @@ ConverterArgParser::parse(const std::string& argStr) {
             case ' ':
                 switch(mCurrentState.top()) {
                     case SCAN: break;
-                    case ARGVALUE: argvalue += c; break;
-                    case ESCAPE: argvalue += getEscapedChar(c); mCurrentState.pop(); break;
+                    case ARGVALUE: mArgValue += c; break;
+                    case ESCAPE: mArgValue += getEscapedChar(c); mCurrentState.pop(); break;
                 }
             break;
             default:
                 switch(mCurrentState.top()) {
                     case SCAN:
-                        argvalue += c;
+                        mArgValue += c;
                         break;
-                    case ARGVALUE: argvalue += c; break;
-                    case ESCAPE: argvalue += getEscapedChar(c); mCurrentState.pop(); break;
+                    case ARGVALUE: mArgValue += c; break;
+                    case ESCAPE: mArgValue += getEscapedChar(c); mCurrentState.pop(); break;
                 }
 
             break;
@@ -179,8 +185,8 @@ ConverterArgParser::parse(const std::string& argStr) {
 
     switch(mCurrentState.top()) {
         case SCAN:
-            if (argvalue.size())
-                setArgValue(ret, argname, mCurrentPosArgIterator->mArgType, argvalue);
+            if (mArgValue.size())
+                setArgValue(ret, mArgName, mCurrentPosArgIterator->mArgType, mArgValue);
             break;
         case ARGVALUE:
             throw ConvNameParserException("Argument "s + std::to_string(ret.count()) + " is an unterminated string");
