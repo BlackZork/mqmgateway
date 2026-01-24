@@ -1,8 +1,8 @@
 #pragma once
 
-#include "libmodmqttconv/converter.hpp"
+#include "double_register_converter.hpp"
 
-class SingleArgMathConverter : public DataConverter {
+class SingleArgMathConverter : public DoubleRegisterConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
 
@@ -21,22 +21,22 @@ class SingleArgMathConverter : public DataConverter {
             return ConverterTools::int32ToRegisters(val, mLowFirst, mSwapBytes, registerCount);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            mDoubleArg = ConverterTools::getDoubleArg(0, args);
-            switch (args.size()) {
-                case 4: {
-                    std::string swapBytes = ConverterTools::getArg(3, args);
-                    mSwapBytes = (swapBytes == "swap_bytes");
-                }
-                case 3: {
-                    std::string firstByte = ConverterTools::getArg(2, args);
-                    mLowFirst = (firstByte == "low_first");
-                }
-                case 2: {
-                    mPrecision = ConverterTools::getIntArg(1, args);
-                }
-            }
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("divisor", ConverterArgType::DOUBLE, "");
+            ret.add(ConverterArg::sPrecisionArgName, ConverterArgType::INT, ConverterArgValue::NO_PRECISION);
+            ret.add(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, false);
+            ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);
+            return ret;
         }
+
+        virtual void setArgValues(const ConverterArgValues& args) {
+            mDoubleArg = args["divisor"].as_double();
+            setSwapBytes(args);
+            setLowFirst(args);
+            mPrecision = args[ConverterArg::sPrecisionArgName].as_int();
+        };
+
 
         virtual ~SingleArgMathConverter() {}
     protected:
@@ -44,8 +44,6 @@ class SingleArgMathConverter : public DataConverter {
 
         double mDoubleArg;
         int mPrecision = MqttValue::NO_PRECISION;
-        bool mLowFirst = false;
-        bool mSwapBytes = false;
 
         virtual double doMath(double value) const = 0;
 };

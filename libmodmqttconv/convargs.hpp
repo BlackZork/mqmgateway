@@ -14,11 +14,17 @@ using namespace std::string_literals;
 enum ConverterArgType {
     INVALID = 0,
     INT = 1,
-    STRING = 2
+    STRING = 2,
+    DOUBLE = 3,
+    BOOL = 4
 };
 
 class ConverterArg {
     public:
+        static constexpr const char* sPrecisionArgName = "precision";
+        static constexpr const char* sSwapBytesArgName = "swap_bytes";
+        static constexpr const char* sLowFirstArgName = "low_first";
+
         ConverterArg(const std::string& argName, ConverterArgType argType, const std::string& defvalue)
             : mName(argName), mArgType(argType), mDefaultValue(defvalue)
         {}
@@ -57,6 +63,8 @@ class ConverterArgValue {
         std::string mArgName;
         std::string mValue;
     public:
+        static constexpr int NO_PRECISION=-1;
+
         ConverterArgType mArgType;
 
         ConverterArgValue(const std::string& argName, ConverterArgType argType, const std::string& defValue)
@@ -98,6 +106,14 @@ class ConverterArgValue {
                 throw ConvException("Invalid"s + mArgName + " uint16 value:" + ex.what());
             }
         }
+
+        bool as_bool() const {
+            if (mValue == "true" || mValue == "TRUE" || mValue=="1")
+                return true;
+            else if (mValue == "false" || mValue == "FALSE" || mValue == "0")
+                return false;
+            throw ConvException(mArgName + " value cannot be converted to bool");
+        }
 };
 
 class ConverterArgValues {
@@ -131,8 +147,8 @@ class ConverterArgValues {
 
         int count() const { return mValues.size(); }
 
-        ConverterArgValue operator[](const std::string& argName) const {
-            const ConverterArgValue val(getArgValue(argName));
+        const ConverterArgValue& operator[](const std::string& argName) const {
+            const ConverterArgValue& val(getArgValue(argName));
             return val;
         }
     private:

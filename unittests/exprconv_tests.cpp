@@ -26,7 +26,7 @@ TEST_CASE ("A number should be converted by exprtk") {
 
     SECTION("when precision is set") {
         args.setArgValue("expression", ConverterArgType::STRING, "R0 / 3");
-        args.setArgValue("precision", ConverterArgType::INT, "3");
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "3");
         const ModbusRegisters input(10);
 
         conv->setArgValues(args);
@@ -48,7 +48,7 @@ TEST_CASE ("A uint16_t register data should be converted to exprtk value") {
     args.setArgValue("expression", ConverterArgType::STRING, "int16(R0)");
     const ModbusRegisters input(0xFFFF);
 
-        conv->setArgValues(args);
+    conv->setArgValues(args);
     MqttValue output = conv->toMqtt(input);
 
     REQUIRE(output.getString() == "-1");

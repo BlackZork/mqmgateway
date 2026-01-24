@@ -14,14 +14,13 @@ TEST_CASE("A number value should be divided") {
         "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("divide"));
-    std::vector<std::string> args = {
-        "2"
-    };
+    ConverterArgValues args(conv->getArgs());
+    args.setArgValue("divisor", ConverterArgType::DOUBLE, "2.0");
 
     SECTION("when one int32 value is converted to two modbus registers, high byte first") {
         MqttValue input(0x20004);
 
-        conv->setArgs(args);
+        conv->setArgValues(args);
         ModbusRegisters output = conv->toModbus(input, 2);
 
         REQUIRE(output.values() == std::vector<uint16_t>({0x1, 0x2}));
@@ -31,10 +30,10 @@ TEST_CASE("A number value should be divided") {
     SECTION("when one int32 value is converted to two modbus registers, low byte first") {
         MqttValue input(0x20004);
 
-        args.push_back("1");
-        args.push_back("low_first");
-        conv->setArgs(args);
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "2");
+        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
 
+        conv->setArgValues(args);
         ModbusRegisters output = conv->toModbus(input, 2);
 
         REQUIRE(output.values() == std::vector<uint16_t>({0x2, 0x1}));
@@ -43,11 +42,11 @@ TEST_CASE("A number value should be divided") {
     SECTION("when one int32 byte swapped value is converted to two modbus registers, low byte first") {
         MqttValue input(TestNumbers::Int::ABCD_as_int32);
 
-        args.push_back("0");
-        args.push_back("low_first");
-        args.push_back("swap_bytes");
-        conv->setArgs(args);
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "0");
+        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
 
+        conv->setArgValues(args);
         ModbusRegisters output = conv->toModbus(input, 2);
 
         REQUIRE(output.values() == std::vector<uint16_t>({0xea61, 0xd9d0}));
@@ -56,7 +55,7 @@ TEST_CASE("A number value should be divided") {
     SECTION("when two modbus registers are converted into a string, high byte first") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{0x01, 0x2});
 
-        conv->setArgs(args);
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getString() == "32769");
@@ -66,9 +65,10 @@ TEST_CASE("A number value should be divided") {
     SECTION("when two modbus registers are converted into a string, low byte first") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{0x02, 0x1});
 
-        args.push_back("0");
-        args.push_back("low_first");
-        conv->setArgs(args);
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "0");
+        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getString() == "32769");
@@ -78,10 +78,11 @@ TEST_CASE("A number value should be divided") {
     SECTION("when two modbus byte swapped registers are converted into a string, low byte first") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{0x0201, 0x0804});
 
-        args.push_back("0");
-        args.push_back("low_first");
-        args.push_back("swap_bytes");
-        conv->setArgs(args);
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "0");
+        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == 0x02040081);
@@ -92,7 +93,7 @@ TEST_CASE("A number value should be divided") {
     SECTION("when single modbus register is converted into a string") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{0x02});
 
-        conv->setArgs(args);
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getString() == "1");
@@ -102,7 +103,7 @@ TEST_CASE("A number value should be divided") {
     SECTION("mqtt value is converted to single modbus register") {
         MqttValue input(0x4);
 
-        conv->setArgs(args);
+        conv->setArgValues(args);
         ModbusRegisters output = conv->toModbus(input, 1);
 
         REQUIRE(output.values() == std::vector<uint16_t>({0x2}));
@@ -118,14 +119,13 @@ TEST_CASE("When precision of divided mqtt value ") {
         "converter_plugin"
     );
     std::shared_ptr<DataConverter> conv(plugin->getConverter("divide"));
-    std::vector<std::string> args = {
-        "3"
-    };
+    ConverterArgValues args(conv->getArgs());
+    args.setArgValue("divisor", ConverterArgType::DOUBLE, "3.0");
 
     SECTION("is default 6 then fractional part contains 6 digits") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{10});
 
-        conv->setArgs(args);
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getString() == "3.333333");
@@ -134,8 +134,8 @@ TEST_CASE("When precision of divided mqtt value ") {
     SECTION("is 3 then fractional part contains 3 digits") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{10});
 
-        args.push_back("3");
-        conv->setArgs(args);
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "3");
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getString() == "3.333");
@@ -144,8 +144,8 @@ TEST_CASE("When precision of divided mqtt value ") {
     SECTION("is 0 then there is no fractional part") {
         ModbusRegisters input = ModbusRegisters(std::vector<uint16_t>{10});
 
-        args.push_back("0");
-        conv->setArgs(args);
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "0");
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getString() == "3");

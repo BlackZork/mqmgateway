@@ -65,7 +65,7 @@ TEST_CASE("exprtk should read float from two registers") {
 
     SECTION("and precision is set") {
         args.setArgValue("expression", ConverterArgType::STRING, "flt32(R0, R1)");
-        args.setArgValue("precision", ConverterArgType::INT, "3");
+        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "3");
         const ModbusRegisters input({0xc2f6, 0xe979});
 
         conv->setArgValues(args);

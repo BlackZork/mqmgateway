@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cmath>
-#include "libmodmqttconv/converter.hpp"
 #include "libmodmqttconv/convexception.hpp"
+#include "double_register_converter.hpp"
 
-class FloatConverter : public DataConverter {
+class FloatConverter : public DoubleRegisterConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             if (data.getCount() < 2)
@@ -35,27 +35,23 @@ class FloatConverter : public DataConverter {
                 ConverterTools::int32ToRegisters(CastData.out_value, mLowFirst, mSwapBytes, registerCount)
             );
             return ModbusRegisters(regdata);
-        }
+        };
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            switch (args.size()) {
-                case 3: {
-                    std::string swapBytes = ConverterTools::getArg(2, args);
-                    mSwapBytes = (swapBytes == "swap_bytes");
-                }
-                case 2: {
-                    std::string firstByte = ConverterTools::getArg(1, args);
-                    mLowFirst = (firstByte == "low_first");
-                }
-                case 1: {
-                    mPrecision = ConverterTools::getIntArg(0, args);
-                }
-            }
-        }
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add(ConverterArg::sPrecisionArgName, ConverterArgType::INT, ConverterArgValue::NO_PRECISION);
+            ret.add(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, false);
+            ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);
+            return ret;
+        };
+
+        virtual void setArgValues(const ConverterArgValues& args) {
+            setSwapBytes(args);
+            setLowFirst(args);
+            mPrecision = args[ConverterArg::sPrecisionArgName].as_int();
+        };
 
         virtual ~FloatConverter() {}
     private:
-        bool mLowFirst = false;
-        bool mSwapBytes = false;
-        int mPrecision = -1;
+        int mPrecision;
 };

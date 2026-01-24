@@ -30,7 +30,7 @@ class ExprtkConverter : public DataConverter {
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
             ret.add("expression", ConverterArgType::STRING, "");
-            ret.add("precision", ConverterArgType::INT, -1);
+            ret.add(ConverterArg::sPrecisionArgName, ConverterArgType::INT, ConverterArgValue::NO_PRECISION);
             return ret;
         }
 
@@ -55,7 +55,7 @@ class ExprtkConverter : public DataConverter {
                 throw ConvException(std::string("Exprtk ") + mParser.error());
             }
 
-            mPrecision = values["precision"].as_int();
+            mPrecision = values[ConverterArg::sPrecisionArgName].as_int();
         }
 
         virtual ~ExprtkConverter() {}
