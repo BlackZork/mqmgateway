@@ -27,7 +27,7 @@ mqtt:
       state:
         register: tcptest.1.2
         register_type: input
-        converter: std.divide(1000,3)
+        converter: std.divide(1000,precision=3)
 )";
 
 
