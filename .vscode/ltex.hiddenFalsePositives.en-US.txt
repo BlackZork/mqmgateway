@@ -16,3 +16,4 @@
 {"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qbitmask\\E$"}
 {"rule":"A_BIT","sentence":"^\\QArguments:\nbit number 1-16\\E$"}
 {"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qmyconverter from this example can be used like this:\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qtimespan format: \"(0-9+)(ms|s|min)\"\\E$"}
