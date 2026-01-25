@@ -38,8 +38,8 @@ MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosquitto](https:
 
 This software is dual-licensed:
 
-  * under the terms of [AGPL-3.0 license](https://www.gnu.org/licenses/agpl-3.0.html) as Open Source project
-  * under commercial license
+* under the terms of [AGPL-3.0 license](https://www.gnu.org/licenses/agpl-3.0.html) as Open Source project
+* under commercial license
 
 For a commercial-friendly license and support please see http://mqmgateway.zork.pl.
 
@@ -60,16 +60,16 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
    You can also use `branch=<tagname>` to clone specific release or download sources from [Releases page](https://github.com/BlackZork/mqmgateway/releases)
 
-1. Install dependencies:
+2. Install dependencies:
    1. libspdlog
-   1. libmodbus
-   1. mosquitto
-   1. yaml-cpp
-   1. rapidJSON
-   1. exprtk (optional, for exprtk expressions language support in YAML declarations)
-   1. Catch2 (optional, for unit tests)
+   2. libmodbus
+   3. mosquitto
+   4. yaml-cpp
+   5. rapidJSON
+   6. exprtk (optional, for exprtk expressions language support in YAML declarations)
+   7. Catch2 (optional, for unit tests)
 
-1. Configure and build project:
+3. Configure and build project:
 
     ```bash
     cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -S (project dir) -B (build dir)
@@ -79,13 +79,13 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
     You can add `-DWITHOUT_TESTS=1` to skip build of unit test executable.
 
-1. Copy config.template.yaml to `/etc/modmqttd/config.yaml` and adjust it.
+4. Copy config.template.yaml to `/etc/modmqttd/config.yaml` and adjust it.
 
-1. Copy `modmqttd.service` to `/etc/systemd/system` and start service:
+5. Copy `modmqttd.service` to `/etc/systemd/system` and start service:
 
-```bash
-  systemctl start modmqttd
-```
+    ```bash
+      systemctl start modmqttd
+    ```
 
 ## Docker image
 
@@ -672,100 +672,66 @@ modmqttd uses conversion plugins to convert state data read from modbus register
 
 Converter can also be used to convert MQTT command payload to register value.
 
-String converter arguments can be passed in single or double quotes.
+Converter arguments can be passed in single or double quotes. Positional and key arguments are supported. All examples below sets the same arguments for `std.divide`:
+
+```yaml
+  converter: std.divide(20, low_first=true)
+  converter: std.divide(20, true)
+  converter: std.divide(low_first=true, divisor=20)
+```
 
 ### Standard converters
 
 Converter functions are defined in libraries dynamically loaded at startup.
 modmqttd contains *std* library with basic converters ready to use:
 
-* **divide**
+* **divide(divisor, precision=-1, low_first=false, swap_bytes=false)**
 
   Usage: state, command
 
-  Arguments:
-    - divisor (required)
-    - precision (optional)
-    - low_first (optional)
-    - swap_bytes (optional)
-
-
-  Divides value by divisor and rounds to (precision) digits after the decimal.
+  Divides value by `divisor` and rounds to `precision` digits after the decimal. Default precision is C++ default (usually six digits).
   For modbus data supports uint16 in single register and uint32 value in two registers.
-  For int32 mode the first modbus register holds higher byte, the second holds lower byte if 'low first' is not passed.
-  With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
-  With 'swap_bytes' argument bytes in both modbus registers will be swapped before division
+  For int32 mode the first modbus register holds higher byte, the second holds lower byte if `low first` is false.
+  With `low_first=true` argument the first modbus register holds lower byte, the second holds higher byte.
+  With `swap_bytes=true` argument bytes in both modbus registers will be swapped before division
 
-* **multiply**
+* **multiply(multipler, precision=-1, low_first=false, swap_bytes=false)**
 
   Usage: state, command
 
-  Arguments:
-    - multiplier (required)
-    - precision (optional)
-    - low_first (optional)
-    - swap_bytes (optional)
+  Multiples value. See **divide** for description of `precision`, `low_first` and `swap_bytes` arguments.
 
-  Multiples value. See 'divide' for description of 'precision', 'low_first' and 'swap_bytes' arguments.
-
-* **int8**
+* **int8(first=false)**
 
   Usage: state
 
-  Arguments:
-    - first (optional)
+  Parses and writes modbus register data as signed int8. The second byte is parsed by default, set `first=true` to read the first byte.
 
-  Parses and writes modbus register data as signed int8. Second byte is parsed by default, pass `first` as argument to read first byte.
-
-
-* **uint8**
+* **uint8(first=false)**
 
   Usage: state
 
-  Arguments:
-    - first (optional)
+  Parses and writes modbus register data as unsigned int8. Second byte is parsed by default, set `first=true` to read the first byte.
 
-  Parses and writes modbus register data as unsigned int8. Second byte is parsed by default, pass `first` as argument to read first byte.
-
-
-* **int16**
+* **int16()**
 
   Usage: state, command
 
   Parses and writes modbus register data as signed int16.
 
-
-* **int32**
-
-  Usage: state, command
-
-  Arguments:
-    - low_first (optional)
-    - swap_bytes (optional)
-
-  Combines two modbus registers into one 32bit value or writes 32bit MQTT value to two modbus registers.
-  Without arguments the first modbus register holds higher byte, the second holds lower byte.
-  With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
-  With 'swap_bytes' argument bytes in both modbus registers will be swapped before conversion
-
-
-* **uint32**
+* **int32(low_first=false, swap_bytes=false)**
 
   Usage: state, command
 
-  Arguments:
-    - low_first (optional)
-    - swap_bytes (optional)
+  Combines two modbus registers into one 32bit value or writes 32bit MQTT value to two modbus registers. See **divide** for description of `low_first` and `swap_bytes` arguments.
+
+* **uint32(low_first=false, swap_bytes=false)**
+
+  Usage: state, command
 
   Same as int32, but modbus registers are interpreted as unsigned int32.
 
-* **float32**
-
-  Usage: state, command
-  Arguments:
-    - precision (optional)
-    - low_first, high_first (optional)
-    - swap_bytes (optional)
+* **float32(precision=-1, low_first=false, swap_bytes=false)**
 
   Combines two modbus registers into one 32bit float or writes MQTT value to two modbus registers as float.
   Without arguments the first modbus register holds higher byte, the second holds lower byte.
@@ -773,31 +739,22 @@ modmqttd contains *std* library with basic converters ready to use:
 
   If 'swap_bytes' is defined, then bytes in both registers are swapped before reading and writing. Float value stored on four bytes `ABCD` will be written to modbus registers R0, R1 as:
 
-  - no arguments or high_first: R0=_AB_, R1=_CD_
-  - low_first: R0=_CD_, R1=_AB_
-  - high_first, swap_bytes: R0=_BA_, R1=_DC_
-  - low_first, swap_bytes: R0=_DC_, R1=_BA_
+  - no arguments: R0=_AB_, R1=_CD_
+  - low_first=true: R0=_CD_, R1=_AB_
+  - swap_bytes=true: R0=_BA_, R1=_DC_
+  - low_first=true and swap_bytes=true: R0=_DC_, R1=_BA_
 
-* **bitmask**
+* **bitmask(mask=0xffff)**
 
   Usage: state
 
-  Arguments:
-    - bitmask in hex (default "0xffff")
-
-
   Applies a mask to value read from modbus register.
 
-
-* **bit**
+* **bit(bit)**
 
   Usage: state (single holding or input register)
 
-  Arguments:
-    - bit number 1-16
-
   Returns 1 if given bit is set, 0 otherwise
-
 
 * **string**
 
@@ -809,7 +766,7 @@ modmqttd contains *std* library with basic converters ready to use:
 
   When writing, converters puts all bytes from MQTT payload into register bytes. If payload is shorter, then remaining bytes are zeroed.
 
-* **map**
+* **map(map)**
   Usage: state, command (single register only)
 
   Arguments:
@@ -891,13 +848,11 @@ When an availability value should be computed from multiple registers:
 Exprtk converter allows using exprtk expression language to convert register data to MQTT value.
 Register values are defined as `R0..Rn` variables.
 
-* **evaluate**
+* **evaluate(expression, precision=-1)**
 
   Usage: state
 
-  Arguments:
-  * [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
-  * precision (optional)
+  Evaluates [exprtk expression](http://www.partow.net/programming/exprtk/) with up to 10 registers as variables R0-R9 variables.
 
   &nbsp;
 
@@ -962,10 +917,20 @@ Here is a minimal example of custom conversion plugin:
 
 class MyConverter : public DataConverter {
     public:
-        //called by modmqttd to set coverter arguments
-        virtual void setArgs(const std::vector<std::string>& args) {
-            mShift = getIntArg(0, args);
+        // called by modmqttd to get coverter arguments
+        // for configuration parser and its default values
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("shift", ConverterArgType::INT, "0");
+            return ret;        
         }
+
+        // called by modmqttd to set coverter arguments
+        // default arguments passed to getArgs are passed back
+        // if they were not specified in configuration file
+        virtual void setArgValues(const ConverterArgValues& args) {
+            mShift = args["shift"].as_int();
+        };
 
         // Conversion from modbus registers to MQTT value
         // Used when converter is defined for state topic
@@ -990,7 +955,7 @@ class MyConverter : public DataConverter {
 
         virtual ~MyConverter() {}
     private:
-      int mShift = 0;
+      int mShift;
 };
 
 
