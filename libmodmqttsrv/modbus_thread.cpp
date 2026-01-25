@@ -91,14 +91,14 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     }
 
     mScheduler.setPollSpecification(registerMap);
-    spdlog::debug("Poll specification set, got {} slaves, {} registers to poll:",
+    spdlog::info("Poll specification set, got {} slaves, {} registers to poll:",
         registerMap.size(),
         spec.mRegisters.size()
     );
     for (auto sit = registerMap.begin(); sit != registerMap.end(); sit++) {
         for (auto it = sit->second.begin(); it != sit->second.end(); it++) {
 
-            spdlog::debug("slave {}, register {}:{} count={}, poll every {}, queue {}, min f_delay {}, min delay {}",
+            spdlog::info("slave {}, register {}:{} count={}, poll every {}, queue {}, min f_delay {}, min delay {}",
                 sit->first,
                 (*it)->mRegister,
                 (int)(*it)->mRegisterType,
