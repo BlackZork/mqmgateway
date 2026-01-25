@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cmath>
-#include "libmodmqttconv/convexception.hpp"
-#include "double_register_converter.hpp"
 
-class FloatConverter : public DoubleRegisterConverter {
+#include "libmodmqttconv/converter.hpp"
+
+#include "argtools.hpp"
+
+class FloatConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             if (data.getCount() < 2)
@@ -46,12 +48,14 @@ class FloatConverter : public DoubleRegisterConverter {
         };
 
         virtual void setArgValues(const ConverterArgValues& args) {
-            setSwapBytes(args);
-            setLowFirst(args);
+            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
+            mLowFirst = DoubleRegisterArgTools::getLowFirst(args);
             mPrecision = args[ConverterArg::sPrecisionArgName].as_int();
         };
 
         virtual ~FloatConverter() {}
     private:
         int mPrecision;
+        bool mLowFirst;
+        bool mSwapBytes;
 };

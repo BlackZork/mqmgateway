@@ -7,28 +7,36 @@ class ScaleConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             double sourceValue = data.getValue(0);
-            double targetValue = (targetScaleTo - targetScaleFrom)
-                * (sourceValue - sourceScaleFrom)/(sourceScaleTo - sourceScaleFrom)
-                + targetScaleFrom;
+            double targetValue = (mTargetScaleTo - mTargetScaleFrom)
+                * (sourceValue - mSourceScaleFrom)/(mSourceScaleTo - mSourceScaleFrom)
+                + mTargetScaleFrom;
 
-            return MqttValue::fromDouble(targetValue, precision);
+            return MqttValue::fromDouble(targetValue, mPrecision);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            sourceScaleFrom = ConverterTools::getDoubleArg(0, args);
-            sourceScaleTo = ConverterTools::getDoubleArg(1, args);
-            targetScaleFrom = ConverterTools::getDoubleArg(2, args);
-            targetScaleTo = ConverterTools::getDoubleArg(3, args);
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("src_from", ConverterArgType::DOUBLE, "");
+            ret.add("src_to", ConverterArgType::DOUBLE, "");
+            ret.add("tgt_from", ConverterArgType::DOUBLE, "");
+            ret.add("tgt_to", ConverterArgType::DOUBLE, "");
+            ret.add(ConverterArg::sPrecisionArgName, ConverterArgType::INT, ConverterArgValue::NO_PRECISION);
+            return ret;
+        };
 
-            if (args.size() == 5)
-                precision = ConverterTools::getIntArg(4, args);
-        }
+        virtual void setArgValues(const ConverterArgValues& values) {
+            mSourceScaleFrom = values["src_from"].as_double();
+            mSourceScaleTo = values["src_to"].as_double();
+            mTargetScaleFrom = values["tgt_from"].as_double();
+            mTargetScaleTo = values["tgt_to"].as_double();
+            mPrecision = values[ConverterArg::sPrecisionArgName].as_int();
+        };
 
         virtual ~ScaleConverter() {}
     private:
-        double sourceScaleFrom;
-        double sourceScaleTo;
-        double targetScaleFrom;
-        double targetScaleTo;
-        int precision = 0;
+        double mSourceScaleFrom;
+        double mSourceScaleTo;
+        double mTargetScaleFrom;
+        double mTargetScaleTo;
+        int mPrecision;
 };

@@ -3,14 +3,14 @@
 
 #include "bits.hpp"
 #include "float32.hpp"
-// #include "int16.hpp"
-// #include "int32.hpp"
-// #include "int8.hpp"
-// #include "map.hpp"
-// #include "scale.hpp"
+#include "int16.hpp"
+#include "int32.hpp"
+#include "int8.hpp"
+#include "map.hpp"
+#include "scale.hpp"
 #include "single_arg_ops.hpp"
-// #include "string.hpp"
-// #include "uint32.hpp"
+#include "string.hpp"
+#include "uint32.hpp"
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
@@ -22,23 +22,23 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new DivideConverter();
     else if (name == "multiply")
          return new MultiplyConverter();
-    // else if (name == "int32")
-    //     return new Int32Converter();
-    // else if (name == "scale")
-    //     return new ScaleConverter();
-    // else if (name == "string")
-    //     return new StringConverter();
-    // else if (name == "int16")
-    //     return new Int16Converter();
-    // else if (name == "uint32")
-    //     return new UInt32Converter();
+    else if (name == "int32")
+         return new Int32Converter();
+    else if (name == "scale")
+         return new ScaleConverter();
+    else if (name == "string")
+         return new StringConverter();
+    else if (name == "int16")
+        return new Int16Converter();
+    else if (name == "uint32")
+        return new UInt32Converter();
     else if (name == "float32")
         return new FloatConverter();
-    // else if (name == "int8")
-    //     return new Int8Converter();
-    // else if (name == "uint8")
-    //     return new UInt8Converter();
-    // else if (name == "map")
-    //     return new MapConverter();
+    else if (name == "int8")
+        return new Int8Converter();
+    else if (name == "uint8")
+        return new UInt8Converter();
+    else if (name == "map")
+        return new MapConverter();
     return nullptr;
 }

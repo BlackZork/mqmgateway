@@ -1,34 +1,36 @@
 #pragma once
 
 #include <cmath>
+
 #include "libmodmqttconv/converter.hpp"
+
+#include "argtools.hpp"
 
 class Int32Converter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            int32_t val = ConverterTools::registersToInt32(data.values(), mLowFirst, mByteSwap);
+            int32_t val = ConverterTools::registersToInt32(data.values(), mLowFirst, mSwapBytes);
             return MqttValue::fromInt(val);
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
-            return ConverterTools::int32ToRegisters(value.getInt(), mLowFirst, mByteSwap, registerCount);
+            return ConverterTools::int32ToRegisters(value.getInt(), mLowFirst, mSwapBytes, registerCount);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            switch (args.size()) {
-                case 2: {
-                    std::string swapBytes = ConverterTools::getArg(1, args);
-                    mByteSwap = (swapBytes == "swap_bytes");
-                }
-                case 1: {
-                    std::string firstByte = ConverterTools::getArg(0, args);
-                    mLowFirst = (firstByte == "low_first");
-                }
-            }
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, false);
+            ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);
+            return ret;
         }
+
+        virtual void setArgValues(const ConverterArgValues& args) {
+            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
+            mLowFirst = DoubleRegisterArgTools::getLowFirst(args);
+        };
 
         virtual ~Int32Converter() {}
     private:
-        bool mLowFirst = false;
-        bool mByteSwap = false;
+        bool mLowFirst;
+        bool mSwapBytes;
 };

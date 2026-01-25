@@ -13,21 +13,23 @@ TEST_CASE("When reading int8 byte from single register") {
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("int8"));
+    ConverterArgValues args(conv->getArgs());
+
+
     ModbusRegisters input(0xff01);
 
     SECTION("second byte should output correct value") {
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == 1);
     }
 
     SECTION("first byte should output correct value") {
-        std::vector<std::string> args = {
-            "first"
-        };
-        conv->setArgs(args);
+        args.setArgValue("first", ConverterArgType::BOOL, "true");
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == -1);
@@ -43,21 +45,22 @@ TEST_CASE("When reading uint8 byte from single register") {
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("uint8"));
+    ConverterArgValues args(conv->getArgs());
+
     ModbusRegisters input(0xff01);
 
     SECTION("second byte should output correct value") {
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == 1);
     }
 
     SECTION("first byte should output correct value") {
-        std::vector<std::string> args = {
-            "first"
-        };
-        conv->setArgs(args);
+        args.setArgValue("first", ConverterArgType::BOOL, "true");
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == 255);

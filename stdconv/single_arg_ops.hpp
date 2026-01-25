@@ -1,8 +1,9 @@
 #pragma once
 
-#include "double_register_converter.hpp"
+#include "libmodmqttconv/converter.hpp"
+#include "argtools.hpp"
 
-class SingleArgMathConverter : public DoubleRegisterConverter {
+class SingleArgMathConverter : public DataConverter {
     public:
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
 
@@ -23,7 +24,7 @@ class SingleArgMathConverter : public DoubleRegisterConverter {
 
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
-            ret.add("divisor", ConverterArgType::DOUBLE, "");
+            ret.add(mFirstArgName, ConverterArgType::DOUBLE, "");
             ret.add(ConverterArg::sPrecisionArgName, ConverterArgType::INT, ConverterArgValue::NO_PRECISION);
             ret.add(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, false);
             ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);
@@ -31,18 +32,24 @@ class SingleArgMathConverter : public DoubleRegisterConverter {
         }
 
         virtual void setArgValues(const ConverterArgValues& args) {
-            mDoubleArg = args["divisor"].as_double();
-            setSwapBytes(args);
-            setLowFirst(args);
+            mDoubleArg = args[mFirstArgName].as_double();
+            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
+            mLowFirst = DoubleRegisterArgTools::getLowFirst(args);
             mPrecision = args[ConverterArg::sPrecisionArgName].as_int();
         };
 
 
         virtual ~SingleArgMathConverter() {}
     protected:
-        SingleArgMathConverter(int defaultPrecision) : mPrecision(defaultPrecision) {}
+        SingleArgMathConverter(const std::string& argName, int defaultPrecision)
+            : mFirstArgName(argName), mPrecision(defaultPrecision)
 
+        {}
+
+        std::string mFirstArgName;
         double mDoubleArg;
+        bool mLowFirst;
+        bool mSwapBytes;
         int mPrecision = MqttValue::NO_PRECISION;
 
         virtual double doMath(double value) const = 0;
@@ -51,7 +58,7 @@ class SingleArgMathConverter : public DoubleRegisterConverter {
 
 class DivideConverter : public SingleArgMathConverter {
     public:
-        DivideConverter() : SingleArgMathConverter(MqttValue::NO_PRECISION) {}
+        DivideConverter() : SingleArgMathConverter("divisor", MqttValue::NO_PRECISION) {}
         virtual ~DivideConverter() {}
 
     protected:
@@ -63,7 +70,7 @@ class DivideConverter : public SingleArgMathConverter {
 
 class MultiplyConverter : public SingleArgMathConverter {
     public:
-        MultiplyConverter(): SingleArgMathConverter(0) {}
+        MultiplyConverter(): SingleArgMathConverter("multipler", 0) {}
         virtual ~MultiplyConverter() {}
 
     protected:

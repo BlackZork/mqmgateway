@@ -63,14 +63,14 @@ add_executable(tests
     single_register_tests.cpp
     stdconv_bit_tests.cpp
     stdconv_divide_tests.cpp
-    # stdconv_int8_tests.cpp
-    # stdconv_int32_tests.cpp
-    # stdconv_map_tests.cpp
-    # stdconv_multiply_tests.cpp
-    # stdconv_float_tests.cpp
-    # stdconv_string_tests.cpp
-    # stdconv_tests.cpp
-    # stdconv_uint32_tests.cpp
+    stdconv_int8_tests.cpp
+    stdconv_int32_tests.cpp
+    stdconv_map_tests.cpp
+    stdconv_multiply_tests.cpp
+    stdconv_float_tests.cpp
+    stdconv_string_tests.cpp
+    stdconv_tests.cpp
+    stdconv_uint32_tests.cpp
     testnumbers.cpp
     testnumbers.hpp
     two_slaves_tests.cpp

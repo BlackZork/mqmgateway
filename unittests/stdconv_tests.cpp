@@ -14,14 +14,17 @@ TEST_CASE ("Scale value with integer result") {
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("scale"));
-    std::vector<std::string> args = {
-        "4","20",
-        "0","400"
-    };
-    conv->setArgs(args);
+    ConverterArgValues args(conv->getArgs());
+
+    args.setArgValue("src_from", ConverterArgType::DOUBLE, "4");
+    args.setArgValue("src_to", ConverterArgType::DOUBLE, "20");
+    args.setArgValue("tgt_from", ConverterArgType::DOUBLE, "0");
+    args.setArgValue("tgt_to", ConverterArgType::DOUBLE, "400");
 
     ModbusRegisters data;
     data.appendValue(8);
+
+    conv->setArgValues(args);
     MqttValue ret = conv->toMqtt(data);
 
     REQUIRE(ret.getString() == "100");
@@ -36,9 +39,12 @@ TEST_CASE ("read int16 value") {
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("int16"));
+    ConverterArgValues args(conv->getArgs());
 
     ModbusRegisters data;
     data.appendValue(0xFFFF);
+
+    conv->setArgValues(args);
     MqttValue ret = conv->toMqtt(data);
 
     REQUIRE(ret.getString() == "-1");

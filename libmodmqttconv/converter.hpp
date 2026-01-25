@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "libmodmqttconv/convargs.hpp"
+#include "convargs.hpp"
 #include "mqttvalue.hpp"
 #include "modbusregisters.hpp"
 
