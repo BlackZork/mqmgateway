@@ -787,16 +787,16 @@ modmqttd contains *std* library with basic converters ready to use:
 
   Due to YAML limitation, no space between key and value is allowed, unless you use `|` format:
 
-```yaml
-  converter: |
-    std.map('{1: 11, 0x2: 2}')
-```
+  ```yaml
+    converter: |
+      std.map('{1: 11, 0x2: 2}')
+  ```
 
   Curly braces are optional:
 
-```yaml
-  converter: std.map('1:-1,6:9,8:"42"')
-```
+  ```yaml
+    converter: std.map('1:-1,6:9,8:"42"')
+  ```
 
 ### Converter usage examples
 
@@ -917,7 +917,7 @@ Here is a minimal example of custom conversion plugin:
 
 class MyConverter : public DataConverter {
     public:
-        // called by modmqttd to get coverter arguments
+        // Called by modmqttd to get coverter arguments
         // for configuration parser and its default values
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
@@ -925,8 +925,8 @@ class MyConverter : public DataConverter {
             return ret;        
         }
 
-        // called by modmqttd to set coverter arguments
-        // default arguments passed to getArgs are passed back
+        // Called by modmqttd to set coverter arguments.
+        // Default argument values read from getArgs() are passed back
         // if they were not specified in configuration file
         virtual void setArgValues(const ConverterArgValues& args) {
             mShift = args["shift"].as_int();
@@ -1003,12 +1003,13 @@ mqtt:
       name: set_val
       register: tcptest.2.12
       register_type: input
-      converter: myplugin.myconverter(1)
+      # will use '0' default shift value
+      converter: myplugin.myconverter()
     state:
       name: test_val
       register: tcptest.2.12
       register_type: input
-      converter: myplugin.myconverter(1)
+      converter: myplugin.myconverter(2)
 
 ```
 
