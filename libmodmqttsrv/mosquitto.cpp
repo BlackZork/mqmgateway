@@ -3,12 +3,17 @@
 #include "mosquitto.hpp"
 #include "exceptions.hpp"
 #include "mqttclient.hpp"
+#include "threadutils.hpp"
 
 namespace modmqttd {
 
 static void on_connect_wrapper(struct mosquitto *mosq, void *userdata, int rc)
 {
-	class Mosquitto *m = (class Mosquitto *)userdata;
+    if (g_thread_name.empty()) {
+        ThreadUtils::set_thread_name("mqtt");
+    }
+
+    class Mosquitto *m = (class Mosquitto *)userdata;
 	m->on_connect(rc);
 }
 
