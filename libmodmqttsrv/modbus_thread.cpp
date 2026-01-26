@@ -211,10 +211,10 @@ ModbusThread::run() {
                 if (!mModbus->isConnected()) {
                     if (idleWaitDuration > std::chrono::seconds(maxReconnectTime))
                         idleWaitDuration = std::chrono::seconds(0);
-                    spdlog::info("connecting");
+                    spdlog::info("Connecting to modbus network");
                     mModbus->connect();
                     if (mModbus->isConnected()) {
-                        spdlog::info("connected");
+                        spdlog::info("Connected to modbus network");
                         mWatchdog.reset();
                         sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, true)));
                         // if modbus network was disconnected
