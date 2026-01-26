@@ -30,8 +30,8 @@ class ModMqtt {
 
         ModMqtt();
         void addConverterPath(const std::string& path) { mConverterPaths.push_back(path); }
-        void init(const std::string& configPath);
-        void init(const YAML::Node& config);
+        void init(int logLevelNum, const std::string& configPath);
+        void init(const YAML::Node& config, bool overrideLogLevel);
         void start();
         /**
             Stop server. Can be called only from controlling thread
@@ -70,7 +70,7 @@ class ModMqtt {
 
         std::vector<std::shared_ptr<ConverterPlugin>> mConverterPlugins;
 
-        void initServer(const YAML::Node& config);
+        void initServer(const YAML::Node& config, bool overrideLogLevel);
         void initBroker(const YAML::Node& config);
         ModbusInitData initModbusClients(const YAML::Node& config);
         std::vector<MqttObject> initObjects(const YAML::Node& config, const ModbusInitData& modbusData, std::vector<MsgRegisterPollSpecification>& pSpecsOut);

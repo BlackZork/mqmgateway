@@ -12,11 +12,13 @@
 
 #include "defs.h"
 #include "logging.hpp"
+#include <iostream>
+
+using namespace std::string_literals;
 
 namespace modmqttd {
 
 thread_local std::string g_thread_name;
-
 
 std::ostream& operator<< (std::ostream& strm, Log::severity level)
 {
@@ -114,6 +116,43 @@ to_spdlog_level(Log::severity s) {
     }
 }
 
+void
+Log::set_level(severity level) {
+    spdlog::set_level(to_spdlog_level(level));
+}
+
+Log::severity
+Log::parse_severity(const std::string& val) {
+    try {
+        size_t pos = -1;
+        int lvlnum = std::stoi(val, &pos, 10);
+        if (pos == val.length()) {
+            if (lvlnum < 0 || lvlnum > 6)
+                throw std::invalid_argument("loglevel must be between 0 and 6");
+
+            return (severity)lvlnum;
+        }
+    } catch (const std::invalid_argument&) {
+        // not a number, try string name
+        if (val == "off")
+            return Log::severity::none;
+        else if (val == "critical")
+            return Log::severity::critical;
+        else if (val == "error")
+            return Log::severity::error;
+        else if (val == "warning")
+            return Log::severity::warn;
+        else if (val == "info")
+            return Log::severity::info;
+        else if (val == "debug")
+            return Log::severity::debug;
+        else if (val == "trace")
+            return Log::severity::trace;
+
+    }
+    throw std::invalid_argument("unknown log level '"s + val + "', valid values: none,critical,error,warning,info,debug,trace");
+}
+
 void Log::init_spdlog_logging(severity level) {
     if (level == Log::none) {
         spdlog::set_level(spdlog::level::off);
@@ -147,11 +186,10 @@ void Log::init_spdlog_logging(severity level) {
         }
 
         spdlog::set_formatter(std::move(formatter));
-        spdlog::set_level(to_spdlog_level(level));
-    } catch (const std::exception&) {
-        // fallback: set global level only
-        spdlog::set_level(to_spdlog_level(level));
+    } catch (const std::exception& ex) {
+        std::cerr << "Cannot configure spdlog:" << ex.what() << std::endl;
     }
+    spdlog::set_level(to_spdlog_level(level));
 }
 
 void Log::init_logging(severity level) {

@@ -69,17 +69,7 @@ int main(int ac, char* av[]) {
             }
         }
 
-
-        modmqttd::Log::severity level = modmqttd::Log::severity::info;
-        if (logLevel != -1) {
-            level = (modmqttd::Log::severity)(logLevel);
-        }
-
-        modmqttd::Log::init_logging(level);
-
-        spdlog::info("modmqttd {} is starting", FULL_VERSION);
-
-        server.init(configPath);
+        server.init(logLevel, configPath);
         server.start();
 
         spdlog::info("modmqttd stopped");

@@ -1,10 +1,14 @@
 #include <string>
 #include <regex>
 #include <filesystem>
+#include <csignal>
+#include <iostream>
+
 #include <yaml-cpp/yaml.h>
 
-#include "common.hpp"
 #include "libmodmqttconv/convargs.hpp"
+
+#include "common.hpp"
 #include "logging.hpp"
 #include "dll_import.hpp"
 #include "modmqtt.hpp"
@@ -18,10 +22,7 @@
 #include "yaml_converters.hpp"
 #include "threadutils.hpp"
 #include "strutils.hpp"
-
-
-#include <csignal>
-#include <iostream>
+#include "version.hpp"
 
 namespace
 {
@@ -146,7 +147,16 @@ ModMqtt::ModMqtt()
     mModbusFactory.reset(new ModbusFactory());
 }
 
-void ModMqtt::init(const std::string& configPath) {
+void
+ModMqtt::init(int logLevelNum, const std::string& configPath) {
+    modmqttd::Log::severity level = modmqttd::Log::severity::info;
+    if (logLevelNum != -1) {
+        level = (modmqttd::Log::severity)(logLevelNum);
+    }
+
+    modmqttd::Log::init_logging(level);
+    spdlog::info("modmqttd {} is starting", FULL_VERSION);
+
     ThreadUtils::set_thread_name("modmqtt");
     std::string targetPath(configPath);
     if (configPath.empty()) {
@@ -154,12 +164,12 @@ void ModMqtt::init(const std::string& configPath) {
         targetPath = "./config.yaml";
     }
     YAML::Node config = YAML::LoadFile(targetPath);
-    init(config);
+    init(config, logLevelNum == -1);
 }
 
 void
-ModMqtt::init(const YAML::Node& config) {
-    initServer(config);
+ModMqtt::init(const YAML::Node& config, bool overrideLogLevel) {
+    initServer(config, overrideLogLevel);
     initBroker(config);
 
     // must be before initObjects, we validate and use slave data
@@ -233,10 +243,25 @@ ModMqtt::init(const YAML::Node& config) {
 }
 
 void
-ModMqtt::initServer(const YAML::Node& config) {
+ModMqtt::initServer(const YAML::Node& config, bool overrideLogLevel) {
     const YAML::Node& server = config["modmqttd"];
     if (!server.IsDefined())
         return;
+
+    if (overrideLogLevel) {
+        const YAML::Node& log_level = server["log_level"];
+        if (log_level.IsDefined()) {
+            if (!log_level.IsScalar())
+                throw ConfigurationException(log_level.Mark(), "Log level must be an int or string");
+
+            try {
+                Log::severity lvl = Log::parse_severity(log_level.as<std::string>());
+                Log::set_level(lvl);
+            } catch (const std::exception& ex) {
+                throw ConfigurationException(log_level.Mark(), ex.what());
+            }
+        }
+    }
 
     const YAML::Node& conv_paths = server["converter_search_path"];
     if (conv_paths.IsDefined()) {

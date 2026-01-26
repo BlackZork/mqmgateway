@@ -21,6 +21,11 @@ class Log {
         };
 
         static constexpr const char* loggerName = "modmqttd";
+
+        static severity parse_severity(const std::string& val);
+
+        static void set_level(severity level);
+
         static void init_logging(severity level);
     private:
         static void init_spdlog_logging(severity level);

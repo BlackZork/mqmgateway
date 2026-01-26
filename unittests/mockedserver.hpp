@@ -67,7 +67,7 @@ class ModMqttServerThread {
             modmqttd::ThreadUtils::set_thread_name("test");
             try {
                 YAML::Node cfg = YAML::Load(config);
-                master.mServer.init(cfg);
+                master.mServer.init(cfg, true);
                 master.mServer.start();
             } catch (const modmqttd::ConfigurationException& ex) {
                 std::cerr << "Bad config: " << ex.what() << std::endl;
