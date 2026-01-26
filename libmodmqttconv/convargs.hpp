@@ -138,7 +138,7 @@ class ConverterArgValues {
             return it != mValues.end();
         }
 
-        void setArgValue(const std::string& name, ConverterArgType argType, const std::string& value) {
+        void setArgValue(const std::string& name, const std::string& value) {
             auto it = mValues.find(name);
             if (it == mValues.end())
                 throw std::invalid_argument("Wrong parameter name "s + name);

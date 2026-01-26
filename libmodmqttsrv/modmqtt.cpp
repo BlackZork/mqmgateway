@@ -463,10 +463,9 @@ ModMqtt::parseObject(
     const std::string netPhVar("${network}");
     size_t netPhPos = topic.find(netPhVar);
     if (netPhPos != std::string::npos) {
-        if (pDefaultNetwork.empty())
+        if (pDefaultNetwork.empty()) {
             throw ConfigurationException(pData["topic"].Mark(), "default network name must be set for topic " + topic);
-        else
-        {
+        } else {
             topic.replace(netPhPos, netPhVar.length(), pDefaultNetwork);
         }
     }

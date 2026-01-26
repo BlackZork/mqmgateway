@@ -6,16 +6,12 @@
 #include "libmodmqttconv/convexception.hpp"
 
 #include "testnumbers.hpp"
+#include "plugin_utils.hpp"
 
 TEST_CASE("when std.int32") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("int32"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("int32"));
     ConverterArgValues args(conv->getArgs());
 
     SECTION("converts two modbus registers (high, low)") {
@@ -29,7 +25,7 @@ TEST_CASE("when std.int32") {
     }
 
     SECTION("converts two modbus registers (high, low) with byte swap") {
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
 
         ModbusRegisters input({TestNumbers::Int::BA,TestNumbers::Int::DC});
 
@@ -41,7 +37,7 @@ TEST_CASE("when std.int32") {
 
 
     SECTION("converts two modbus registers (low, high)") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
 
         ModbusRegisters input({TestNumbers::Int::AB,TestNumbers::Int::CD});
 
@@ -52,8 +48,8 @@ TEST_CASE("when std.int32") {
     }
 
     SECTION("converts two modbus registers (low, high) with byte swap") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
 
         ModbusRegisters input({TestNumbers::Int::BA,TestNumbers::Int::DC});
 
@@ -65,7 +61,7 @@ TEST_CASE("when std.int32") {
 
     // TODO we should output warning in this case, this looks like configuration error
     SECTION("converts a single modbus register ignoring low_first arg") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
 
         ModbusRegisters input({TestNumbers::Int::AB});
 
@@ -76,7 +72,7 @@ TEST_CASE("when std.int32") {
     }
 
     SECTION("writes to two modbus registers (low, high)") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
 
         MqttValue input(TestNumbers::Int::ABCD_as_int32);
 
@@ -88,8 +84,8 @@ TEST_CASE("when std.int32") {
     }
 
     SECTION("writes to two modbus registers (low, high) with byte swap") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
 
         MqttValue input(TestNumbers::Int::ABCD_as_int32);
 
@@ -112,7 +108,7 @@ TEST_CASE("when std.int32") {
     }
 
     SECTION("writes to two modbus registers (high, low) with byte swap") {
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
 
         MqttValue input(TestNumbers::Int::ABCD_as_int32);
 

@@ -4,20 +4,16 @@
 
 
 #include "libmodmqttconv/converterplugin.hpp"
+#include "plugin_utils.hpp"
 
 TEST_CASE ("An instance of map converter") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("map"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("map"));
     ConverterArgValues args(conv->getArgs());
 
     SECTION("with int value") {
-        args.setArgValue("map", ConverterArgType::STRING, "{3: 38400}");
+        args.setArgValue("map", "{3: 38400}");
 
         conv->setArgValues(args);
 
@@ -52,7 +48,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string value") {
-        args.setArgValue("map", ConverterArgType::STRING, "{1: \"one\"}");
+        args.setArgValue("map", "{1: \"one\"}");
         conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
@@ -71,7 +67,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string value, spaces and escaped chars") {
-        args.setArgValue("map", ConverterArgType::STRING, "{ 1 : \" \\\\one \"  }");
+        args.setArgValue("map", "{ 1 : \" \\\\one \"  }");
 
         conv->setArgValues(args);
 
@@ -84,7 +80,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with colon in value") {
-        args.setArgValue("map", ConverterArgType::STRING, "{1:\":\"}");
+        args.setArgValue("map", "{1:\":\"}");
         conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
@@ -96,7 +92,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with multiple mappings") {
-        args.setArgValue("map", ConverterArgType::STRING, "{1:11,2:\"two\"}");
+        args.setArgValue("map", "{1:11,2:\"two\"}");
         conv->setArgValues(args);
 
         SECTION("should use first mapping") {
@@ -113,7 +109,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with register in hex format") {
-        args.setArgValue("map", ConverterArgType::STRING, "{0x11:17}");
+        args.setArgValue("map", "{0x11:17}");
         conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
@@ -133,7 +129,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string map with two keys") {
-        args.setArgValue("map", ConverterArgType::STRING, "{24:\"t\", 1:\"o\"}");
+        args.setArgValue("map", "{24:\"t\", 1:\"o\"}");
         conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
@@ -145,7 +141,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string map without braces") {
-        args.setArgValue("map", ConverterArgType::STRING, "24:\"t\", 1:\"o\"");
+        args.setArgValue("map", "24:\"t\", 1:\"o\"");
         conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
@@ -157,7 +153,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with int map without braces") {
-        args.setArgValue("map", ConverterArgType::STRING, "24:1, 1:2");
+        args.setArgValue("map", "24:1, 1:2");
         conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
@@ -169,7 +165,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string map with int values") {
-        args.setArgValue("map", ConverterArgType::STRING, "24:\"1\",1:\"2\"");
+        args.setArgValue("map", "24:\"1\",1:\"2\"");
         conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
@@ -181,7 +177,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with space between string value and closing brace") {
-        args.setArgValue("map", ConverterArgType::STRING, R"({ 0:"nnnn", 1:"nnn.n" })");
+        args.setArgValue("map", R"({ 0:"nnnn", 1:"nnn.n" })");
         conv->setArgValues(args);
 
         SECTION("should not add spurious key=0 when parsing closing brace") {
@@ -193,7 +189,7 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with int value bigger than 32678") {
-        args.setArgValue("map", ConverterArgType::STRING, R"({ 0:"DI1", 1:"DI2", 32768:"AI1", 32769:"AI2" })");
+        args.setArgValue("map", R"({ 0:"DI1", 1:"DI2", 32768:"AI1", 32769:"AI2" })");
         conv->setArgValues(args);
 
         SECTION("should convert value to string") {

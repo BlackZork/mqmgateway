@@ -33,7 +33,7 @@ class ConverterArgParser {
         ConverterArgs::const_iterator mCurrentPosArgIterator;
         std::vector<std::string> mProcessedArgs;
 
-        void setArgValue(ConverterArgValues& values, const std::string& argName, ConverterArgType argType, const std::string& argValue);
+        void setArgValue(ConverterArgValues& values);
         char getEscapedChar(const char& c) { return c; };
         const std::string& validateArgName(const std::string& argName);
 };
@@ -45,8 +45,9 @@ ConverterArgParser::validateArgName(const std::string& argName) {
 };
 
 void
-ConverterArgParser::setArgValue(ConverterArgValues& values, const std::string& argName, ConverterArgType argType, const std::string& argValue) {
+ConverterArgParser::setArgValue(ConverterArgValues& values) {
     try {
+        ConverterArgType argType = ConverterArgType::INVALID;
         if (!mArgName.empty()) {
             mUseArgOrder = false;
         } else {
@@ -55,7 +56,7 @@ ConverterArgParser::setArgValue(ConverterArgValues& values, const std::string& a
 
             if (mCurrentPosArgIterator == mArgs.end())
                 throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(mArgs.size()));
-            mArgName = mCurrentPosArgIterator->mName;
+                mArgName = mCurrentPosArgIterator->mName;
             mCurrentPosArgIterator++;
         }
 
@@ -63,7 +64,7 @@ ConverterArgParser::setArgValue(ConverterArgValues& values, const std::string& a
         if (it != mProcessedArgs.end())
             throw ConvNameParserException(mArgName + " already set");
 
-        values.setArgValue(mArgName, mCurrentPosArgIterator->mArgType, mArgValue);
+        values.setArgValue(mArgName, mArgValue);
         mProcessedArgs.push_back(mArgName);
         mArgName.clear();
         mArgValue.clear();
@@ -118,7 +119,7 @@ ConverterArgParser::parse(const std::string& argStr) {
                     case SCAN:
                         if (mArgValue.empty())
                             throw ConvNameParserException("Argument " + std::to_string(ret.count() + 1) + " is empty");
-                        setArgValue(ret, mArgName, mCurrentPosArgIterator->mArgType, mArgValue);
+                        setArgValue(ret);
                     break;
                     case ARGVALUE: mArgValue += c; break;
                     case ESCAPE:
@@ -186,7 +187,7 @@ ConverterArgParser::parse(const std::string& argStr) {
     switch(mCurrentState.top()) {
         case SCAN:
             if (mArgValue.size())
-                setArgValue(ret, mArgName, mCurrentPosArgIterator->mArgType, mArgValue);
+                setArgValue(ret);
             break;
         case ARGVALUE:
             throw ConvNameParserException("Argument "s + std::to_string(ret.count()) + " is an unterminated string");
