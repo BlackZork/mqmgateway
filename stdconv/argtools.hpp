@@ -20,7 +20,7 @@ class DoubleRegisterArgTools {
                     ret = true;
                 else
                     throw;
-                std::cerr << "[WARN] swap_bytes param changed to bool, please update to 'swap_bytes=true'" << std::endl;
+                std::cerr << "[WARN ] swap_bytes param changed to bool, please update to 'swap_bytes=true'" << std::endl;
             }
             return ret;
         };
@@ -38,7 +38,7 @@ class DoubleRegisterArgTools {
                     ret = true;
                 else
                     throw;
-                std::cerr << "[WARN] low_first/high_first param changed to bool, please update to 'low_first=true|false'" << std::endl;
+                std::cerr << "[WARN ] low_first/high_first param changed to bool, please update to 'low_first=true|false'" << std::endl;
             }
             return ret;
         };

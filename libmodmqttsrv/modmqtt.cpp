@@ -155,7 +155,7 @@ ModMqtt::init(int logLevelNum, const std::string& configPath) {
     }
 
     modmqttd::Log::init_logging(level);
-    spdlog::info("modmqttd {} is starting", FULL_VERSION);
+    spdlog::info("Modmqttd {} is starting", FULL_VERSION);
 
     ThreadUtils::set_thread_name("modmqtt");
     std::string targetPath(configPath);
@@ -821,7 +821,7 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
 
                     objects.push_back(object);
                     nextCommandId = parseObjectCommands(object.getTopic(), nextCommandId, objdata["commands"], currentNetwork, defaultSlaveId);
-                    spdlog::debug("object for topic {} created", object.getTopic());
+                    spdlog::debug("Object for topic {} created", object.getTopic());
                     created.insert(defaultSlaveId);
                 }
             }

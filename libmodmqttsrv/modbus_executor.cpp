@@ -36,7 +36,7 @@ ModbusExecutor::sendMessage(const QueueItem& item) {
 void
 ModbusExecutor::setupInitialPoll(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters) {
     addPollList(pRegisters, true);
-    spdlog::debug("starting initial poll");
+    spdlog::debug("Starting initial poll");
 }
 
 
@@ -239,7 +239,7 @@ ModbusExecutor::writeRegisters(RegisterWrite& cmd) {
             sendMessage(QueueItem::create(*cmd.mReturnMessage));
         }
     } catch (const ModbusWriteException& ex) {
-        spdlog::error("error writing register {}.{}: {}",
+        spdlog::error("Error writing register {}.{}: {}",
             cmd.mSlaveId,
             cmd.mRegister,
             ex.what()

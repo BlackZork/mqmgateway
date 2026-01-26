@@ -76,7 +76,7 @@ MqttClient::onDisconnect() {
     switch(mConnectionState) {
         case State::CONNECTED:
         case State::CONNECTING:
-            spdlog::info("reconnecting to mqtt broker");
+            spdlog::info("Reconnecting to mqtt broker");
             mMqttImpl->reconnect();
             break;
         case State::DISCONNECTING:
@@ -95,7 +95,7 @@ MqttClient::onDisconnect() {
 
 void
 MqttClient::onConnect() {
-	spdlog::info("Mqtt connected, sending subscriptions…");
+	spdlog::info("Connected, sending subscriptions…");
 
     for(auto cmd: mCommands) {
         mMqttImpl->subscribe(cmd.second.mTopic.c_str());
@@ -114,7 +114,7 @@ MqttClient::onConnect() {
         (*it)->sendMqttNetworkIsUp(true);
     }
 
-	spdlog::info("Mqtt ready to process messages");
+	spdlog::info("Ready to process MQTT messages");
 }
 
 void

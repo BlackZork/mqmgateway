@@ -98,7 +98,7 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     for (auto sit = registerMap.begin(); sit != registerMap.end(); sit++) {
         for (auto it = sit->second.begin(); it != sit->second.end(); it++) {
 
-            spdlog::info("slave {}, register {}:{} count={}, poll every {}, queue {}, min f_delay {}, min delay {}",
+            spdlog::info("Slave {}, register {}:{} count={}, poll every {}, queue {}, min f_delay {}, min delay {}",
                 sit->first,
                 (*it)->mRegister,
                 (int)(*it)->mRegisterType,
@@ -211,10 +211,10 @@ ModbusThread::run() {
                 if (!mModbus->isConnected()) {
                     if (idleWaitDuration > std::chrono::seconds(maxReconnectTime))
                         idleWaitDuration = std::chrono::seconds(0);
-                    spdlog::info("modbus: connecting");
+                    spdlog::info("connecting");
                     mModbus->connect();
                     if (mModbus->isConnected()) {
-                        spdlog::info("modbus: connected");
+                        spdlog::info("connected");
                         mWatchdog.reset();
                         sendMessage(QueueItem::create(MsgModbusNetworkState(mNetworkName, true)));
                         // if modbus network was disconnected

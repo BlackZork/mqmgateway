@@ -109,10 +109,10 @@ ModbusContext::connect() {
     if (modbus_connect(mCtx) == -1) {
         switch(mNetworkType) {
             case ModbusNetworkConfig::Type::TCPIP:
-                spdlog::error("connection to {} failed({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
+                spdlog::error("Connection to {} failed({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
             break;
             case ModbusNetworkConfig::Type::RTU:
-                spdlog::error("cannot open {} ({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
+                spdlog::error("Cannot open {} ({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
             break;
         }
         mIsConnected = false;
