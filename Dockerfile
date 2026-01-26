@@ -1,4 +1,4 @@
-ARG ALPINE_VERSION=3.19
+ARG ALPINE_VERSION=3.23
 FROM alpine:${ALPINE_VERSION} AS builder
 RUN apk update && apk add --no-cache \
       git build-base cmake pkgconf spdlog-dev libmodbus-dev mosquitto-dev yaml-cpp-dev rapidjson-dev catch2-3
