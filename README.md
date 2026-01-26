@@ -99,13 +99,15 @@ Docker images for various architectures (i386, arm6, arm7, amd64) are available 
 
 1. Run `docker-compose up -d` in working directory to start service.
 
-# Logging
+# <a name="Logging"></a>Logging
 
-modqmttd has six log levels: CRITICAL, ERROR, WARNING, INFO, DEBUG, TRACE, numbered from 1 to 6. When debugging, you can increase the default INFO log level by passing `--loglevel <num>` to modmqttd:
+modqmttd has six log levels: *critical, error, warning, info, debug, trace*, numbered from 1 to 6. When debugging, you can increase the default INFO log level by passing `--loglevel <num>` to modmqttd:
 
 ```bash
 modmqttd --config=<path> --loglevel=5
 ```
+
+or setting log_level in `config.yaml`
 
 DEBUG is more useful for general troubleshooting, TRACE generates a lot of output and is not recommended for production use.
 
@@ -134,6 +136,10 @@ For quick example see [config.template.yaml](modmqttd/config.template.yaml) in s
 * **converter_plugins** (optional)
 
   List of converter plugins to load. Modmqttd search for plugins in all directories specified in converter_search_path list
+
+* **log_level** (optional)
+
+  Set log verbosity if not set from command line. See [Logging](#Logging) for available log levels.
 
 ## modbus section
 
