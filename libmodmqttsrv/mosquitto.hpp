@@ -35,7 +35,6 @@ class Mosquitto : public IMqttImpl {
     private:
         mosquitto *mMosq = NULL;
         MqttClient* mOwner;
-        static boost::log::sources::severity_logger<Log::severity> log;
 
         const char* returnCodeToStr(int code);
         void throwOnCriticalError(int code);

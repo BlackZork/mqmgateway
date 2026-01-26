@@ -1,0 +1,19 @@
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QMain features:\nConnects to multiple TCP and RTU modbus networks\nHandles state and availability for each configured MQTT object\nAllows to read and write to MODBUS registers from MQTT side with custom data conversion\nFlexible MQTT state topic configuration:\nsingle modbus register published as string value\nmultiple modbus registers as JSON object\nmultiple modbus registers as JSON list\nregisters from different slaves combined as single JSON list/object\npublish on change or after every modbus poll, configurable per topic\nFull control over modbus data polling\nread multiple register values once for multiple topics\nread multiple register values for a single topic one by one\nread multiple register values for a single topic once\nregisters used in multiple MQTT topics are polled only once\nData conversion:\nsingle register value to MQTT converters\nmultiple registers values to single MQTT value converters\nsupport for exprtk expressions language when converting data\nsupport for custom conversion plugins\nsupport for conversion in both directions\nFast modbus frequency polling, configurable per newtork, per mqtt object and per register\nOut of the box compatibility with HomeAssistant and OpenHAB interfaces\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QMQMGateway depends on libmodbus and Mosquitto MQTT library.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Q\"A single-producer, single-consumer lock-free queue for C++\" written by Cameron Desrochers.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qmodmqttd section contains information about custom plugins\nmodbus section contains modbus network definitions and slave specific configuration.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qmodqmttd has six log levels: CRITICAL, ERROR, WARNING, INFO, DEBUG, TRACE, numbered from 1 to 6.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qmodmqttd configuration file is in YAML format.\\E$"}
+{"rule":"UPPERCASE_SENTENCE_START","sentence":"^\\Qmqtt section contains mqtt broker connection parameters and modbus register mappings to mqtt topics\\E$"}
+{"rule":"PREPOSITION_VERB","sentence":"^\\QA failed command will trigger a publish of \"0\" value to all availability topics for objects which needs command registers for \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q or \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q section.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qrtu_serial_mode (optional)\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qrtu_rts_mode (optional)\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qrtu_rts_delay_us (optional)\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qkeepalive (optional, default 60s)\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qcafile (optional)\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qtls (optional)\\E$"}
+{"rule":"A_NNS","sentence":"^\\Qregister, register_type can form a registers: list when multiple registers should be read.\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qbitmask\\E$"}
+{"rule":"A_BIT","sentence":"^\\QArguments:\nbit number 1-16\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qmyconverter from this example can be used like this:\\E$"}
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\Qtimespan format: \"(0-9+)(ms|s|min)\"\\E$"}

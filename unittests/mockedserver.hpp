@@ -1,16 +1,16 @@
 #pragma once
 
 #include <thread>
+#include <iostream>
 
-#include "catch2/catch_all.hpp"
 #include "libmodmqttsrv/modmqtt.hpp"
+#include "libmodmqttsrv/threadutils.hpp"
 
 #include "mockedmqttimpl.hpp"
 #include "mockedmodbuscontext.hpp"
 #include "defaults.hpp"
 
-
-#include <iostream>
+#include "catch2/catch_all.hpp"
 
 class ModMqttServerThread {
     public:
@@ -26,8 +26,16 @@ class ModMqttServerThread {
             CHECK(mException.get() == nullptr);
         }
 
+        template <typename T> void requireException(const std::string& messagePart) {
+            CHECK(mException.get() != nullptr);
+            const std::exception& ex(*mException);
+            CHECK(typeid(T) == typeid(ex));
+            CHECK_THAT(ex.what(), Catch::Matchers::ContainsSubstring(messagePart));
+        }
+
         void start() {
             mInitError = false;
+            mException.reset();
             mServerThread.reset(new std::thread(run_server, std::ref(mConfig), std::ref(*this)));
         }
 
@@ -56,9 +64,10 @@ class ModMqttServerThread {
         }
     protected:
         static void run_server(const std::string& config, ModMqttServerThread& master) {
+            modmqttd::ThreadUtils::set_thread_name("test");
             try {
                 YAML::Node cfg = YAML::Load(config);
-                master.mServer.init(cfg);
+                master.mServer.init(cfg, true);
                 master.mServer.start();
             } catch (const modmqttd::ConfigurationException& ex) {
                 std::cerr << "Bad config: " << ex.what() << std::endl;

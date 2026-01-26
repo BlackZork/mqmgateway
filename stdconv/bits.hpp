@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cmath>
+#include "libmodmqttconv/convargs.hpp"
 #include "libmodmqttconv/converter.hpp"
 
 class BitmaskConverter : public DataConverter {
@@ -10,13 +10,19 @@ class BitmaskConverter : public DataConverter {
             return MqttValue::fromInt(val);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            mask = ConverterTools::getHex16Arg(0, args);
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.push_back(ConverterArg("mask", ConverterArgType::INT, 0xffff));
+            return ret;
+        };
+
+        virtual void setArgValues(const ConverterArgValues& args) {
+            mask = args["mask"].as_uint16();
         }
 
         virtual ~BitmaskConverter() {}
     private:
-        uint16_t mask = 0xffff;
+        uint16_t mask;
 };
 
 
@@ -27,8 +33,14 @@ class BitConverter : public DataConverter {
             return MqttValue::fromInt(val);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            int number = ConverterTools::getIntArg(0, args);
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.push_back(ConverterArg("bit", ConverterArgType::INT, -1));
+            return ret;
+        };
+
+        virtual void setArgValues(const ConverterArgValues& args) {
+            int number = args["bit"].as_int();
             if (16 < number || number < 0)
                 throw ConvException("Please provide a valid bit number [1-16]");
             bitNumber = number;
@@ -36,5 +48,5 @@ class BitConverter : public DataConverter {
 
         virtual ~BitConverter() {}
     private:
-        uint8_t bitNumber = -1;
+        uint8_t bitNumber;
 };

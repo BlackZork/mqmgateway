@@ -18,11 +18,11 @@ class ModbusThread {
         static void sendMessageFromModbus(moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue, const QueueItem& item);
 
         ModbusThread(
+            const std::string pNetworkName,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
         void run();
     private:
-        boost::log::sources::severity_logger<Log::severity> log;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mToModbusQueue;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
 

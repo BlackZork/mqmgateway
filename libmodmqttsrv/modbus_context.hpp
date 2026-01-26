@@ -24,7 +24,6 @@ class ModbusContext : public IModbusContext {
             modbus_free(mCtx);
         };
     private:
-        static  boost::log::sources::severity_logger<Log::severity> log;
         void handleError(const std::string& desc);
         bool mIsConnected = false;
         ModbusNetworkConfig::Type mNetworkType;

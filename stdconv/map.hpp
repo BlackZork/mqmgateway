@@ -36,11 +36,15 @@ class MapConverter : public DataConverter {
             return it->mRegisterValue;
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            if (args.size() != 1)
-                throw ConvException("This converter accepts a single argument only");
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("map", ConverterArgType::STRING, "");
+            return ret;
+        }
 
-            parseMap(args[0]);
+        virtual void setArgValues(const ConverterArgValues& values) {
+            const ConverterArgValue& val = values["map"];
+            parseMap(val.as_str());
         }
 
         virtual ~MapConverter() {

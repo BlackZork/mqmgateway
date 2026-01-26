@@ -11,6 +11,7 @@ add_library(modmqttsrv
     debugtools.hpp
     default_command_converter.cpp
     default_command_converter.hpp
+    dll_import.hpp
     logging.cpp
     logging.hpp
     modbus_client.cpp 
@@ -47,9 +48,20 @@ add_library(modmqttsrv
     queue_item.hpp
     register_poll.cpp
     register_poll.hpp
+    threadutils.hpp
     yaml_converters.hpp
 )
 
-target_include_directories (modmqttsrv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/defs.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/defs.h
+)
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in
+    ${CMAKE_CURRENT_BINARY_DIR}/version.hpp
+)
+
+target_include_directories (modmqttsrv PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 set_target_properties(modmqttsrv PROPERTIES VERSION ${PROJECT_VERSION})
-set_target_properties(modmqttsrv PROPERTIES SOVERSION 1)
+set_target_properties(modmqttsrv PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})

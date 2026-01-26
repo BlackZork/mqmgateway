@@ -1,6 +1,6 @@
 #include <libmodmqttsrv/config.hpp>
 #include "catch2/catch_all.hpp"
-#include <boost/dll/import.hpp>
+#include "libmodmqttsrv/dll_import.hpp"
 
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttconv/convexception.hpp"
@@ -8,140 +8,46 @@
 TEST_CASE ("Scale value with integer result") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("scale"));
-    std::vector<std::string> args = {
-        "4","20",
-        "0","400"
-    };
-    conv->setArgs(args);
+    ConverterArgValues args(conv->getArgs());
+
+    args.setArgValue("src_from", ConverterArgType::DOUBLE, "4");
+    args.setArgValue("src_to", ConverterArgType::DOUBLE, "20");
+    args.setArgValue("tgt_from", ConverterArgType::DOUBLE, "0");
+    args.setArgValue("tgt_to", ConverterArgType::DOUBLE, "400");
 
     ModbusRegisters data;
     data.appendValue(8);
+
+    conv->setArgValues(args);
     MqttValue ret = conv->toMqtt(data);
 
     REQUIRE(ret.getString() == "100");
 }
 
-TEST_CASE("int32 tests") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
-
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("int32"));
-
-    SECTION("read int32 from two modbus registers (high, low)") {
-
-        ModbusRegisters input({32768,1});
-        MqttValue output = conv->toMqtt(input);
-
-        REQUIRE(output.getInt() == -2147483647);
-    }
-
-    SECTION("read int32 from two modbus registers (low, high)") {
-        std::vector<std::string> args = {
-            "low_first"
-        };
-        conv->setArgs(args);
-
-        ModbusRegisters input({1, 32768});
-        MqttValue output = conv->toMqtt(input);
-
-        REQUIRE(output.getInt() == -2147483647);
-    }
-
-    // TODO we should output warning in this case, this looks like configuration error
-    SECTION("read int32 from a single modbus register ignoring low_first arg") {
-        std::vector<std::string> args = {
-            "low_first"
-        };
-        conv->setArgs(args);
-
-        ModbusRegisters input({1});
-        MqttValue output = conv->toMqtt(input);
-
-        REQUIRE(output.getInt() == 1);
-    }
-
-
-    SECTION("write int32 to two modbus registers (low, high)") {
-        std::vector<std::string> args = {
-            "low_first"
-        };
-        conv->setArgs(args);
-
-        MqttValue input(0x20004);
-        ModbusRegisters output = conv->toModbus(input, 2);
-
-        REQUIRE(output.getValue(0) == 0x4);
-        REQUIRE(output.getValue(1) == 0x2);
-    }
-
-    SECTION("write int32 to two modbus registers (high, low)") {
-        MqttValue input(0x20004);
-        ModbusRegisters output = conv->toModbus(input, 2);
-
-        REQUIRE(output.getValue(0) == 0x2);
-        REQUIRE(output.getValue(1) == 0x4);
-    }
-}
-
 TEST_CASE ("read int16 value") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("int16"));
+    ConverterArgValues args(conv->getArgs());
 
     ModbusRegisters data;
     data.appendValue(0xFFFF);
+
+    conv->setArgValues(args);
     MqttValue ret = conv->toMqtt(data);
 
     REQUIRE(ret.getString() == "-1");
 }
 
-
-TEST_CASE("uint32 tests") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
-
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("uint32"));
-
-    SECTION("read uint32 value") {
-        ModbusRegisters data;
-        data.appendValue(0x9234);
-        data.appendValue(0xABCD);
-        MqttValue ret = conv->toMqtt(data);
-
-        REQUIRE(ret.getString() == "2452925389");
-    }
-
-
-    SECTION("write uint32 value") {
-        MqttValue input(2452925389);
-        ModbusRegisters output = conv->toModbus(input, 2);
-
-        REQUIRE(output.getValue(0) == 0x9234);
-        REQUIRE(output.getValue(1) == 0xABCD);
-    }
-
-}
 

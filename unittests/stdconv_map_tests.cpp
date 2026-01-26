@@ -1,28 +1,29 @@
 #include <libmodmqttsrv/config.hpp>
 #include "catch2/catch_all.hpp"
-#include <boost/dll/import.hpp>
+#include "libmodmqttsrv/dll_import.hpp"
+
 
 #include "libmodmqttconv/converterplugin.hpp"
 
 TEST_CASE ("An instance of map converter") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("map"));
+    ConverterArgValues args(conv->getArgs());
 
     SECTION("with int value") {
-        std::vector<std::string> args = {
-            "{3: 38400}"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "{3: 38400}");
+
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped int") {
             ModbusRegisters data(3);
+
             MqttValue ret = conv->toMqtt(data);
 
             REQUIRE(ret.getString() == "38400");
@@ -51,10 +52,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string value") {
-        std::vector<std::string> args = {
-            "{1: \"one\"}"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "{1: \"one\"}");
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(1);
@@ -72,10 +71,9 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string value, spaces and escaped chars") {
-        std::vector<std::string> args = {
-            "{ 1 : \" \\\\one \"  }"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "{ 1 : \" \\\\one \"  }");
+
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(1);
@@ -86,10 +84,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with colon in value") {
-        std::vector<std::string> args = {
-            "{1:\":\"}"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "{1:\":\"}");
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(1);
@@ -100,10 +96,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with multiple mappings") {
-        std::vector<std::string> args = {
-            "{1:11,2:\"two\"}"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "{1:11,2:\"two\"}");
+        conv->setArgValues(args);
 
         SECTION("should use first mapping") {
             ModbusRegisters data(1);
@@ -119,10 +113,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with register in hex format") {
-        std::vector<std::string> args = {
-            "{0x11:17}"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "{0x11:17}");
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(0x11);
@@ -141,10 +133,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string map with two keys") {
-        std::vector<std::string> args = {
-            "{24:\"t\", 1:\"o\"}"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "{24:\"t\", 1:\"o\"}");
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(24);
@@ -155,10 +145,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string map without braces") {
-        std::vector<std::string> args = {
-            "24:\"t\", 1:\"o\""
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "24:\"t\", 1:\"o\"");
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(24);
@@ -169,10 +157,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with int map without braces") {
-        std::vector<std::string> args = {
-            "24:1, 1:2"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "24:1, 1:2");
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(24);
@@ -183,10 +169,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with string map with int values") {
-        std::vector<std::string> args = {
-            "24:\"1\",1:\"2\""
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, "24:\"1\",1:\"2\"");
+        conv->setArgValues(args);
 
         SECTION("should convert register value to mapped string") {
             ModbusRegisters data(24);
@@ -197,10 +181,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with space between string value and closing brace") {
-        std::vector<std::string> args = {
-            R"({ 0:"nnnn", 1:"nnn.n" })"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, R"({ 0:"nnnn", 1:"nnn.n" })");
+        conv->setArgValues(args);
 
         SECTION("should not add spurious key=0 when parsing closing brace") {
             ModbusRegisters data(0);
@@ -211,11 +193,8 @@ TEST_CASE ("An instance of map converter") {
     }
 
     SECTION("with int value bigger than 32678") {
-    //SECTION("test") {
-        std::vector<std::string> args = {
-            R"({ 0:"DI1", 1:"DI2", 32768:"AI1", 32769:"AI2" })"
-        };
-        conv->setArgs(args);
+        args.setArgValue("map", ConverterArgType::STRING, R"({ 0:"DI1", 1:"DI2", 32768:"AI1", 32769:"AI2" })");
+        conv->setArgValues(args);
 
         SECTION("should convert value to string") {
             ModbusRegisters data(32769);

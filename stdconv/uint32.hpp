@@ -1,7 +1,10 @@
 #pragma once
 
 #include <cmath>
+
 #include "libmodmqttconv/converter.hpp"
+
+#include "argtools.hpp"
 
 class UInt32Converter : public DataConverter {
     public:
@@ -32,15 +35,21 @@ class UInt32Converter : public DataConverter {
             return ret;
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            if (args.size() == 0)
-                return;
-            std::string first_byte = ConverterTools::getArg(0, args);
-            if (first_byte == "low_first") {
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, false);
+            //ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);
+            return ret;
+        }
+
+        virtual void setArgValues(const ConverterArgValues& args) {
+            //setSwapBytes(args);
+            bool low_first = DoubleRegisterArgTools::getLowFirst(args);
+            if (low_first) {
                 mLowByte = 0;
                 mHighByte = 1;
             }
-        }
+        };
 
         virtual ~UInt32Converter() {}
     private:

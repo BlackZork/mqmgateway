@@ -104,7 +104,6 @@ class MockedModbusContext : public modmqttd::IModbusContext {
             std::remove(mDeviceName.c_str());
         }
     private:
-        boost::log::sources::severity_logger<modmqttd::Log::severity> log;
         std::mutex mMutex;
         std::shared_ptr<std::condition_variable> mCondition;
         std::map<int, Slave> mSlaves;

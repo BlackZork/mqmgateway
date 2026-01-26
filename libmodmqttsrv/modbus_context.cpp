@@ -1,10 +1,8 @@
-
+#include "logging.hpp"
 #include "modbus_context.hpp"
 #include "register_poll.hpp"
 
 namespace modmqttd {
-
-boost::log::sources::severity_logger<Log::severity> ModbusContext::log;
 
 void
 ModbusContext::init(const ModbusNetworkConfig& config)
@@ -12,7 +10,7 @@ ModbusContext::init(const ModbusNetworkConfig& config)
     mNetworkType = config.mType;
     if (mNetworkType == ModbusNetworkConfig::TCPIP) {
         mNetworkAddress = config.mAddress;
-        BOOST_LOG_SEV(log, Log::info) << "Connecting to " << mNetworkAddress << ":" << config.mPort;
+        spdlog::info("Connecting to {}:{}", mNetworkAddress, config.mPort);
         mCtx = modbus_new_tcp(config.mAddress.c_str(), config.mPort);
         modbus_set_error_recovery(mCtx,
             (modbus_error_recovery_mode)
@@ -20,7 +18,7 @@ ModbusContext::init(const ModbusNetworkConfig& config)
         );
     } else {
         mNetworkAddress = config.mDevice;
-        BOOST_LOG_SEV(log, Log::info) << "Creating RTU context: " << config.mDevice << ", " << config.mBaud << "-" << config.mDataBit << config.mParity << config.mStopBit;
+        spdlog::info("Creating RTU context: {}, {}-{}{}{}", config.mDevice, config.mBaud, config.mDataBit, config.mParity, config.mStopBit);
         mCtx = modbus_new_rtu(
             config.mDevice.c_str(),
             config.mBaud,
@@ -50,7 +48,7 @@ ModbusContext::init(const ModbusNetworkConfig& config)
             if (modbus_rtu_set_serial_mode(mCtx, serialMode)) {
                 throw ModbusContextException("Unable to set RTU serial mode");
             }
-            BOOST_LOG_SEV(log, Log::info) << "RTU serial mode set to " << serialModeStr;
+            spdlog::info("RTU serial mode set to {}", serialModeStr);
         }
 
         int rtsMode;
@@ -73,14 +71,14 @@ ModbusContext::init(const ModbusNetworkConfig& config)
             if (modbus_rtu_set_rts(mCtx, rtsMode)) {
                 throw ModbusContextException("Unable to set RTS mode");
             }
-            BOOST_LOG_SEV(log, Log::info) << "RTU RTS mode set to " << rtsModeStr;
+            spdlog::info("RTU RTS mode set to {}", rtsModeStr);
         }
 
         if (config.mRtsDelayUs > 0) {
             if (modbus_rtu_set_rts_delay(mCtx, config.mRtsDelayUs)) {
                 throw ModbusContextException("Unable to set RTS delay");
             }
-            BOOST_LOG_SEV(log, Log::info) << "RTU delay set to " << config.mRtsDelayUs << "us";
+            spdlog::info("RTU delay set to {}", config.mRtsDelayUs);
         }
     }
 
@@ -88,14 +86,14 @@ ModbusContext::init(const ModbusNetworkConfig& config)
     if (modbus_set_response_timeout(mCtx, 0, us)) {
         throw ModbusContextException("Unable to set response timeout");
     }
-    BOOST_LOG_SEV(log, Log::info) << "Response timeout set to " << config.mResponseTimeout.count() << "ms";
+    spdlog::info("Response timeout set to {}", config.mResponseTimeout);
 
     if (config.mResponseDataTimeout.count() > 0) {
         us = std::chrono::duration_cast<std::chrono::microseconds>(config.mResponseDataTimeout).count();
         if (modbus_set_byte_timeout(mCtx, 0, us)) {
             throw ModbusContextException("Unable to set response data timeout");
         }
-        BOOST_LOG_SEV(log, Log::info) << "Response data timeout set to " << config.mResponseDataTimeout.count() << "ms";
+        spdlog::info("Response data timeout set to {}", config.mResponseDataTimeout);
     }
 
 
@@ -111,10 +109,10 @@ ModbusContext::connect() {
     if (modbus_connect(mCtx) == -1) {
         switch(mNetworkType) {
             case ModbusNetworkConfig::Type::TCPIP:
-                BOOST_LOG_SEV(log, Log::error) << "modbus: connection to " << mNetworkAddress << " failed("<< errno << ") : " << modbus_strerror(errno);
+                spdlog::error("Connection to {} failed({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
             break;
             case ModbusNetworkConfig::Type::RTU:
-                BOOST_LOG_SEV(log, Log::error) << "modbus: cannot open " << mNetworkAddress << " ("<< errno << ") : " << modbus_strerror(errno);
+                spdlog::error("Cannot open {} ({}): {}", mNetworkAddress, errno, modbus_strerror(errno));
             break;
         }
         mIsConnected = false;
@@ -131,7 +129,8 @@ ModbusContext::disconnect() {
 
 std::vector<uint16_t>
 ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
-    if (slaveId != 0)
+    // TODO not used, make slave optional for tcp in ModMqtt::initObjects and pass -1 in this case
+    if (slaveId != -1)
         modbus_set_slave(mCtx, slaveId);
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
@@ -176,14 +175,15 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
             throw ModbusContextException(std::string("Cannot read, unknown register type ") + std::to_string(regData.mRegisterType));
     }
     if (retCode == -1)
-        throw ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegister) + std::string(" failed with return code ") + std::to_string(retCode));
+        throw ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegisterType) + std::string(" failed with return code ") + std::to_string(retCode));
 
     return ret;
 }
 
 void
 ModbusContext::writeModbusRegisters(int slaveId, const RegisterWrite& msg) {
-    if (slaveId != 0)
+    // TODO not used, make slave optional for tcp in ModMqtt::initObjects and pass -1 in this case
+    if (slaveId != -1)
         modbus_set_slave(mCtx, slaveId);
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
@@ -225,7 +225,7 @@ ModbusContext::writeModbusRegisters(int slaveId, const RegisterWrite& msg) {
             throw ModbusContextException(std::string("Cannot write, unknown register type ") + std::to_string(msg.mRegisterType));
     }
     if (retCode == -1)
-        throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegister) + " failed");
+        throw ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterType) + " failed");
 }
 
 } //namespace

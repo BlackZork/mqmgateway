@@ -28,11 +28,10 @@ class ModMqtt {
         static void setModbusContextFactory(const std::shared_ptr<IModbusFactory>& factory);
         static IModbusFactory& getModbusFactory() { return *mModbusFactory; }
 
-        static boost::log::sources::severity_logger<Log::severity> log;
         ModMqtt();
         void addConverterPath(const std::string& path) { mConverterPaths.push_back(path); }
-        void init(const std::string& configPath);
-        void init(const YAML::Node& config);
+        void init(int logLevelNum, const std::string& configPath);
+        void init(const YAML::Node& config, bool overrideLogLevel);
         void start();
         /**
             Stop server. Can be called only from controlling thread
@@ -69,9 +68,9 @@ class ModMqtt {
         std::shared_ptr<MqttClient> mMqtt;
         std::vector<std::shared_ptr<ModbusClient>> mModbusClients;
 
-        std::vector<boost::shared_ptr<ConverterPlugin>> mConverterPlugins;
+        std::vector<std::shared_ptr<ConverterPlugin>> mConverterPlugins;
 
-        void initServer(const YAML::Node& config);
+        void initServer(const YAML::Node& config, bool overrideLogLevel);
         void initBroker(const YAML::Node& config);
         ModbusInitData initModbusClients(const YAML::Node& config);
         std::vector<MqttObject> initObjects(const YAML::Node& config, const ModbusInitData& modbusData, std::vector<MsgRegisterPollSpecification>& pSpecsOut);
@@ -131,7 +130,7 @@ class ModMqtt {
         MqttObjectCommand parseObjectCommand(const std::string& pTopicPrefix, int nextCommandId, const YAML::Node& node, const std::string& default_network, int default_slave);
 
         bool hasConverterPlugin(const std::string& name) const;
-        boost::shared_ptr<ConverterPlugin> initConverterPlugin(const std::string& name);
+        std::shared_ptr<ConverterPlugin> initConverterPlugin(const std::string& name);
 
         std::shared_ptr<DataConverter> createConverterInstance(const std::string plugin, const std::string& converter) const;
         std::shared_ptr<DataConverter> createConverter(const YAML::Node& data) const;

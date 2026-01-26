@@ -27,11 +27,11 @@ mqtt:
         - name: sensor1
           register: tcptest.1.2
           register_type: input
-          converter: std.divide(100,3)
+          converter: std.divide(100,precision=3)
         - name: sensor2
           register: tcptest.1.3
           register_type: input
-          converter: std.divide(10,2)
+          converter: std.divide(10,precision=2)
 )";
 
 

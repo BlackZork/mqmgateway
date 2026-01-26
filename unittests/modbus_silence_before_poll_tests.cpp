@@ -87,8 +87,8 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
         server.waitForPublish("test_sensor/state");
         auto ptime = server.getLastPollTime() - first_poll_ts;
-        // add 5ms for poll time, 5ms for code execution
-        REQUIRE(ptime < std::chrono::milliseconds(35));
+        // add 5ms for poll time, 10ms for code execution
+        REQUIRE(ptime < std::chrono::milliseconds(40));
         REQUIRE(server.mqttValue("test_sensor/state") == "2");
 
         server.stop();

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-
 #include "logging.hpp"
 
 namespace modmqttd {
@@ -14,8 +13,6 @@ enum RegisterType {
 };
 
 class ModbusAddressRange {
-    protected:
-        static boost::log::sources::severity_logger<Log::severity> log;
     public:
         ModbusAddressRange(int pRegister, RegisterType pRegisterType, int pCount)
             : mRegister(pRegister), mRegisterType(pRegisterType), mCount(pCount)
@@ -45,3 +42,5 @@ class ModbusSlaveAddressRange : public ModbusAddressRange {
 };
 
 }
+
+

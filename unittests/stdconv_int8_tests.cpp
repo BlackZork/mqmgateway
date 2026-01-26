@@ -1,35 +1,35 @@
-#include <libmodmqttsrv/config.hpp>
 #include "catch2/catch_all.hpp"
-#include <boost/dll/import.hpp>
 
 #include "libmodmqttconv/converterplugin.hpp"
-
+#include "libmodmqttsrv/config.hpp"
+#include "libmodmqttsrv/dll_import.hpp"
 
 TEST_CASE("When reading int8 byte from single register") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("int8"));
+    ConverterArgValues args(conv->getArgs());
+
+
     ModbusRegisters input(0xff01);
 
     SECTION("second byte should output correct value") {
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == 1);
     }
 
     SECTION("first byte should output correct value") {
-        std::vector<std::string> args = {
-            "first"
-        };
-        conv->setArgs(args);
+        args.setArgValue("first", ConverterArgType::BOOL, "true");
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == -1);
@@ -39,28 +39,28 @@ TEST_CASE("When reading int8 byte from single register") {
 TEST_CASE("When reading uint8 byte from single register") {
     std::string stdconv_path = "../stdconv/stdconv.so";
 
-    boost::shared_ptr<ConverterPlugin> plugin = boost_dll_import<ConverterPlugin>(
+    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
+        "converter_plugin"
     );
 
     std::shared_ptr<DataConverter> conv(plugin->getConverter("uint8"));
+    ConverterArgValues args(conv->getArgs());
+
     ModbusRegisters input(0xff01);
 
     SECTION("second byte should output correct value") {
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == 1);
     }
 
     SECTION("first byte should output correct value") {
-        std::vector<std::string> args = {
-            "first"
-        };
-        conv->setArgs(args);
+        args.setArgValue("first", ConverterArgType::BOOL, "true");
 
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
         REQUIRE(output.getInt() == 255);

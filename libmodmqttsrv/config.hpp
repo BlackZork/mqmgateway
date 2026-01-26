@@ -4,18 +4,11 @@
 #include <regex>
 
 #include <yaml-cpp/yaml.h>
-#include <boost/version.hpp>
 
 #include "exceptions.hpp"
 #include "logging.hpp"
 
 namespace modmqttd {
-
-#if BOOST_VERSION >= 107600 // 1.76.0
-#define boost_dll_import boost::dll::import_symbol
-#else
-#define boost_dll_import boost::dll::import
-#endif
 
 class ConfigurationException : public ModMqttException {
     public:
@@ -84,8 +77,6 @@ class ModbusWatchdogConfig {
 
 class ModbusNetworkConfig {
     static constexpr std::chrono::milliseconds MAX_RESPONSE_TIMEOUT = std::chrono::milliseconds(999);
-
-    static boost::log::sources::severity_logger<Log::severity> log;
 
     public:
         typedef enum {

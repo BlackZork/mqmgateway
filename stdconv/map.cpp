@@ -2,8 +2,6 @@
 
 #include <cctype>
 
-#include "libmodmqttconv/strutils.hpp"
-
 char
 getEscapedChar(const char& c) {
     return c;

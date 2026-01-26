@@ -1,7 +1,5 @@
 #pragma once
 
-#include <filesystem>
-
 #include "imodbuscontext.hpp"
 #include "modbus_messages.hpp"
 #include "register_poll.hpp"
@@ -23,7 +21,6 @@ class ModbusWatchdog {
         }
 
     private:
-        static boost::log::sources::severity_logger<Log::severity> log;
         static constexpr std::chrono::milliseconds sDeviceCheckPeriod = std::chrono::milliseconds(300);
 
         ModbusWatchdogConfig mConfig;

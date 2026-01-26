@@ -3,12 +3,17 @@
 #include "mosquitto.hpp"
 #include "exceptions.hpp"
 #include "mqttclient.hpp"
+#include "threadutils.hpp"
 
 namespace modmqttd {
 
 static void on_connect_wrapper(struct mosquitto *mosq, void *userdata, int rc)
 {
-	class Mosquitto *m = (class Mosquitto *)userdata;
+    if (g_thread_name.empty()) {
+        ThreadUtils::set_thread_name("mqtt");
+    }
+
+    class Mosquitto *m = (class Mosquitto *)userdata;
 	m->on_connect(rc);
 }
 
@@ -60,8 +65,6 @@ static void on_log_wrapper(struct mosquitto *mosq, void *userdata, int level, co
 	m->on_log(level, str);
 }
 
-boost::log::sources::severity_logger<Log::severity> Mosquitto::log;
-
 void
 Mosquitto::throwOnCriticalError(int code) {
     // copied from mosquittopp loop_forever()
@@ -98,7 +101,7 @@ Mosquitto::Mosquitto() {
 
 void
 Mosquitto::connect(const MqttBrokerConfig& config) {
-    BOOST_LOG_SEV(log, Log::info) << "Connecting to " << config.mHost << ":" << config.mPort;
+    spdlog::info("Connecting to {}:{}", config.mHost, config.mPort);
 
     int rc = 0;
     if (!config.mUsername.empty()) {
@@ -127,7 +130,7 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
     }
 
     if (rc != MOSQ_ERR_SUCCESS) {
-        BOOST_LOG_SEV(log, Log::error) << "Error connecting to mqtt broker: " << returnCodeToStr(rc);
+        spdlog::error("Error connecting to mqtt broker: {}", returnCodeToStr(rc));
     } else {
         mosquitto_reconnect_delay_set(mMosq, 3,60, true);
         mosquitto_connect_callback_set(mMosq, on_connect_wrapper);
@@ -140,10 +143,10 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
         mosquitto_log_callback_set(mMosq, on_log_wrapper);
 
 
-        BOOST_LOG_SEV(log, Log::debug) << "Waiting for connection event";
+        spdlog::debug("Waiting for connection event");
         int rc = mosquitto_loop_start(mMosq);
         if (rc != MOSQ_ERR_SUCCESS) {
-            BOOST_LOG_SEV(log, Log::error) << "Error processing network traffic: " << returnCodeToStr(rc);
+            spdlog::error("Error processing network traffic: {}", returnCodeToStr(rc));
         }
     }
 }
@@ -184,13 +187,13 @@ Mosquitto::publish(const char* topic, int len, const void* data, bool retain) {
 
 void
 Mosquitto::on_disconnect(int rc) {
-    BOOST_LOG_SEV(log, Log::info) << "Disconnected from mqtt broker, code:" << returnCodeToStr(rc);
+    spdlog::info("Disconnected from mqtt broker, code: {}", returnCodeToStr(rc));
     mOwner->onDisconnect();
 }
 
 void
 Mosquitto::on_connect(int rc) {
-    BOOST_LOG_SEV(log, Log::info) << "Connection established";
+    spdlog::info("Connection established");
     mOwner->onConnect();
 }
 
@@ -198,19 +201,19 @@ void
 Mosquitto::on_log(int level, const char* message) {
     switch(level) {
         case MOSQ_LOG_INFO:
-            BOOST_LOG_SEV(log, Log::info) << message;
+            spdlog::info(message);
         break;
         case MOSQ_LOG_NOTICE:
-            BOOST_LOG_SEV(log, Log::info) << message;
+            spdlog::info(message);
         break;
         case MOSQ_LOG_WARNING:
-            BOOST_LOG_SEV(log, Log::warn) << message;
+            spdlog::warn(message);
         break;
         case  MOSQ_LOG_ERR:
-            BOOST_LOG_SEV(log, Log::error) << message;
+            spdlog::error(message);
         break;
         case MOSQ_LOG_DEBUG:
-            BOOST_LOG_SEV(log, Log::debug) << message;
+            spdlog::debug(message);
         break;
     }
 }

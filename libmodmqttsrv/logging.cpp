@@ -1,35 +1,30 @@
 #include <cstddef>
+#include <spdlog/common.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include <sys/stat.h>
 #include <string>
 #include <ostream>
 #include <fstream>
 #include <iomanip>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/attributes/clock.hpp>
-#include <boost/parameter/keyword.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/core/null_deleter.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <spdlog/pattern_formatter.h>
 
+#include <spdlog/spdlog.h>
+
+#include "defs.h"
 #include "logging.hpp"
+#include <iostream>
 
-namespace params = boost::log::keywords;
-namespace sinks = boost::log::sinks;
-namespace expr = boost::log::expressions;
-namespace attrs = boost::log::attributes;
+using namespace std::string_literals;
 
 namespace modmqttd {
 
-BOOST_LOG_ATTRIBUTE_KEYWORD(log_severity, "Severity", Log::severity)
+thread_local std::string g_thread_name;
 
 std::ostream& operator<< (std::ostream& strm, Log::severity level)
 {
     static const char* strings[] =
     {
+        "NONE",
         "CRITICAL",
         "ERROR",
         "WARN ",
@@ -46,19 +41,10 @@ std::ostream& operator<< (std::ostream& strm, Log::severity level)
     return strm;
 }
 
+bool
+log_timestamp() {
+    bool ret = true;
 
-void Log::init_logging(severity level) {
-    typedef sinks::synchronous_sink< sinks::text_ostream_backend > text_sink;
-    boost::shared_ptr< text_sink > sink = boost::make_shared< text_sink >();
-
-    boost::shared_ptr< std::ostream > stream(&std::clog, boost::null_deleter());
-    sink->locked_backend()->add_stream(stream);
-
-    boost::log::formatter formatter;
-
-    bool log_timestamp = true;
-
-    //check JOURNAL_STREAM indoe vs stderr inode
     const char* js = std::getenv("JOURNAL_STREAM");
     if (js != nullptr) {
         std::string jstr(js);
@@ -67,45 +53,147 @@ void Log::init_logging(severity level) {
             std::string env_inode(jstr.substr(t+1));
             if (!env_inode.empty()) {
                 struct stat file_stat;
-                int ret, inode;
-                ret = fstat (2, &file_stat);
-                if (ret >= 0) {
+                int code, inode;
+                code = fstat (2, &file_stat);
+                if (code >= 0) {
                     inode = file_stat.st_ino;
                     if (std::to_string(inode) == env_inode)
-                        log_timestamp = false;
+                        ret = false;
                 }
             };
         }
     }
+    return ret;
+}
 
-    auto ts_format = expr::stream << expr::attr<boost::posix_time::ptime>("TimeStamp") << ": ";
-    auto log_format = expr::stream << "[" << log_severity << "] " << expr::smessage;
+// custom flag prints cached name
+struct thread_name_flag : public spdlog::custom_flag_formatter {
+    void format(const spdlog::details::log_msg &, const std::tm &, spdlog::memory_buf_t &dest) override {
+        if (!g_thread_name.empty()) {
+            fmt::format_to(std::back_inserter(dest), "{}", g_thread_name);
+        } else {
+            auto hid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+            fmt::format_to(std::back_inserter(dest), "tid:{}", hid);
+        }
+    }
+    std::unique_ptr<custom_flag_formatter> clone() const override {
+        return spdlog::details::make_unique<thread_name_flag>();
+    }
+};
 
-    if (log_timestamp) {
-        //TODO how to use log_format ?
-        auto format = ts_format << "[" << log_severity << "] " << expr::smessage;
-        formatter = format;
-    } else {
-        formatter = log_format;
+struct uppercase_level_flag : public spdlog::custom_flag_formatter {
+    void format(const spdlog::details::log_msg &msg, const std::tm &, spdlog::memory_buf_t &dest) override {
+        const char* name = nullptr;
+        switch (msg.level) {
+            case spdlog::level::trace:    name = "TRACE"; break;
+            case spdlog::level::debug:    name = "DEBUG"; break;
+            case spdlog::level::info:     name = "INFO "; break;
+            case spdlog::level::warn:     name = "WARN "; break;
+            case spdlog::level::err:      name = "ERROR"; break;
+            case spdlog::level::critical: name = "CRIT "; break;
+            case spdlog::level::off:      name = "OFF  "; break;
+            default:                      name = "???  "; break;
+        }
+        fmt::format_to(std::back_inserter(dest), "{}", name);
     }
 
-    sink->set_formatter
-    (
-        formatter
-        // expr::stream
-        //     << expr::attr<boost::posix_time::ptime>("TimeStamp")
-        //     << ": [" << log_severity << "]\t"
-        //     << expr::smessage
-    );
+    std::unique_ptr<custom_flag_formatter> clone() const override {
+        return spdlog::details::make_unique<uppercase_level_flag>();
+    }
+};
 
-    sink->set_filter(log_severity <= level);
+spdlog::level::level_enum
+to_spdlog_level(Log::severity s) {
+    switch(s) {
+        case Log::none:     return spdlog::level::off;
+        case Log::critical: return spdlog::level::critical;
+        case Log::error:    return spdlog::level::err;
+        case Log::warn:     return spdlog::level::warn;
+        case Log::info:     return spdlog::level::info;
+        case Log::debug:    return spdlog::level::debug;
+        case Log::trace:    return spdlog::level::trace;
+        default:            return spdlog::level::info;
+    }
+}
 
-    boost::shared_ptr< boost::log::core > core = boost::log::core::get();
+void
+Log::set_level(severity level) {
+    spdlog::set_level(to_spdlog_level(level));
+}
 
-    core->add_sink(sink);
-    //TODO remove timestamp, journalctl will add it anyway?
-    core->add_global_attribute("TimeStamp", attrs::local_clock());
+Log::severity
+Log::parse_severity(const std::string& val) {
+    try {
+        size_t pos = -1;
+        int lvlnum = std::stoi(val, &pos, 10);
+        if (pos == val.length()) {
+            if (lvlnum < 0 || lvlnum > 6)
+                throw std::invalid_argument("loglevel must be between 0 and 6");
 
+            return (severity)lvlnum;
+        }
+    } catch (const std::invalid_argument&) {
+        // not a number, try string name
+        if (val == "off")
+            return Log::severity::none;
+        else if (val == "critical")
+            return Log::severity::critical;
+        else if (val == "error")
+            return Log::severity::error;
+        else if (val == "warning")
+            return Log::severity::warn;
+        else if (val == "info")
+            return Log::severity::info;
+        else if (val == "debug")
+            return Log::severity::debug;
+        else if (val == "trace")
+            return Log::severity::trace;
+
+    }
+    throw std::invalid_argument("unknown log level '"s + val + "', valid values: none,critical,error,warning,info,debug,trace");
+}
+
+void Log::init_spdlog_logging(severity level) {
+    if (level == Log::none) {
+        spdlog::set_level(spdlog::level::off);
+        return;
+    }
+
+    try {
+        // create stderr sink (thread-safe)
+        auto sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
+        auto logger = std::make_shared<spdlog::logger>(loggerName, sink);
+        spdlog::set_default_logger(logger);
+
+        auto formatter = std::make_unique<spdlog::pattern_formatter>();
+        formatter->add_flag<thread_name_flag>('T');
+        formatter->add_flag<uppercase_level_flag>('l');
+
+        std::string pattern("[%l] %t: %v");
+        #ifdef HAVE_PTHREAD_SETNAME_NP
+            int pos = pattern.find("%t");
+            if (pos != std::string::npos) {
+                pattern.replace(pos, 2, "%T");
+            }
+        #endif
+
+        if (log_timestamp()) {
+            // include milliseconds and colored level tag
+            formatter->set_pattern("%Y-%m-%d %H:%M:%S.%f " + pattern);
+        } else {
+            // leave timestamp to systemd/journald
+            formatter->set_pattern(pattern);
+        }
+
+        spdlog::set_formatter(std::move(formatter));
+    } catch (const std::exception& ex) {
+        std::cerr << "Cannot configure spdlog:" << ex.what() << std::endl;
+    }
+    spdlog::set_level(to_spdlog_level(level));
+}
+
+void Log::init_logging(severity level) {
+    init_spdlog_logging(level);
 }
 
 }

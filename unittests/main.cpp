@@ -1,9 +1,11 @@
+#include "threadutils.hpp"
 #define CATCH_CONFIG_CONSOLE_WIDTH 300
 #define CATCH_CONFIG_RUNNER
 #include "catch2/catch_all.hpp"
 #include "libmodmqttsrv/logging.hpp"
 
 int main( int argc, char* argv[] ) {
+  modmqttd::ThreadUtils::set_thread_name("utest");
 
   modmqttd::Log::severity loglevel = modmqttd::Log::severity::trace;
   if (const char* env_p = std::getenv("MQM_TEST_LOGLEVEL")) {

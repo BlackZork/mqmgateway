@@ -18,11 +18,7 @@ class ModbusClient {
         moodycamel::BlockingReaderWriterQueue<QueueItem> mFromModbusQueue;
         moodycamel::BlockingReaderWriterQueue<QueueItem> mToModbusQueue;
 
-        void init(const ModbusNetworkConfig& config) {
-            mNetworkName = config.mName;
-            mModbusThread.reset(new std::thread(threadLoop, std::ref(mToModbusQueue), std::ref(mFromModbusQueue)));
-            mToModbusQueue.enqueue(QueueItem::create(config));
-        };
+        void init(const ModbusNetworkConfig& config);
 
         void sendCommand(const MqttObjectCommand& cmd, const ModbusRegisters& reg_values) {
             MsgRegisterValues val(
@@ -49,7 +45,7 @@ class ModbusClient {
         void stop();
         ~ModbusClient() { stop(); }
     private:
-        static void threadLoop(moodycamel::BlockingReaderWriterQueue<QueueItem>& in, moodycamel::BlockingReaderWriterQueue<QueueItem>& out);
+        static void threadLoop(const std::string& pNetworkName, moodycamel::BlockingReaderWriterQueue<QueueItem>& in, moodycamel::BlockingReaderWriterQueue<QueueItem>& out);
 
         ModbusClient(const ModbusClient&);
         std::shared_ptr<std::thread> mModbusThread;

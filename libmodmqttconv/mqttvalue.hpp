@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <sstream>
@@ -221,7 +223,7 @@ class MqttValue {
         Variant mValue;
         std::shared_ptr<void> mBinaryValue;
         size_t mBinarySize;
-        int mDoublePrecision = -1;
+        int mDoublePrecision = MqttValue::NO_PRECISION;
         SourceType mType;
 
         // https://stackoverflow.com/questions/33125779/format-double-value-in-c
@@ -236,7 +238,7 @@ class MqttValue {
             std::stringstream sstream;
             sstream.setf(std::ios::fixed);
 
-            if (mDoublePrecision != -1)
+            if (mDoublePrecision != NO_PRECISION)
                 sstream.precision(mDoublePrecision);
 
             sstream << value;

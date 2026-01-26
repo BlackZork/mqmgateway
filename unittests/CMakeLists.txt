@@ -18,6 +18,8 @@ add_executable(tests
     modbus_utils.hpp
     # tests
     converter_name_parser_tests.cpp
+     exprconv_float_tests.cpp
+    exprconv_int32_tests.cpp
     exprconv_tests.cpp
     modbus_config_tests.cpp
     modbus_executor_tests.cpp
@@ -34,12 +36,14 @@ add_executable(tests
     mqtt_command_conv_tests.cpp
     mqtt_every_poll_tests.cpp
     mqtt_config_tests.cpp
+    mqtt_json_conv_tests.cpp
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp
     mqtt_named_scalar_conv_tests.cpp
     mqtt_poll_groups_tests.cpp
     mqtt_publish_retain_tests.cpp
     mqtt_publish_type_tests.cpp
+    mqtt_refresh_config_tests.cpp
     mqtt_register_default_slave_tests.cpp
     mqtt_register_id_parser_tests.cpp
     mqtt_slave_sets_tests.cpp
@@ -55,16 +59,21 @@ add_executable(tests
     real_server_tests.cpp
     register_address_tests.cpp
     scheduler_tests.cpp
+    server_config_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp
     stdconv_bit_tests.cpp
     stdconv_divide_tests.cpp
     stdconv_int8_tests.cpp
+    stdconv_int32_tests.cpp
     stdconv_map_tests.cpp
     stdconv_multiply_tests.cpp
     stdconv_float_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp
+    stdconv_uint32_tests.cpp
+    testnumbers.cpp
+    testnumbers.hpp
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )
@@ -74,8 +83,10 @@ target_link_libraries(tests
     ${MOSQUITTO_LIBRARIES}
     Catch2::Catch2
     yaml-cpp
-    ${Boost_LIBRARIES}
+    spdlog::spdlog
+    fmt::fmt
     ${LIBMODBUS_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
+    Threads::Threads
+    -lpthread
     ${CMAKE_DL_LIBS}
 )

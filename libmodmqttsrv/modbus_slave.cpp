@@ -1,10 +1,9 @@
 #include "modbus_slave.hpp"
 #include "yaml_converters.hpp"
 #include "config.hpp"
+#include <spdlog/spdlog.h>
 
 namespace modmqttd {
-
-boost::log::sources::severity_logger<Log::severity> ModbusSlaveConfig::log;
 
 ModbusSlaveConfig::ModbusSlaveConfig(int pAddress, const YAML::Node& data)
     : mAddress(pAddress)
@@ -13,7 +12,7 @@ ModbusSlaveConfig::ModbusSlaveConfig(int pAddress, const YAML::Node& data)
 
     std::chrono::milliseconds tmpval;
     if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(tmpval, data, "delay_before_poll")) {
-        BOOST_LOG_SEV(log, Log::warn) << "'delay_before_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_command'";
+        spdlog::warn("'delay_before_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_command'");
         setDelayBeforeCommand(tmpval);
     }
 
@@ -23,7 +22,7 @@ ModbusSlaveConfig::ModbusSlaveConfig(int pAddress, const YAML::Node& data)
 
 
     if (ConfigTools::readOptionalValue<std::chrono::milliseconds>(tmpval, data, "delay_before_first_poll")) {
-        BOOST_LOG_SEV(log, Log::warn) << "'delay_before_first_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_first_command'";
+        spdlog::warn("'delay_before_first_poll' is deprecated and will be removed in future releases. Rename it to 'delay_before_first_command'");
         setDelayBeforeFirstCommand(tmpval);
     }
 
