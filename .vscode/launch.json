@@ -20,7 +20,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/modmqttd/modmqttd",
-            "args": ["--loglevel","6"],
+            "args": ["--loglevel","trace"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/modmqttd",
             "externalConsole": false,

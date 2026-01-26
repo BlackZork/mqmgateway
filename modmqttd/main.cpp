@@ -6,10 +6,12 @@
 #include <pthread.h>
 #include "libmodmqttsrv/common.hpp"
 #include "libmodmqttsrv/modmqtt.hpp"
-#include "config.hpp"
 #include "libmodmqttsrv/logging.hpp"
 #include "libmodmqttsrv/threadutils.hpp"
+
+#include "config.hpp"
 #include "version.hpp"
+#include "logging.hpp"
 
 using namespace std::string_literals;
 
@@ -54,15 +56,15 @@ int main(int ac, char* av[]) {
             }
         }
 
+        modmqttd::Log::severity log_level = modmqttd::Log::severity::info;
+
         for(auto param: cmdl.params()) {
             if (param.first == "config" || param.first == "c") {
                 configPath = param.second;
             } else if (param.first == "loglevel" || param.first == "l") {
-                if (!(cmdl({"l", "loglevel"}) >> logLevel)) {
-                    std::cerr << "Cannot parse loglevel value" << std::endl;
-                    return EXIT_FAILURE;
-                }
-                if (logLevel < 0 || logLevel > 6) {
+                try {
+                    log_level = modmqttd::Log::parse_severity(param.second);
+                } catch (const std::exception& ex) {
                     std::cerr << "loglevel must be between 0 and 6" << std::endl;
                     return EXIT_FAILURE;
                 }
