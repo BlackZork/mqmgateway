@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   setup:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     outputs:
       registry_image: ${{ steps.translation.outputs.registry_image }}
     steps:
