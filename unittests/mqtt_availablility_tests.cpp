@@ -8,7 +8,7 @@
 
 TEST_CASE ("Availability from multiple registers") {
 
-static TestConfig config(R"(
+TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
