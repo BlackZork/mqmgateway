@@ -33,6 +33,34 @@
             ]
         },
         {
+            "name": "tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/unittests/tests",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/unittests",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing"
+                }
+            ]
+        },
+        {
+            "name": "tests (lldb)",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/unittests/tests",
+            "args": [],
+            "stopOnEntry": false,
+            "cwd": "${workspaceFolder}/build/unittests/",
+            "initCommands": [
+            ],
+        },
+        {
             "name": "modmqttd remote",
             "type": "cppdbg",
             "request": "launch",

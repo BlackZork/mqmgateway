@@ -6,16 +6,12 @@
 #include "libmodmqttconv/convexception.hpp"
 
 #include "testnumbers.hpp"
+#include "plugin_utils.hpp"
 
 TEST_CASE("when std.uint32") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("int32"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("int32"));
     ConverterArgValues args(conv->getArgs());
 
     SECTION("converts two modbus registers (high, low)") {
@@ -28,7 +24,7 @@ TEST_CASE("when std.uint32") {
         REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_uint32);   }
 
     SECTION("converts two modbus registers (low, high)") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
 
         ModbusRegisters input({TestNumbers::Int::AB,TestNumbers::Int::CD});
 
@@ -39,7 +35,7 @@ TEST_CASE("when std.uint32") {
     }
 
     SECTION("writes to two modbus registers (low, high)") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
 
         MqttValue input = MqttValue::fromInt64(TestNumbers::Int::ABCD_as_uint32);
 

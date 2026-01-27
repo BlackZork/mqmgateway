@@ -52,7 +52,6 @@ mqtt:
         config.mYAML["modbus"]["networks"][0]["slaves"][0].remove("delay_before_command");
         config.mYAML["modbus"]["networks"][0]["delay_before_command"] = "30ms";
 
-        std::cerr << config.toString() << std::endl;
         MockedModMqttServerThread server(config.toString());
 
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);

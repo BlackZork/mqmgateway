@@ -2,14 +2,12 @@
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttsrv/config.hpp"
 #include "libmodmqttsrv/dll_import.hpp"
+#include "plugin_utils.hpp"
 
 TEST_CASE("When a string") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("string"));
+    PluginLoader loader("../stdconv/stdconv.so");
+
+    std::shared_ptr<DataConverter> conv(loader.getConverter("string"));
     ConverterArgValues args(conv->getArgs());
 
     const char charsEven[] = "ABCD";

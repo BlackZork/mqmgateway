@@ -58,7 +58,9 @@ class ExprtkConverter : public DataConverter {
             mPrecision = values[ConverterArg::sPrecisionArgName].as_int();
         }
 
-        virtual ~ExprtkConverter() {}
+        virtual ~ExprtkConverter() {
+            mExpression.release();
+        }
     private:
         exprtk::symbol_table<double> mSymbolTable;
         exprtk::parser<double> mParser;

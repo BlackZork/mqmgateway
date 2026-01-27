@@ -4,24 +4,20 @@
 
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttconv/convexception.hpp"
+#include "plugin_utils.hpp"
 
 
 TEST_CASE("Bit converter") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("bit"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("bit"));
 
     SECTION("should return 1 if bit is set") {
         ModbusRegisters data;
         data.appendValue(0x80);
 
         ConverterArgValues args(conv->getArgs());
-        args.setArgValue("bit", ConverterArgType::INT, "0x8");
+        args.setArgValue("bit", "0x8");
 
         conv->setArgValues(args);
         MqttValue ret = conv->toMqtt(data);
@@ -34,7 +30,7 @@ TEST_CASE("Bit converter") {
         data.appendValue(0x7FFF);
 
         ConverterArgValues args(conv->getArgs());
-        args.setArgValue("bit", ConverterArgType::INT, "16");
+        args.setArgValue("bit", "16");
 
         conv->setArgValues(args);
         MqttValue ret = conv->toMqtt(data);
@@ -47,7 +43,7 @@ TEST_CASE("Bit converter") {
         data.appendValue(0x7FFF);
 
         ConverterArgValues args(conv->getArgs());
-        args.setArgValue("bit", ConverterArgType::INT, "20");
+        args.setArgValue("bit", "20");
 
         REQUIRE_THROWS_AS(
             conv->setArgValues(args),

@@ -3,16 +3,12 @@
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttsrv/config.hpp"
 #include "libmodmqttsrv/dll_import.hpp"
+#include "plugin_utils.hpp"
 
 TEST_CASE("When reading int8 byte from single register") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("int8"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("int8"));
     ConverterArgValues args(conv->getArgs());
 
 
@@ -27,7 +23,7 @@ TEST_CASE("When reading int8 byte from single register") {
     }
 
     SECTION("first byte should output correct value") {
-        args.setArgValue("first", ConverterArgType::BOOL, "true");
+        args.setArgValue("first", "true");
 
         conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
@@ -37,14 +33,9 @@ TEST_CASE("When reading int8 byte from single register") {
 }
 
 TEST_CASE("When reading uint8 byte from single register") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("uint8"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("uint8"));
     ConverterArgValues args(conv->getArgs());
 
     ModbusRegisters input(0xff01);
@@ -58,7 +49,7 @@ TEST_CASE("When reading uint8 byte from single register") {
     }
 
     SECTION("first byte should output correct value") {
-        args.setArgValue("first", ConverterArgType::BOOL, "true");
+        args.setArgValue("first", "true");
 
         conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);

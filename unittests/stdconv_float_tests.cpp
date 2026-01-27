@@ -5,15 +5,12 @@
 #include "libmodmqttconv/converterplugin.hpp"
 
 #include "testnumbers.hpp"
+#include "plugin_utils.hpp"
 
 TEST_CASE("A float32 value should be read") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("float32"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("float32"));
     ConverterArgValues args(conv->getArgs());
 
     SECTION("when two registers contains a float ABCD format") {
@@ -31,7 +28,7 @@ TEST_CASE("A float32 value should be read") {
     SECTION("when two registers contains a float CDAB format") {
         const ModbusRegisters input({TestNumbers::Float::CD, TestNumbers::Float::AB});
 
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
         conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
@@ -42,7 +39,7 @@ TEST_CASE("A float32 value should be read") {
     SECTION("when two registers contains a float BADC format") {
         const ModbusRegisters input({TestNumbers::Float::BA, TestNumbers::Float::DC});
 
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
         conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
@@ -54,8 +51,8 @@ TEST_CASE("A float32 value should be read") {
     SECTION("when two registers contains a float DCBA format") {
         const ModbusRegisters input({TestNumbers::Float::DC, TestNumbers::Float::BA});
 
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
         conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
@@ -66,7 +63,7 @@ TEST_CASE("A float32 value should be read") {
     SECTION("when precision is set") {
         const ModbusRegisters input({0xc2f6, 0xe979});
 
-        args.setArgValue(ConverterArg::sPrecisionArgName, ConverterArgType::INT, "2");
+        args.setArgValue(ConverterArg::sPrecisionArgName, "2");
         conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
@@ -77,13 +74,9 @@ TEST_CASE("A float32 value should be read") {
 }
 
 TEST_CASE("A float32 value should be written") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("float32"));
+    std::shared_ptr<DataConverter> conv(loader.getConverter("float32"));
     ConverterArgValues args(conv->getArgs());
 
     std::string val("-1.234567");
@@ -99,7 +92,7 @@ TEST_CASE("A float32 value should be written") {
     }
 
     SECTION("to two registers in CDAB format") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
         conv->setArgValues(args);
         const ModbusRegisters converted = conv->toModbus(input, 2);
         const ModbusRegisters expected({TestNumbers::Float::CD, TestNumbers::Float::AB});
@@ -108,7 +101,7 @@ TEST_CASE("A float32 value should be written") {
     }
 
     SECTION("to two registers in BADC format") {
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
         conv->setArgValues(args);
         const ModbusRegisters converted = conv->toModbus(input, 2);
         const ModbusRegisters expected({TestNumbers::Float::BA, TestNumbers::Float::DC});
@@ -117,8 +110,8 @@ TEST_CASE("A float32 value should be written") {
     }
 
     SECTION("to two registers in DCBA format") {
-        args.setArgValue(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, "true");
-        args.setArgValue(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, "true");
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
         conv->setArgValues(args);
         const ModbusRegisters converted = conv->toModbus(input, 2);
         const ModbusRegisters expected({TestNumbers::Float::DC, TestNumbers::Float::BA});

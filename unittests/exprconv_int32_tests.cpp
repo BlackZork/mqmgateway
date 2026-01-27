@@ -4,20 +4,18 @@
 #include "libmodmqttsrv/dll_import.hpp"
 
 #include "testnumbers.hpp"
+#include "plugin_utils.hpp"
 
 #ifdef HAVE_EXPRTK
 
 TEST_CASE ("exprtk should read") {
-    std::string stdconv_path = "../exprconv/exprconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin"
-    );
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("evaluate"));
+    PluginLoader loader("../exprconv/exprconv.so");
+
+    std::shared_ptr<DataConverter> conv(loader.getConverter("evaluate"));
     ConverterArgValues args(conv->getArgs());
 
     SECTION("int32 from two registers") {
-        args.setArgValue("expression", ConverterArgType::STRING, "int32(R0, R1)");
+        args.setArgValue("expression", "int32(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::AB, TestNumbers::Int::CD});
 
         conv->setArgValues(args);
@@ -27,7 +25,7 @@ TEST_CASE ("exprtk should read") {
     }
 
     SECTION("int32 from two registers byte swapped") {
-        args.setArgValue("expression", ConverterArgType::STRING, "int32bs(R0, R1)");
+        args.setArgValue("expression", "int32bs(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::BA, TestNumbers::Int::DC});
 
         conv->setArgValues(args);
@@ -38,7 +36,7 @@ TEST_CASE ("exprtk should read") {
 
 
     SECTION("uint32 from two registers") {
-        args.setArgValue("expression", ConverterArgType::STRING, "uint32(R0, R1)");
+        args.setArgValue("expression", "uint32(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::AB, TestNumbers::Int::CD});
 
         conv->setArgValues(args);
@@ -48,7 +46,7 @@ TEST_CASE ("exprtk should read") {
     }
 
     SECTION("uint32 from two registers byte swapped") {
-        args.setArgValue("expression", ConverterArgType::STRING, "uint32bs(R0, R1)");
+        args.setArgValue("expression", "uint32bs(R0, R1)");
         const ModbusRegisters input({TestNumbers::Int::BA, TestNumbers::Int::DC});
 
         conv->setArgValues(args);
