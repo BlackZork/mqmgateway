@@ -9,7 +9,9 @@ target_link_libraries(modmqttd
     modmqttsrv
     ${MOSQUITTO_LIBRARIES}
     yaml-cpp
-    ${Boost_LIBRARIES} 
+    spdlog::spdlog
+    fmt::fmt
     ${LIBMODBUS_LIBRARIES} 
-    ${CMAKE_THREAD_LIBS_INIT}
+    Threads::Threads
+    -lpthread
 )

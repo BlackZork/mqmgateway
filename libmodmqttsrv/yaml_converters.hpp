@@ -2,12 +2,14 @@
 
 #include <chrono>
 #include <regex>
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
+#include <sstream>
+#include <string>
 
 #include <yaml-cpp/yaml.h>
 #include "libmodmqttsrv/exceptions.hpp"
 #include "libmodmqttsrv/config.hpp"
+#include "libmodmqttsrv/strutils.hpp"
+
 
 template<>
 struct YAML::convert<modmqttd::ModbusNetworkConfig::RtuSerialMode> {
@@ -85,21 +87,21 @@ struct YAML::convert<std::vector<std::pair<int,int>>> {
     }
 
     static bool decode(const YAML::Node& node, std::vector<std::pair<int,int>>& value) {
-        boost::char_separator<char> sep = boost::char_separator<char>(",");
         const std::regex re_range("\\s*([0-9]+)-([0-9]+)\\s*");
 
-        std::string strval(node.as<std::string>());
-        boost::trim(strval);
+        std::string sval(node.as<std::string>());
 
-        boost::tokenizer<boost::char_separator<char>> tokens(strval, sep);
-        for (const std::string& t : tokens) {
+        std::stringstream sstr(sval);
+        std::string segment;
+        while(std::getline(sstr, segment, ','))
+        {
             std::cmatch matches;
             std::pair<int,int> item;
-            if (std::regex_match(t.c_str(), matches, re_range)) {
+            if (std::regex_match(segment.c_str(), matches, re_range)) {
                 item.first = toNumber(node, matches[1]);
                 item.second = toNumber(node, matches[2]);
             } else {
-                item.first = toNumber(node, t);
+                item.first = toNumber(node, segment);
                 item.second = item.first;
             }
             value.push_back(item);
@@ -113,16 +115,13 @@ struct YAML::convert<std::vector<std::pair<int,int>>> {
 template<>
 struct YAML::convert<std::vector<std::string>> {
     static bool decode(const YAML::Node& node, std::vector<std::string>& value) {
-        boost::char_separator<char> sep = boost::char_separator<char>(",");
+        std::string sval(node.as<std::string>());
 
-        std::string strval(node.as<std::string>());
-        boost::trim(strval);
-
-        boost::tokenizer<boost::char_separator<char>> tokens(strval, sep);
-        for (const std::string& t : tokens) {
-            std::string val(t);
-            boost::trim(val);
-            value.push_back(val);
+        std::stringstream sstr(sval);
+        std::string segment;
+        while(std::getline(sstr, segment, ','))
+        {
+            value.push_back(modmqttd::StrUtils::trim(segment));
         }
 
         return true;

@@ -23,7 +23,7 @@ mqtt:
         - name: set
           register: tcptest.1.2
           register_type: holding
-          converter: std.divide(2,0)
+          converter: std.divide(2,precision=0)
       state:
         register: tcptest.1.2
         register_type: holding

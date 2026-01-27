@@ -8,9 +8,6 @@
 namespace modmqttd {
 
 class ModbusSlaveConfig {
-
-    static boost::log::sources::severity_logger<Log::severity> log;
-
     public:
         ModbusSlaveConfig(int pAddress, const YAML::Node& data);
         int mAddress;

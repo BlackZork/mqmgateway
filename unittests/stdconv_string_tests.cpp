@@ -2,15 +2,13 @@
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttsrv/config.hpp"
 #include "libmodmqttsrv/dll_import.hpp"
+#include "plugin_utils.hpp"
 
 TEST_CASE("When a string") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
-    );
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("string"));
+    PluginLoader loader("../stdconv/stdconv.so");
+
+    std::shared_ptr<DataConverter> conv(loader.getConverter("string"));
+    ConverterArgValues args(conv->getArgs());
 
     const char charsEven[] = "ABCD";
     const char charsOdd[]  = "ABC";
@@ -22,6 +20,8 @@ TEST_CASE("When a string") {
     SECTION("is read from registers") {
         SECTION("and the character count is even, then it contains exactly the characters from the registers") {
             ModbusRegisters input(registersEven);
+
+            conv->setArgValues(args);
             MqttValue output = conv->toMqtt(input);
 
             REQUIRE(output.getString() == charsEven);
@@ -30,6 +30,8 @@ TEST_CASE("When a string") {
 
         SECTION("and the character count is odd, then it contains all characters from the registers except the trailing null byte") {
             ModbusRegisters input(registersOdd);
+
+            conv->setArgValues(args);
             MqttValue output = conv->toMqtt(input);
 
             REQUIRE(output.getString() == charsOdd);
@@ -39,6 +41,8 @@ TEST_CASE("When a string") {
         SECTION("and the registers contain null bytes, then it is truncated at the first null byte") {
             ModbusRegisters input(registersWithNullBytes);
             const char expected[] = "AB";
+
+            conv->setArgValues(args);
             MqttValue output = conv->toMqtt(input);
 
             REQUIRE(output.getString() == expected);
@@ -49,6 +53,8 @@ TEST_CASE("When a string") {
     SECTION("is written to registers") {
         SECTION("and the character count is even, then the registers contain exactly the characters from the string") {
             MqttValue input = MqttValue::fromBinary(charsEven, sizeof(charsEven));
+
+            conv->setArgValues(args);
             ModbusRegisters output = conv->toModbus(input, registersEven.size());
 
             ConverterTools::adaptToNetworkByteOrder(registersEven);
@@ -57,6 +63,8 @@ TEST_CASE("When a string") {
 
         SECTION("and the character count is odd, then the registers contain the characters from the string and a trailing null byte") {
             MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
+
+            conv->setArgValues(args);
             ModbusRegisters output = conv->toModbus(input, registersOdd.size());
 
             ConverterTools::adaptToNetworkByteOrder(registersOdd);
@@ -67,6 +75,8 @@ TEST_CASE("When a string") {
             MqttValue input = MqttValue::fromBinary(charsOdd, sizeof(charsOdd));
             registersOdd.push_back(0);
             ConverterTools::adaptToNetworkByteOrder(registersOdd);
+
+            conv->setArgValues(args);
             ModbusRegisters output = conv->toModbus(input, registersOdd.size());
 
             REQUIRE(output.values() == registersOdd);
@@ -83,6 +93,8 @@ TEST_CASE("When a string") {
             }
             MqttValue input = MqttValue::fromBinary(test.c_str(), test.length());
             std::vector<uint16_t> expected = std::vector<uint16_t>();
+
+            conv->setArgValues(args);
             ModbusRegisters output = conv->toModbus(input, 2);
 
             // a '0123' should be written, rest is dropped.
@@ -91,6 +103,8 @@ TEST_CASE("When a string") {
 
         SECTION("and contains null bytes, then the registers contain exactly the characters from the string") {
             MqttValue input = MqttValue::fromBinary(charsWithNullBytes, sizeof(charsWithNullBytes));
+
+            conv->setArgValues(args);
             ModbusRegisters output = conv->toModbus(input, registersWithNullBytes.size());
 
             ConverterTools::adaptToNetworkByteOrder(registersWithNullBytes);

@@ -18,6 +18,8 @@ add_executable(tests
     modbus_utils.hpp
     # tests
     converter_name_parser_tests.cpp
+     exprconv_float_tests.cpp
+    exprconv_int32_tests.cpp
     exprconv_tests.cpp
     modbus_config_tests.cpp
     modbus_executor_tests.cpp
@@ -57,6 +59,7 @@ add_executable(tests
     real_server_tests.cpp
     register_address_tests.cpp
     scheduler_tests.cpp
+    server_config_tests.cpp
     single_register_noavail_tests.cpp
     single_register_tests.cpp
     stdconv_bit_tests.cpp
@@ -68,6 +71,9 @@ add_executable(tests
     stdconv_float_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp
+    stdconv_uint32_tests.cpp
+    testnumbers.cpp
+    testnumbers.hpp
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )
@@ -77,8 +83,10 @@ target_link_libraries(tests
     ${MOSQUITTO_LIBRARIES}
     Catch2::Catch2
     yaml-cpp
-    ${Boost_LIBRARIES}
+    spdlog::spdlog
+    fmt::fmt
     ${LIBMODBUS_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
+    Threads::Threads
+    -lpthread
     ${CMAKE_DL_LIBS}
 )

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "libmodmqttconv/converter.hpp"
+#include "argtools.hpp"
 
 class SingleArgMathConverter : public DataConverter {
     public:
@@ -10,7 +11,7 @@ class SingleArgMathConverter : public DataConverter {
             if (data.getCount() == 1) {
                 val = data.getValue(0);
             } else {
-                val = ConverterTools::registersToInt32(data.values(), mLowFirst);
+                val = ConverterTools::registersToInt32(data.values(), mLowFirst, mSwapBytes);
             }
             return MqttValue::fromDouble(doMath(val), mPrecision);
         }
@@ -18,27 +19,38 @@ class SingleArgMathConverter : public DataConverter {
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
             ModbusRegisters ret;
             int32_t val = doMath(value.getDouble());
-            return ConverterTools::int32ToRegisters(val, mLowFirst, registerCount);
+            return ConverterTools::int32ToRegisters(val, mLowFirst, mSwapBytes, registerCount);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
-            mDoubleArg = ConverterTools::getDoubleArg(0, args);
-            if (args.size() > 1) {
-                mPrecision = ConverterTools::getIntArg(1, args);
-            }
-            if (args.size() > 2) {
-                std::string first_byte = ConverterTools::getArg(2, args);
-                mLowFirst = (first_byte == "low_first");
-            }
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add(mFirstArgName, ConverterArgType::DOUBLE, "");
+            ret.add(ConverterArg::sPrecisionArgName, ConverterArgType::INT, ConverterArgValue::NO_PRECISION);
+            ret.add(ConverterArg::sLowFirstArgName, ConverterArgType::BOOL, false);
+            ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);
+            return ret;
         }
+
+        virtual void setArgValues(const ConverterArgValues& args) {
+            mDoubleArg = args[mFirstArgName].as_double();
+            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
+            mLowFirst = DoubleRegisterArgTools::getLowFirst(args);
+            mPrecision = args[ConverterArg::sPrecisionArgName].as_int();
+        };
+
 
         virtual ~SingleArgMathConverter() {}
     protected:
-        SingleArgMathConverter(int defaultPrecision) : mPrecision(defaultPrecision) {}
+        SingleArgMathConverter(const std::string& argName, int defaultPrecision)
+            : mFirstArgName(argName), mPrecision(defaultPrecision)
 
+        {}
+
+        std::string mFirstArgName;
         double mDoubleArg;
+        bool mLowFirst;
+        bool mSwapBytes;
         int mPrecision = MqttValue::NO_PRECISION;
-        bool mLowFirst = false;
 
         virtual double doMath(double value) const = 0;
 };
@@ -46,7 +58,7 @@ class SingleArgMathConverter : public DataConverter {
 
 class DivideConverter : public SingleArgMathConverter {
     public:
-        DivideConverter() : SingleArgMathConverter(MqttValue::NO_PRECISION) {}
+        DivideConverter() : SingleArgMathConverter("divisor", MqttValue::NO_PRECISION) {}
         virtual ~DivideConverter() {}
 
     protected:
@@ -58,7 +70,7 @@ class DivideConverter : public SingleArgMathConverter {
 
 class MultiplyConverter : public SingleArgMathConverter {
     public:
-        MultiplyConverter(): SingleArgMathConverter(0) {}
+        MultiplyConverter(): SingleArgMathConverter("multipler", 0) {}
         virtual ~MultiplyConverter() {}
 
     protected:

@@ -8,7 +8,7 @@ WORKDIR /
 # deps install
 # catch2 v3 from sources for older images
 RUN apt-get update \
-   && apt-get install -y cmake rapidjson-dev/oldstable libyaml-cpp-dev/oldstable libmosquitto-dev pkgconf libboost-all-dev libmodbus-dev gfortran- \
+   && apt-get install -y cmake rapidjson-dev libfmt-dev libyaml-cpp-dev libmosquitto-dev pkgconf libspdlog-dev libmodbus-dev gfortran- \
    && wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.6.0.tar.gz \
    && tar xf v3.6.0.tar.gz \
    && cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -S /Catch2-3.6.0 -B /catch2-build \

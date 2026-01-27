@@ -1,28 +1,29 @@
 #pragma once
 
+#include "libmodmqttconv/convargs.hpp"
+#include <memory>
 #include <string>
+#include <sys/types.h>
 #include <vector>
+#include <map>
 
 namespace modmqttd {
 
-struct ConverterSpecification {
-    std::string plugin;
-    std::string converter;
-    std::vector<std::string> args;
+class ConverterSpecification {
+    public:
+        static const ConverterArgValue sInvalidValue;
+
+        std::string plugin;
+        std::string converter;
+        std::string arguments;
 };
 
 class ConverterNameParser {
     public:
         static ConverterSpecification parse(const std::string& spec);
+        static ConverterArgValues parseArgs(const ConverterArgs& args, const std::string& arguments);
     private:
-        typedef enum {
-            SCAN,
-            STRING,
-            ESCAPE
-        } aState;
-
         static constexpr char const* RE_CONV = "([a-z0-9]+)\\.([a-z0-9]+)\\s?\\((.*)\\)";
-        static std::vector<std::string> parseArgs(const std::string& argSpec);
 };
 
 } //namespace

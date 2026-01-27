@@ -27,11 +27,20 @@ class ExprtkConverter : public DataConverter {
             return MqttValue::fromDouble(ret, mPrecision);
         }
 
-        virtual void setArgs(const std::vector<std::string>& args) {
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("expression", ConverterArgType::STRING, "");
+            ret.add(ConverterArg::sPrecisionArgName, ConverterArgType::INT, ConverterArgValue::NO_PRECISION);
+            return ret;
+        }
+
+        virtual void setArgValues(const ConverterArgValues& values) {
             mSymbolTable.add_function("int32",   int32);
+            mSymbolTable.add_function("int32bs",   int32bs);
             mSymbolTable.add_function("uint32",  uint32);
+            mSymbolTable.add_function("uint32bs",  uint32bs);
             mSymbolTable.add_function("flt32",   flt32);
-            mSymbolTable.add_function("flt32be", flt32be);
+            mSymbolTable.add_function("flt32bs", flt32bs);
             mSymbolTable.add_function("int16", int16);
             mSymbolTable.add_constants();
 
@@ -42,36 +51,45 @@ class ExprtkConverter : public DataConverter {
             }
 
             mExpression.register_symbol_table(mSymbolTable);
-            if (!mParser.compile(ConverterTools::getArg(0, args), mExpression)) {
+            if (!mParser.compile(values["expression"].as_str(), mExpression)) {
                 throw ConvException(std::string("Exprtk ") + mParser.error());
             }
 
-            if (args.size() == 2)
-                mPrecision = ConverterTools::getIntArg(1, args);
+            mPrecision = values[ConverterArg::sPrecisionArgName].as_int();
         }
 
-        virtual ~ExprtkConverter() {}
+        virtual ~ExprtkConverter() {
+            mExpression.release();
+        }
     private:
         exprtk::symbol_table<double> mSymbolTable;
         exprtk::parser<double> mParser;
         exprtk::expression<double> mExpression;
         mutable std::vector<double> mValues;
-        int mPrecision = -1;
+        int mPrecision;
 
         static double int32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, false);
+        }
+
+        static double int32bs(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
         }
 
         static double uint32(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, false);
+        }
+
+        static double uint32bs(const double highRegister, const double lowRegister) {
             return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, true);
         }
 
         static double flt32(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<float>(highRegister, lowRegister, true);
+            return ConverterTools::toNumber<float>(highRegister, lowRegister, false);
         }
 
-        static double flt32be(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<float>(highRegister, lowRegister);
+        static double flt32bs(const double highRegister, const double lowRegister) {
+            return ConverterTools::toNumber<float>(highRegister, lowRegister, true);
         }
 
         static double int16(const double regValue) {

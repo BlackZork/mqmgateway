@@ -28,7 +28,7 @@ mqtt:
         name: some_name
         register: tcptest.1.2
         register_type: input
-        converter: std.divide(10,3)
+        converter: std.divide(10,precision=3)
 )";
 
 

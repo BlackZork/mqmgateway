@@ -14,18 +14,20 @@
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
-    if (name == "divide")
-        return new DivideConverter();
-    else if (name == "multiply")
-        return new MultiplyConverter();
-    else if (name == "int32")
-        return new Int32Converter();
+    if (name == "bit")
+        return new BitConverter();
     else if (name == "bitmask")
         return new BitmaskConverter();
+    else if (name == "divide")
+        return new DivideConverter();
+    else if (name == "multiply")
+         return new MultiplyConverter();
+    else if (name == "int32")
+         return new Int32Converter();
     else if (name == "scale")
-        return new ScaleConverter();
+         return new ScaleConverter();
     else if (name == "string")
-        return new StringConverter();
+         return new StringConverter();
     else if (name == "int16")
         return new Int16Converter();
     else if (name == "uint32")
@@ -36,8 +38,6 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new Int8Converter();
     else if (name == "uint8")
         return new UInt8Converter();
-    else if (name == "bit")
-        return new BitConverter();
     else if (name == "map")
         return new MapConverter();
     return nullptr;

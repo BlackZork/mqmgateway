@@ -5,72 +5,120 @@
 #include "libmodmqttconv/converterplugin.hpp"
 #include "libmodmqttconv/convexception.hpp"
 
-#include "defaults.hpp"
+#include "testnumbers.hpp"
+#include "plugin_utils.hpp"
 
-TEST_CASE("int32 tests") {
-    std::string stdconv_path = "../stdconv/stdconv.so";
+TEST_CASE("when std.int32") {
+    PluginLoader loader("../stdconv/stdconv.so");
 
-    std::shared_ptr<ConverterPlugin> plugin = modmqttd::boost_dll_import<ConverterPlugin>(
-        stdconv_path,
-        "converter_plugin",
-        boost::dll::load_mode::append_decorations
-    );
+    std::shared_ptr<DataConverter> conv(loader.getConverter("int32"));
+    ConverterArgValues args(conv->getArgs());
 
-    std::shared_ptr<DataConverter> conv(plugin->getConverter("int32"));
+    SECTION("converts two modbus registers (high, low)") {
 
-    SECTION("read int32 from two modbus registers (high, low)") {
+        ModbusRegisters input({TestNumbers::Int::AB,TestNumbers::Int::CD});
 
-        ModbusRegisters input({TestNumbers::AB,TestNumbers::CD});
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::ABCD_as_int32);   }
+        REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);
+    }
 
-    SECTION("read int32 from two modbus registers (low, high)") {
-        std::vector<std::string> args = {
-            "low_first"
-        };
-        conv->setArgs(args);
+    SECTION("converts two modbus registers (high, low) with byte swap") {
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
 
-        ModbusRegisters input({TestNumbers::AB,TestNumbers::CD});
+        ModbusRegisters input({TestNumbers::Int::BA,TestNumbers::Int::DC});
+
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::CDAB_as_int32);
+        REQUIRE(output.getInt() == TestNumbers::Int::ABCD_as_int32);
+    }
+
+
+    SECTION("converts two modbus registers (low, high)") {
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
+
+        ModbusRegisters input({TestNumbers::Int::AB,TestNumbers::Int::CD});
+
+        conv->setArgValues(args);
+        MqttValue output = conv->toMqtt(input);
+
+        REQUIRE(output.getInt() == TestNumbers::Int::CDAB_as_int32);
+    }
+
+    SECTION("converts two modbus registers (low, high) with byte swap") {
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
+
+        ModbusRegisters input({TestNumbers::Int::BA,TestNumbers::Int::DC});
+
+        conv->setArgValues(args);
+        MqttValue output = conv->toMqtt(input);
+
+        REQUIRE(output.getInt() == TestNumbers::Int::CDAB_as_int32);
     }
 
     // TODO we should output warning in this case, this looks like configuration error
-    SECTION("read int32 from a single modbus register ignoring low_first arg") {
-        std::vector<std::string> args = {
-            "low_first"
-        };
-        conv->setArgs(args);
+    SECTION("converts a single modbus register ignoring low_first arg") {
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
 
-        ModbusRegisters input({TestNumbers::AB});
+        ModbusRegisters input({TestNumbers::Int::AB});
+
+        conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);
 
-        REQUIRE(output.getInt() == TestNumbers::AB);
+        REQUIRE(output.getInt() == TestNumbers::Int::AB);
     }
 
+    SECTION("writes to two modbus registers (low, high)") {
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
 
-    SECTION("write int32 to two modbus registers (low, high)") {
-        std::vector<std::string> args = {
-            "low_first"
-        };
-        conv->setArgs(args);
+        MqttValue input(TestNumbers::Int::ABCD_as_int32);
 
-        MqttValue input(TestNumbers::ABCD_as_int32);
+        conv->setArgValues(args);
         ModbusRegisters output = conv->toModbus(input, 2);
 
-        REQUIRE(output.getValue(0) == TestNumbers::CD);
-        REQUIRE(output.getValue(1) == TestNumbers::AB);
+        REQUIRE(output.getValue(0) == TestNumbers::Int::CD);
+        REQUIRE(output.getValue(1) == TestNumbers::Int::AB);
     }
 
-    SECTION("write int32 to two modbus registers (high, low)") {
-        MqttValue input(TestNumbers::ABCD_as_int32);
+    SECTION("writes to two modbus registers (low, high) with byte swap") {
+        args.setArgValue(ConverterArg::sLowFirstArgName, "true");
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
+
+        MqttValue input(TestNumbers::Int::ABCD_as_int32);
+
+        conv->setArgValues(args);
         ModbusRegisters output = conv->toModbus(input, 2);
 
-        REQUIRE(output.getValue(0) == TestNumbers::AB);
-        REQUIRE(output.getValue(1) == TestNumbers::CD);
+        REQUIRE(output.getValue(0) == TestNumbers::Int::DC);
+        REQUIRE(output.getValue(1) == TestNumbers::Int::BA);
     }
+
+
+    SECTION("writes to two modbus registers (high, low)") {
+        MqttValue input(TestNumbers::Int::ABCD_as_int32);
+
+        conv->setArgValues(args);
+        ModbusRegisters output = conv->toModbus(input, 2);
+
+        REQUIRE(output.getValue(0) == TestNumbers::Int::AB);
+        REQUIRE(output.getValue(1) == TestNumbers::Int::CD);
+    }
+
+    SECTION("writes to two modbus registers (high, low) with byte swap") {
+        args.setArgValue(ConverterArg::sSwapBytesArgName, "true");
+
+        MqttValue input(TestNumbers::Int::ABCD_as_int32);
+
+        conv->setArgValues(args);
+        ModbusRegisters output = conv->toModbus(input, 2);
+
+        REQUIRE(output.getValue(0) == TestNumbers::Int::BA);
+        REQUIRE(output.getValue(1) == TestNumbers::Int::DC);
+    }
+
 }
 
 

@@ -74,7 +74,6 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         void resetBroker();
     private:
         modmqttd::MqttClient* mOwner;
-        boost::log::sources::severity_logger<modmqttd::Log::severity> log;
 
         std::map<std::string, MqttValue> mTopics;
         std::set<std::string> mSubscriptions;

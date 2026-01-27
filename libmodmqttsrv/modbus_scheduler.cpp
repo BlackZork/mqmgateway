@@ -3,16 +3,12 @@
 
 namespace modmqttd {
 
-boost::log::sources::severity_logger<Log::severity> ModbusScheduler::log;
-
 std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>
 ModbusScheduler::getRegistersToPoll(
     std::chrono::steady_clock::duration& outDuration,
     const std::chrono::time_point<std::chrono::steady_clock>& timePoint
 ) {
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> ret;
-
-    //BOOST_LOG_SEV(log, Log::trace) << "initial outduration " << std::chrono::duration_cast<std::chrono::milliseconds>(outDuration).count();
 
     outDuration = std::chrono::steady_clock::duration::max();
     for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.begin();
@@ -26,11 +22,12 @@ ModbusScheduler::getRegistersToPoll(
             auto time_passed = timePoint - reg.mLastRead;
             auto time_to_poll = reg.mRefresh;
 
-            //BOOST_LOG_SEV(log, Log::trace) << "time passed: " << std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll).count();
-
             if (time_passed >= reg.mRefresh) {
-                BOOST_LOG_SEV(log, Log::trace) << "Register " << slave->first << "." << reg.mRegister << " (0x" << std::hex << slave->first << ".0x" << std::hex << reg.mRegister << ")"
-                                << " added, last read " << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(time_passed).count() << "ms ago";
+                spdlog::trace("Register {}.{}  added, last read {} ago",
+                     slave->first,
+                     reg.mRegister,
+                     std::chrono::duration_cast<std::chrono::milliseconds>(time_passed)
+                );
                 ret[slave->first].push_back(*reg_it);
             } else {
                 time_to_poll = reg.mRefresh - time_passed;
@@ -38,8 +35,11 @@ ModbusScheduler::getRegistersToPoll(
 
             if (outDuration > time_to_poll) {
                 outDuration = time_to_poll;
-                BOOST_LOG_SEV(log, Log::trace) << "Wait duration set to " << std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll).count()
-                                << "ms as next poll for register " << slave->first << "." << reg.mRegister << " (0x" << std::hex << slave->first << ".0x" << std::hex << reg.mRegister << ")";
+                spdlog::trace("Wait duration set to {} as next poll for register {}.{}",
+                    std::chrono::duration_cast<std::chrono::milliseconds>(time_to_poll),
+                    slave->first,
+                    reg.mRegister
+                );
             }
         }
     }

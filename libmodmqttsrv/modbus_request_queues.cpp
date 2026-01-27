@@ -65,11 +65,6 @@ ModbusRequestsQueues::findForSilencePeriod(std::chrono::steady_clock::duration p
         if (delay == std::chrono::steady_clock::duration::zero())
             continue;
 
-        // if (!(*pi)->hasDelay())
-        //     continue;
-        // if (ignore_first_read  && (*pi)->getDelay().delay_type == ModbusCommandDelay::DelayType::ON_SLAVE_CHANGE)
-        //     continue;
-
 #if __cplusplus < 201703L
         auto diff = delay - pPeriod;
         if (diff < diff.zero())

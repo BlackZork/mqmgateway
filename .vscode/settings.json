@@ -89,40 +89,40 @@
         "text_encoding": "cpp"
     },
     "cmake.configureOnOpen": true,
-    "testMate.cpp.debug.configTemplate": {
-    "type": "lldb",
-    //"MIMode": "lldb",
-    "program": "${exec}",
-    "args": "${argsArray}",
-    "cwd": "${cwd}",
-    "env": "${envObj}",
-    "sourceFileMap": "${sourceFileMapObj}",
-    "externalConsole": false
-    }
     /*
     "testMate.cpp.debug.configTemplate": {
-        "type": "cppvsdbg",
+        "type": "lldb",
+        //"MIMode": "lldb",
+        "program": "${exec}",
+        "args": "${argsArray}",
+        "cwd": "${cwd}",
+        "env": "${envObj}",
+        "sourceFileMap": "${sourceFileMapObj}",
+        "externalConsole": false
+    },
+    */
+    
+    
+    "testMate.cpp.debug.configTemplate": {
+        "type": "cppdbg",
+        "request": "launch",
         "linux": { 
-            "type": "cppdbg", 
-            "MIMode": "gdb",
+            "type": "cppdbg",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
+                    "text": "-enable-pretty-printing"
                 }
             ]
         },
-        "darwin": { "type": "cppdbg", "MIMode": "lldb" },
-        "win32": { "type": "cppvsdbg" },
         "program": "${exec}",
         "args": "${argsArray}",
         "cwd": "${cwd}",
         "environment": "${envObjArray}",
         "sourceFileMap": "${sourceFileMapObj}",
+        "MIMode": "gdb",
         "testMate.cpp.debug.setEnv": {
             "MQM_TEST_DEFAULT_WAIT_MS": "300000" //5 min
           }        
-      }    
-    */
+      }  
 }

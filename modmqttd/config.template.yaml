@@ -1,4 +1,6 @@
 modmqttd:
+  # critical,error,warning,info,debug,trace,none
+  log_level: debug
   converter_search_path:
     - /usr/lib/modmqttd
   converter_plugins:

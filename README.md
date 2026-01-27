@@ -1,12 +1,14 @@
 # MQMGateway - MQTT gateway for modbus networks
-A multithreaded C++ service that enables two way communication and data conversion between multiple [Modbus](http://www.modbus.org/) networks and [MQTT](http://mqtt.org/) clients.
+
+A multithreaded C++ service that enables two-way communication and data conversion between multiple [Modbus](http://www.modbus.org/) networks and [MQTT](http://mqtt.org/) clients.
 
 ![docker build](https://github.com/BlackZork/mqmgateway/actions/workflows/main.yml/badge.svg)
 
 Main features:
+
 * Connects to multiple TCP and RTU modbus networks
 * Handles state and availability for each configured MQTT object
-* Allows to read and write to MODBUS registers from MQTT side with custom data conversion
+* Allows reading and writing to MODBUS registers from MQTT side with custom data conversion
 * Flexible MQTT state topic configuration:
   * single modbus register published as string value
   * multiple modbus registers as JSON object
@@ -24,22 +26,28 @@ Main features:
   * support for [exprtk](https://github.com/ArashPartow/exprtk) expressions language when converting data
   * support for custom conversion plugins
   * support for conversion in both directions
-* Fast modbus frequency polling, configurable per newtork, per mqtt object and per register
-* Out of the box compatibility with [HomeAssistant](https://www.home-assistant.io/integrations/mqtt/) and [OpenHAB](https://www.openhab.org/addons/bindings/mqtt.generic/) interfaces
+* Fast modbus frequency polling, configurable per network, per MQTT object and per register
+* Out of the box compatibility with [HomeAssistant](https://www.home-assistant.io/integrations/mqtt/) and [OpenAI](https://www.openhab.org/addons/bindings/mqtt.generic/) interfaces
 
 MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosquitto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](CMakeLists.txt) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
 
 # License
+
 This software is dual-licensed:
-  * under the terms of [AGPL-3.0 license](https://www.gnu.org/licenses/agpl-3.0.html) as Open Source project.
-  * under commercial license.
+
+* under the terms of [AGPL-3.0 license](https://www.gnu.org/licenses/agpl-3.0.html) as Open Source project
+* under commercial license
 
 For a commercial-friendly license and support please see http://mqmgateway.zork.pl.
 
 # Third-party licenses
 
-This software includes "A single-producer, single-consumer lock-free queue for C++" written by
+This software includes:
+
+1. "A single-producer, single-consumer lock-free queue for C++" written by
 Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.md)
+
+2. "[Argh! Frustration-free command line processing](https://github.com/adishavit/argh)". License terms in [LICENSE](argh/LICENSE)
 
 # Installation
 
@@ -47,38 +55,38 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
 1. `git clone https://github.com/BlackZork/mqmgateway.git#branch=master`
 
-   You can aslo use `branch=<tagname>` to clone specific release or download sources from [Releases page](https://github.com/BlackZork/mqmgateway/releases)
+   You can also use `branch=<tagname>` to clone specific release or download sources from [Releases page](https://github.com/BlackZork/mqmgateway/releases)
 
-1. Install dependencies:
-   1. boost
-   1. libmodbus
-   1. mosquitto
-   1. yaml-cpp
-   1. rapidJSON
-   1. exprtk (optional, for exprtk expressions language support in yaml declarations)
-   1. Catch2 (optional, for unit tests)
+2. Install dependencies:
+   1. libspdlog
+   2. libmodbus
+   3. mosquitto
+   4. yaml-cpp
+   5. rapidJSON
+   6. exprtk (optional, for exprtk expressions language support in YAML declarations)
+   7. Catch2 (optional, for unit tests)
 
-1. Configure and build project:
+3. Configure and build project:
 
-    ```
+    ```bash
     cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr -S (project dir) -B (build dir)
     make
     make install
     ```
 
-    You can add -DWITHOUT_TESTS=1 to skip build of unit test executable.
+    You can add `-DWITHOUT_TESTS=1` to skip build of unit test executable.
 
-1. Copy config.template.yaml to /etc/modmqttd/config.yaml and adjust it.
+4. Copy config.template.yaml to `/etc/modmqttd/config.yaml` and adjust it.
 
-1. Copy modmqttd.service to /etc/systemd/system and start service:
+5. Copy `modmqttd.service` to `/etc/systemd/system` and start service:
 
-```
-  systemctl start modmqttd
-```
+    ```bash
+      systemctl start modmqttd
+    ```
 
 ## Docker image
 
-Docker images for various archicetures (i386, arm6, arm7, amd64) are available in [packages section](https://github.com/users/BlackZork/packages/container/package/mqmgateway).
+Docker images for various architectures (i386, arm6, arm7, amd64) are available in [packages section](https://github.com/users/BlackZork/packages/container/package/mqmgateway).
 
 1. Pull docker image using instructions provided in packages section.
 
@@ -88,15 +96,17 @@ Docker images for various archicetures (i386, arm6, arm7, amd64) are available i
 
 1. Run `docker-compose up -d` in working directory to start service.
 
-# Logging
+# <a name="Logging"></a>Logging
 
-modqmttd has six log levels: CRITICAL, ERROR, WARNING, INFO, DEBUG, TRACE, numbered from 1 to 6. When debugging, you can increase the default INFO log level by passing --loglevel <num> to modmqttd:
+modqmttd has six log levels: *critical, error, warning, info, debug, trace*, numbered from 1 to 6. When debugging, you can increase the default INFO log level by passing `--loglevel <num>` to modmqttd:
 
-```
+```bash
 modmqttd --config=<path> --loglevel=5
 ```
 
-DEBUG is more useful for general troubleshotting, TRACE generates a lot of output and is not recommended for production use.
+or setting log_level in `config.yaml`
+
+DEBUG is more useful for general troubleshooting, TRACE generates a lot of output and is not recommended for production use.
 
 # Configuration
 
@@ -104,7 +114,7 @@ modmqttd configuration file is in YAML format. It is divided into three main sec
 
 * modmqttd section contains information about custom plugins
 * modbus section contains modbus network definitions and slave specific configuration.
-* mqtt section contains mqtt broker connection parameters and modbus register mappings to mqtt topics
+* mqtt section contains MQTT broker connection parameters and modbus register mappings to MQTT topics
 
 For quick example see [config.template.yaml](modmqttd/config.template.yaml) in source directory.
 
@@ -124,6 +134,10 @@ For quick example see [config.template.yaml](modmqttd/config.template.yaml) in s
 
   List of converter plugins to load. Modmqttd search for plugins in all directories specified in converter_search_path list
 
+* **log_level** (optional)
+
+  Set log verbosity if not set from command line. See [Logging](#Logging) for available log levels.
+
 ## modbus section
 
 Modbus section contains a list of modbus networks modmqttd should connect to.
@@ -131,7 +145,7 @@ Modbus network configuration parameters are listed below:
 
 * **name** (required)
 
-  Unique name for network - referenced in mqtt mappings
+  Unique name for network - referenced in MQTT mappings.
 
 * **response_timeout** (optional, default 500ms)
 
@@ -143,10 +157,10 @@ Modbus network configuration parameters are listed below:
 
 * **delay_before_first_command** (timespan, optional, default 0ms)
 
-  Required silence period before issuing first modbus command to a slave. This delay is applied only when gateway switches to a diffrent slave.
+  Required silence period before issuing first modbus command to a slave. This delay is applied only when gateway switches to a different slave.
 
   This option is useful for RTU networks with a mix of very slow and fast responding slaves. Adding a delay before slow slave
-  can significantly reduce amount of read erorrs if mqmgateway is configured to poll very fast.
+  can significantly reduce amount of read errors if modmqttd is configured to poll very fast.
 
 * **delay_before_command** (timespan, optional, default 0ms)
 
@@ -163,7 +177,7 @@ Modbus network configuration parameters are listed below:
 
 * **RTU device settings**
 
-  For details, see modbus_new_rtu(3)
+  For details, `see modbus_new_rtu(3)`
 
   * **device** (required)
 
@@ -187,15 +201,15 @@ Modbus network configuration parameters are listed below:
 
   * **rtu_serial_mode** (optional)
 
-    serial port mode: rs232 or rs485. See modbus_rtu_set_serial_mode(3)
+    serial port mode: rs232 or rs485. See `modbus_rtu_set_serial_mode(3)`
 
   * **rtu_rts_mode** (optional)
 
-    modbus Request To Send mode (up or down). See modbus_rtu_set_rts(3)
+    modbus Request To Send mode (up or down). See `modbus_rtu_set_rts(3)`
 
   * **rtu_rts_delay_us** (optional)
 
-    modbus Request To Send delay period in microseconds. See modbus_rtu_set_rts_delay(3)
+    modbus Request To Send delay period in microseconds. See `modbus_rtu_set_rts_delay(3)`
 
 * **TCP/IP device settings**
 
@@ -211,7 +225,7 @@ Modbus network configuration parameters are listed below:
 
   An optional configuration section for modbus connection watchdog. Watchdog monitors modbus command errors. If there is no successful command execution in *watch_period*, then it restarts the modbus connection.
 
-  Additionally for RTU network the *device* path is checked on the first error and then in small (300ms) time periods. If modbus RTU device is unplugged, then connection is restarted.
+  Additionally, for RTU network the *device* path is checked on the first error and then in small (300ms) time periods. If modbus RTU device is unplugged, then connection is restarted.
 
   * **watch_period** (optional, timespan, default=10s)
 
@@ -222,10 +236,7 @@ Modbus network configuration parameters are listed below:
 
   * **address** (required)
 
-      Modbus slave address. Multiple comma-separated values or ranges are supported like this:
-
-          1,2,3-10,12,30
-
+      Modbus slave address. Multiple comma-separated values or ranges are supported like this: `1,2,3-10,12,30`
 
   * **name** (optional)
 
@@ -268,7 +279,7 @@ Modbus network configuration parameters are listed below:
             count: 20
       ```
 
-      This definition allows to use single modbus read call to read all data that is needed
+      This definition allows using single modbus read call to read all data that is needed
       for multiple topics declared in MQTT section. If there are no topics that use modbus data from
       a poll group then that poll group is ignored.
 
@@ -289,15 +300,15 @@ Modbus network configuration parameters are listed below:
             count 5
       ```
 
-      then poll group will be extended to count=23 to issue a single call for reading all data needed for `humidity` topic in single modus read call.
+      then poll group will be extended to count=23 to issue a single call for reading all data needed for `humidity` topic in single modbus read call.
 
 ## MQTT section
 
-The mqtt section contains broker definition and modbus register mappings. Mappings describe how modbus data should be published as mqtt topics.
+The MQTT section contains broker definition and modbus register mappings. Mappings describe how modbus data should be published as MQTT topics.
 
 * **client_id** (required)
 
-  name used to connect to mqtt broker.
+  name used to connect to MQTT broker.
 
 * **refresh** (timespan, optional, default 5s)
 
@@ -307,10 +318,10 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
 * **publish_mode** (string, optional, default on_change)
 
-  A default mode for publishing mqtt values for all topics, that do not have their own `publish_mode` declared.
+  A default mode for publishing MQTT values for all topics, that do not have their own `publish_mode` declared.
   
-    * **on_change**: publish new mqtt value only if it is different from the last published one.
-    * **every_poll**: publish new mqtt value after every modbus register read.
+  * **on_change**: publish new MQTT value only if it is different from the last published one.
+  * **every_poll**: publish new MQTT value after every modbus register read.
 
 * **broker** (required)
 
@@ -318,7 +329,7 @@ The mqtt section contains broker definition and modbus register mappings. Mappin
 
   * **host** (required)
 
-    MQTT boker IP address
+    MQTT broker IP address
 
   * **port** (optional, default 1883 for plain MQTT or 8883 for MQTT over TLS)
 
@@ -353,119 +364,118 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   The base name for modbus register mapping. A mapping must contain at least one of following sections:
 
-    - *commands* - for writing to modbus registers
-    - *state* - for reading modbus registers
-    - *availability* - for checking if modbus data is available.
+  * *commands* - for writing to modbus registers
+  * *state* - for reading modbus registers
+  * *availability* - for checking if modbus data is available.
 
-  Topic can contain placeholders for modbus network and slave properies in form `${placeholder_name}`. Following placeholders are supported:
+  Topic can contain placeholders for modbus network and slave properties in form `${placeholder_name}`. Following placeholders are supported:
 
-    - *slave_address* - replaced by modbus slave address value
-    - *slave_name* - replaced by name set in modbus.slaves section
-    - *network_name* - replaced by modbus network name
+  * *slave_address* - replaced by modbus slave address value
+  * *slave_name* - replaced by name set in `modbus.slaves` section
+  * *network_name* - replaced by modbus network name
 
 ### Topic default values:
 
-  * **refresh** (optional)
+* **refresh** (optional)
 
-    Overrides mqtt.refresh for all state and availability sections in this topic
+  Overrides `mqtt.refresh` for all state and availability sections in this topic
 
-  * **network** (optional)
+* **network** (optional)
 
-    Sets default network name for all state, commands and availability sections in this topic.
+  Sets default network name for all state, commands and availability sections in this topic.
 
-    Multiple comma-separated values are supported. If more than one value is set, then you have to include `${network}` placeholder in `topic` value.
+  Multiple comma-separated values are supported. If more than one value is set, then you have to include `${network}` placeholder in `topic` value.
 
-  * **slave** (optional)
+* **slave** (optional)
 
-    Sets default modbus slave address for all state, commands and availability sections in this topic.
+  Sets default modbus slave address for all state, commands and availability sections in this topic.
 
-    Multiple values are supported as comma-separated list of numbers or number ranges like this:
+  Multiple values are supported as comma-separated list of numbers or number ranges like this:
 
-        1,2,3,5-18,21
+      1,2,3,5-18,21
 
-    If more than one value is set, then you have to include `${slave_address}` or `${slave_name}` in `topic` value.
+  If more than one value is set, then you have to include `${slave_address}` or `${slave_name}` in `topic` value.
 
-    For examples see [Multi-device definitions](#multi-device-definitions) section.
+  For examples see [Multi-device definitions](#multi-device-definitions) section.
 
-  * **publish_mode** (optional)
+* **publish_mode** (optional)
 
-    Overrides `mqtt.publish_mode` for this topic. See `mqtt.publish_mode` for available modes.
+  Overrides `mqtt.publish_mode` for this topic. See `mqtt.publish_mode` for available modes.
 
-  * **retain** (optional, default true)
+* **retain** (optional, default true)
 
-    Sets the [MQTT RETAIN](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901104) flag for 
-    all messages published for this topic. Changes state value updates in the following way:
+  Sets the [MQTT RETAIN](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901104) flag for 
+  all messages published for this topic. Changes state value updates in the following way:
 
-    1. If retain = true:
-        * state value is published immediately after initial poll
-        * just before the availability flag changes its value from 0 to 1, the current state value is published 
+  1. If retain = true:
+      * state value is published immediately after initial poll
+      * just before the availability flag changes its value from 0 to 1, the current state value is published 
 
-    1. If retain = false:
-  
-        When publish_mode is set to "every_poll" then the publishing behavior is the same as when `retain` flag 
-        is set to 'true'. The only difference is that all messages are published with the MQTT RETAIN flag set to false.
+  1. If retain = false:
 
-        If publish_mode is set to "on_change", then:
+      When publish_mode is set to "every_poll" then the publishing behavior is the same as when `retain` flag 
+      is set to 'true'. The only difference is that all messages are published with the MQTT RETAIN flag set to false.
 
-          * initial poll sets initial state, but does not publish it.
-          * all subsequent state changes are published with the MQTT RETAIN flag set to false
-          * availability topic messages are always published with the MQTT RETAIN flag set to true
-          * if one of registers was unavailable, only the the availability flag is published after the first successful read.
+      If publish_mode is set to "on_change", then:
 
-          This mode guarantees that the subscriber receives only recent changes. State value that 
-          was set before the initial poll or during read error period will not be published.
+        * initial poll sets initial state, but does not publish it.
+        * all subsequent state changes are published with the MQTT RETAIN flag set to false
+        * availability topic messages are always published with the MQTT RETAIN flag set to true
+        * if one of registers was unavailable, only the availability flag is published after the first successful read.
 
-          The only one exception is that MQMGateway after start will send a zero-byte payload to a topic
-          with retain flag set to false to delete old retained message if any.
+        This mode guarantees that the subscriber receives only recent changes. State value that 
+        was set before the initial poll or during read error period will not be published.
 
+        The only one exception is that modmqttd after start will send a zero-byte payload to a topic
+        with retain flag set to false - to delete old retained message if any.
 
-### A *commands* section.
+### A *commands* section
 
-  A single command is defined using following settings.
+A single command is defined using following settings.
 
-  * **name** (required)
+* **name** (required)
 
-    A command topic name to subscribe. Full name is created as `topic_name/command_name`
+  A command topic name to subscribe. Full name is created as `topic_name/command_name`
 
-  * **register** (required)
+* **register** (required)
 
-    Modbus register address in the form of `<network_name>.<slave_id>.<register_number>`
-    If `register_number` is a decimal, then first register address is 1.
-    If `register_number` is a hexadecimal, then first register address is 0.
+  Modbus register address in the form of `<network_name>.<slave_id>.<register_number>`
+  If `register_number` is a decimal, then first register address is 1.
+  If `register_number` is a hexadecimal, then first register address is 0.
 
-    `network_name` and `slave_id` are optional if default values are set for a topic
+  `network_name` and `slave_id` are optional if default values are set for a topic
 
-  *  **register_type** (required)
+* **register_type** (required)
 
-     Modbus register type: coil, holding
+    Modbus register type: coil, holding
 
-  *  **count** (optional)
+* **count** (optional)
 
-     Number of registers to write. If set to > 1, then modbus_write_registers(3)/modbus_write_bits(3) is called.
+    Number of registers to write. If set to > 1, then modbus_write_registers(3)/modbus_write_bits(3) is called.
 
-  * **converter** (optional)
+* **converter** (optional)
 
-    The name of function that should be called to convert mqtt value to uint16_t value. Format of function name is `plugin name.function name`. See converters for details.
+  The name of function that should be called to convert MQTT value to uint16_t value. Format of function name is `plugin name.function name`. See converters for details.
 
-  Example of MQTT command topic declaration:
+Example of MQTT command topic declaration:
 
-  ```yaml
-  objects:
-  - topic: test_switch
-    commands:
-      - name: set
-        register: tcptest.1.2
-        register_type: holding
-        converter: std.divide(100)
-  ```
+```yaml
+objects:
+- topic: test_switch
+  commands:
+    - name: set
+      register: tcptest.1.2
+      register_type: holding
+      converter: std.divide(100)
+```
 
-  Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
+Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
 
-  Unless you provide a custom converter MQMGateway expects register value as UTF-8 string value or json array with register values. You must provide exactly the same number of values as registers to write.
+Unless you provide a custom converter modmqttd expects register value as UTF-8 string value or JSON array with register values. You must provide exactly the same number of values as registers to write.
 
 ### The *state* section
 
-  The state sections defines how to publish modbus data to MQTT broker.
+  The state sections define how to publish modbus data to MQTT broker.
   State can be mapped to a single register, an unnamed and a named list of registers. Following table shows what kind of output is generated for each type:
 
   | Value type | Default output |
@@ -506,13 +516,13 @@ A list of topics where modbus values are published to MQTT broker and subscribed
       register_type: input
   ```
 
-  This declaration do not create a poll group, but allows to construct MQTT topic data
+  This declaration do not create a poll group, but allows constructing MQTT topic data
   from different slaves, even on different modbus networks. On exception is if there are poll groups defined in modbus section, that overlaps state register definitions. In this case
   data is polled using poll group.
 
   * **refresh**
 
-    Overrides mqtt.refresh for this state topic
+    Overrides `mqtt.refresh` for this state topic
 
 
   When state is a single modbus register value:
@@ -618,215 +628,178 @@ MQTT output: `{"humidity": 32.45, "other_params": { "temp1": 23, "temp2": 66 }}`
 
 For each *state* topic there is another *availability* topic defined by default. If all data required for a *state* is read from the Modbus registers without errors, the value "1" is published by default. If there is a network or device error when polling register data value "0" is published. This is the default behavior if the *availability* section is not defined.
 
-Availablity flag is always published after the state value. If the availability flag is 0, then the current state value may contain outdated or invalid data or may not be published at all.
+Availability flag is always published after the state value. If the availability flag is 0, then the current state value may contain outdated or invalid data or may not be published at all.
 
-*Availability* section extends this default behaviour by defining a single or list of modbus registers that should be read to check if state data is valid. This could be i.e. some fault indicator or hardware switch state.
+*Availability* section extends this default behavior by defining a single or list of modbus registers that should be read to check if state data is valid. This could be i.e. some fault indicator or hardware switch state.
 
 Configuration values:
 
-  * **name** (required)
+* **name** (required)
 
-    The last part of topic name where availability flag should be published. Full topic name is created as `topic.name/availability.name`
+  The last part of topic name where availability flag should be published. Full topic name is created as `topic.name/availability.name`
 
-  * **register** (required)
+* **register** (required)
 
-    Modbus register address in the form of <network_name>.<slave_id>.<register_number>
-    If `register_number` is a decimal, then first register address is 1.
-    If `register_number` is a hexadecimal, then first register address is 0.
+  Modbus register address in the form of <network_name>.<slave_id>.<register_number>
+  If `register_number` is a decimal, then first register address is 1.
+  If `register_number` is a hexadecimal, then first register address is 0.
 
-    `network_name` and `slave_id` are optional if default values are set for a topic
+  `network_name` and `slave_id` are optional if default values are set for a topic
 
-  * **register_type** (required)
+* **register_type** (required)
 
-    Modbus register type: coil, input, holding
+  Modbus register type: coil, input, holding
 
-  * **count**
+* **count**
 
-     If defined, then this describes register range to poll. Register range is always
-     polled with a single modbus_read_registers(3) call
+    If defined, then this describes register range to poll. Register range is always
+    polled with a single modbus_read_registers(3) call
 
-  * **converter** (optional)
+* **converter** (optional)
 
-    The name of function that should be called to convert register uint16_t values to MQTT UTF-8 value. Format of function name is `plugin_name.function_name`. See converters for details.
-    After conversion, MQTT value is compared to available_value. "1" is published if values are equal,
-    otherwise "0".
+  The name of function that should be called to convert register uint16_t values to MQTT UTF-8 value. Format of function name is `plugin_name.function_name`. See converters for details.
+  After conversion, MQTT value is compared to available_value. "1" is published if values are equal,
+  otherwise "0".
 
-  * **available_value** (optional, default 1)
+* **available_value** (optional, default 1)
 
-    Expected MQTT value read from availability register (or list of registers passed to converter) when availability flag should be set to "1". If other value is read then availability flag is set to "0".
+  Expected MQTT value read from availability register (or list of registers passed to converter) when availability flag should be set to "1". If other value is read then availability flag is set to "0".
 
-*register*, *register_type* can form a **registers:** list when multiple registers should be read. In this case converter is mandatory and no nesting is allowed. See examples in state section.
+**register**, **register_type** can form a **registers:** list when multiple registers should be read. In this case converter is mandatory and no nesting is allowed. See examples in state section.
 
 ## Data conversion
 
 Data read from modbus registers is by default converted to string and published to MQTT broker.
 
-MQMGateway uses conversion plugins to convert state data read from modbus registers to mqtt value and command mqtt payload to register value, for example to combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations.
+modmqttd uses conversion plugins to convert state data read from modbus registers to MQTT value and command MQTT payload to register value, for example to combine multiple modbus registers into single value, use mask to extract one bit, or perform some simple divide operations.
 
-Converter can also be used to convert mqtt command payload to register value.
+Converter can also be used to convert MQTT command payload to register value.
 
-String converter arguments can be passed in single or double quotes.
+Converter arguments can be passed in single or double quotes. Positional and key arguments are supported. All examples below sets the same arguments for `std.divide`:
+
+```yaml
+  converter: std.divide(20, low_first=true)
+  converter: std.divide(20, true)
+  converter: std.divide(low_first=true, divisor=20)
+```
 
 ### Standard converters
 
 Converter functions are defined in libraries dynamically loaded at startup.
-MQMGateway contains *std* library with basic converters ready to use:
+modmqttd contains *std* library with basic converters ready to use:
 
-  * **divide**
+* **divide(divisor, precision=-1, low_first=false, swap_bytes=false)**
 
-    Usage: state, command
+  Usage: state, command
 
-    Arguments:
-      - divisor (required)
-      - precision (optional)
-      - low_first (optional)
+  Divides value by `divisor` and rounds to `precision` digits after the decimal. Default precision is C++ default (usually six digits).
+  For modbus data supports uint16 in single register and uint32 value in two registers.
+  For int32 mode the first modbus register holds higher byte, the second holds lower byte if `low first` is false.
+  With `low_first=true` argument the first modbus register holds lower byte, the second holds higher byte.
+  With `swap_bytes=true` argument bytes in both modbus registers will be swapped before division
 
+* **multiply(multipler, precision=-1, low_first=false, swap_bytes=false)**
 
-    Divides value by divisor and rounds to (precision) digits after the decimal.
-    For modbus data supports uint16 in single register and uint32 value in two registers.
-    For int32 mode the first modbus register holds higher byte, the second holds lower byte if 'low first' is not passed.
-    With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
+  Usage: state, command
 
-  * **multiply**
+  Multiples value. See **divide** for description of `precision`, `low_first` and `swap_bytes` arguments.
 
-    Usage: state, command
+* **int8(first=false)**
 
-    Arguments:
-      - multipler (required)
-      - precision (optional)
-      - low_first (optional)
+  Usage: state
 
-    Multiples value. See 'divide' for description of 'precision' and 'low_first' arguments.
+  Parses and writes modbus register data as signed int8. The second byte is parsed by default, set `first=true` to read the first byte.
 
-  * **int8**
+* **uint8(first=false)**
 
-    Usage: state
+  Usage: state
 
-    Arguments:
-     - first (optional)
+  Parses and writes modbus register data as unsigned int8. Second byte is parsed by default, set `first=true` to read the first byte.
 
-    Parses and writes modbus register data as signed int8. Second byte is parsed by default, pass `first` as argument to read first byte.
+* **int16()**
 
+  Usage: state, command
 
-  * **uint8**
+  Parses and writes modbus register data as signed int16.
 
-    Usage: state
+* **int32(low_first=false, swap_bytes=false)**
 
-    Arguments:
-     - first (optional)
+  Usage: state, command
 
-    Parses and writes modbus register data as unsigned int8. Second byte is parsed by default, pass `first` as argument to read first byte.
+  Combines two modbus registers into one 32bit value or writes 32bit MQTT value to two modbus registers. See **divide** for description of `low_first` and `swap_bytes` arguments.
 
+* **uint32(low_first=false, swap_bytes=false)**
 
-  * **int16**
+  Usage: state, command
 
-    Usage: state, command
+  Same as int32, but modbus registers are interpreted as unsigned int32.
 
-    Parses and writes modbus register data as signed int16.
+* **float32(precision=-1, low_first=false, swap_bytes=false)**
 
+  Combines two modbus registers into one 32bit float or writes MQTT value to two modbus registers as float.
+  Without arguments the first modbus register holds higher byte, the second holds lower byte.
+  With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
 
-  * **int32**
+  If 'swap_bytes' is defined, then bytes in both registers are swapped before reading and writing. Float value stored on four bytes `ABCD` will be written to modbus registers R0, R1 as:
 
-    Usage: state, command
+  - no arguments: R0=_AB_, R1=_CD_
+  - low_first=true: R0=_CD_, R1=_AB_
+  - swap_bytes=true: R0=_BA_, R1=_DC_
+  - low_first=true and swap_bytes=true: R0=_DC_, R1=_BA_
 
-    Arguments:
-      - low_first (optional)
+* **bitmask(mask=0xffff)**
 
-    Combines two modbus registers into one 32bit value or writes 32bit mqtt value to two modbus registers.
-    Without arguments the first modbus register holds higher byte, the second holds lower byte.
-    With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
+  Usage: state
 
+  Applies a mask to value read from modbus register.
 
-  * **uint32**
+* **bit(bit)**
 
-    Usage: state, command
+  Usage: state (single holding or input register)
 
-    Arguments:
-      - low_first (optional)
+  Returns 1 if given bit is set, 0 otherwise
 
-    Same as int32, but modbus registers are interpreted as unsingned int32.
+* **string**
 
-  * **float32**
+  Usage: state, command
 
-    Usage: state, command
-    Arguments:
-      - precision (optional)
-      - low_first, high_first (optional)
-      - swap_bytes (optional)
+  Parses and writes modbus register data as string.
+  Register data is expected as C-Style string in UTF-8 (or ASCII) encoding, e.g. `0x4142` for the string _AB_.
+  If there is no Null 0x0 byte at the end, then string size is determined by the number of registers, configured using the `count` setting.
 
-    Combines two modbus registers into one 32bit float or writes mqtt value to two modbus registers as float.
-    Without arguments the first modbus register holds higher byte, the second holds lower byte.
-    With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
+  When writing, converters puts all bytes from MQTT payload into register bytes. If payload is shorter, then remaining bytes are zeroed.
 
-    If 'swap_bytes' is defined, then bytes in both registers are swapped before reading and writing. Float value stored on four bytes _ABCD_ will be written to modbus registers R0, R1 as:
+* **map(map)**
+  Usage: state, command (single register only)
 
-    - no arguments or high_first: R0=_AB_, R1=_CD_
-    - low_first: R0=_CD_, R1=_AB_
-    - high_first, swap_bytes: R0=_BA_, R1=_DC_
-    - low_first, swap_bytes: R0=_DC_, R1=_BA_
+  Arguments:
+    - map specification as `"{register_value1: mqtt_value1, register_value2: mqtt_value2}"`
 
-  * **bitmask**
+  Returns MQTT value that is mapped to a single register value. If read register value is not mapped then its value is published as is.
+  Map key must be a single 16-bit value. All keys must be unique.
+  Map value can be a 32-bit int value or a string. All values must be unique.
+  Special characters `{}:,"\` must be escaped with `\`.
 
-    Usage: state
+  When used in command section reverse mapping is done.
 
-    Arguments:
-      - bitmask in hex (default "0xffff")
+  Examples:
 
+  ```yaml
+  converter: std.map('{1:11, 0x2:"two", 3:"escaped: \""}')
+  ```
 
-    Applies a mask to value read from modbus register.
+  Due to YAML limitation, no space between key and value is allowed, unless you use `|` format:
 
-
-  * **bit**
-
-    Usage: state (single holding or input register)
-
-    Arguments:
-      - bit number 1-16
-
-    Returns 1 if given bit is set, 0 otherwise
-
-
-  * **string**
-
-    Usage: state, command
-
-    Parses and writes modbus register data as string.
-    Register data is expected as C-Style string in UTF-8 (or ASCII) encoding, e.g. `0x4142` for the string _AB_.
-    If there not Nul 0x0 byte at the end, then string size is determined by the number of registers, configured using the `count` setting.
-
-    When writing, converters puts all bytes from Mqtt payload into register bytes. If payload is shorter, then remaining bytes are zeroed.
-
-  * **map**
-    Usage: state, command (single register only)
-
-    Arguments:
-      - map specification as `"{register_value1: mqtt_value1, register_value2: mqtt_value2}"`
-
-    Returns mqtt value that is mapped to a single register value. If read register value is not mapped then its value is published as is.
-    Map key must be a single 16-bit value. All keys must be unique.
-    Map value can be a 32-bit int value or a string. All values must be unique.
-    Special characters `{}:,"\` must be escaped with `\`.
-
-    When used in command section reverse mapping is done.
-
-    Examples:
-
-    ```
-    converter: std.map('{1:11, 0x2:"two", 3:"escaped: \""}')
-    ```
-
-    Due to yaml limitation, no space between key and value is allowed, unless you use `|` format:
-
-    ```
+  ```yaml
     converter: |
       std.map('{1: 11, 0x2: 2}')
-    ```
+  ```
 
-    Curly braces are optional:
+  Curly braces are optional:
 
-    ```
+  ```yaml
     converter: std.map('1:-1,6:9,8:"42"')
-    ```
+  ```
 
 ### Converter usage examples
 
@@ -851,7 +824,7 @@ When a state is combined from multiple modbus registers:
     converter: std.int32()
 ```
 
-When a mqtt command payload should be converted to register value:
+When a MQTT command payload should be converted to register value:
 
 ```yaml
   commands:
@@ -875,37 +848,37 @@ When an availability value should be computed from multiple registers:
 
 ### Exprtk converter.
 
-Exprtk converter allows to use exprtk expression language to convert register data to mqtt value.
-Register values are defined as R0..Rn variables.
+Exprtk converter allows using exprtk expression language to convert register data to MQTT value.
+Register values are defined as `R0..Rn` variables.
 
-  * **evaluate**
+* **evaluate(expression, precision=-1)**
 
-    Usage: state
+  Usage: state
 
-    Arguments:
-      - [exprtk expression](http://www.partow.net/programming/exprtk/) with Rx as register variables (required)
-      - precision (optional)
+  Evaluates [exprtk expression](http://www.partow.net/programming/exprtk/) with up to 10 registers as variables R0-R9 variables.
 
-    &nbsp;
+  &nbsp;
 
-    The following custom functions for 32-bit numbers are supported in the expression.
-    _ABCD_ means a number composed of the byte array `[A, B, C, D]`,
-    where _A_ is the most significant byte (MSB) and _D_ is the least-significant byte (LSB).
-      - `int32(R0, R1)`:   Cast to signed integer _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
-      - `int32(R1, R0)`:   Cast to signed integer _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
-      - `uint32(R0, R1)`:  Cast to unsigned integer _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
-      - `uint32(R1, R0)`:  Cast to unsigned integer _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
-      - `flt32(R0, R1)`:   Cast to float _ABCD_ from `R0` == _AB_ and `R1` == _CD_.
-      - `flt32(R1, R0)`:   Cast to float _ABCD_ from `R0` == _CD_ and `R1` == _AB_.
-      - `flt32be(R0, R1)`: Cast to float _ABCD_ from `R0` == _BA_ and `R1` == _DC_.
-      - `flt32be(R1, R0)`: Cast to float _ABCD_ from `R0` == _DC_ and `R1` == _BA_.
+  The following custom functions for 32-bit numbers are supported in the expression.
+  `ABCD` means a number composed of the byte array `[A, B, C, D]`,
+  where `A` is the most significant byte (MSB) and `D` is the least-significant byte (LSB).
+  * `int32(R0, R1)`: Cast to signed integer `ABCD` from `R0` == `AB` and `R1` == `CD`.
+  * `int32(R1, R0)`: Cast to signed integer `ABCD` from `R0` == `CD` and `R1` == `AB`.
+  * `int32bs(R0, R1)`: Cast to signed integer `ABCD` from `R0` == `BA` and `R1` == `DC`.
+  * `int32bs(R1, R0)`: Cast to signed integer `ABCD` from `R0` == `DC` and `R1` == `BA`.
+  * `uint32(R0, R1)`: Cast to unsigned integer `ABCD` from `R0` == `AB` and `R1` == `CD`.
+  * `uint32(R1, R0)`: Cast to unsigned integer `ABCD` from `R0` == `CD` and `R1` == `AB`.
+  * `uint32bs(R0, R1)`: Cast to unsigned integer `ABCD` from `R0` == `BA` and `R1` == `DC`.
+  * `uint32bs(R1, R0)`: Cast to unsigned integer `ABCD` from `R0` == `DC` and `R1` == `BA`.
+  * `flt32(R0, R1)`: Cast to float `ABCD` from `R0` == `AB` and `R1` == `CD`.
+  * `flt32(R1, R0)`: Cast to float `ABCD` from `R0` == `CD` and `R1` == `AB`.
+  * `flt32bs(R0, R1)`: Cast to float `ABCD` from `R0` == `BA` and `R1` == `DC`.
+  * `flt32bs(R1, R0)`: Cast to float `ABCD` from `R0` == `DC` and `R1` == `BA`.
 
-    &nbsp;
+  &nbsp;
 
-
-    If modbus register contains signed integer data, you can use this cast in the expression:
-
-      - `int16(R0)`: Cast uint16 value from `R0' to int16
+  If modbus register contains signed integer data, you can use this cast in the expression:
+  * `int16(R0)`: Cast uint16 value from `R0' to int16
 
 #### Examples
 
@@ -929,7 +902,7 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
   objects:
     - topic: test_state
       state:
-        converter: expr.evaluate("flt32be(R0, R1)", 3)
+        converter: expr.evaluate("flt32bs(R0, R1)", 3)
         register: tcptest.1.2
         register_type: input
         count: 2
@@ -937,23 +910,32 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
 
 ### Adding custom converters
 
-Custom converters can be added by creating a C++ dynamically loaded library with conversion classes. There is a header only libmodmqttconv that provide base classes for plugin and converter implementations.
+Custom converters can be added by creating a C++ dynamically loaded library with conversion classes. There is a header only libmodmqttconv library that provide base classes for plugin and converter implementations.
 
-Here is a minimal example of custom conversion plugin with help of boost dll library loader:
+Here is a minimal example of custom conversion plugin:
 
 ```C++
 
-#include <boost/config.hpp> // for BOOST_SYMBOL_EXPORT
 #include "libmodmqttconv/converterplugin.hpp"
 
 class MyConverter : public DataConverter {
     public:
-        //called by modmqttd to set coverter arguments
-        virtual void setArgs(const std::vector<std::string>& args) {
-            mShift = getIntArg(0, args);
+        // Called by modmqttd to get coverter arguments
+        // for configuration parser and its default values
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("shift", ConverterArgType::INT, "0");
+            return ret;        
         }
 
-        // Conversion from modbus registers to mqtt value
+        // Called by modmqttd to set coverter arguments.
+        // Default argument values read from getArgs() are passed back
+        // if they were not specified in configuration file
+        virtual void setArgValues(const ConverterArgValues& args) {
+            mShift = args["shift"].as_int();
+        };
+
+        // Conversion from modbus registers to MQTT value
         // Used when converter is defined for state topic
         // ModbusRegisters contains one register or as many as
         // configured in unnamed register list.
@@ -962,7 +944,7 @@ class MyConverter : public DataConverter {
             return MqttValue::fromInt(val << mShift);
         }
 
-        // Conversion from mqtt value to modbus register data
+        // Conversion from MQTT value to modbus register data
         // Used when converter is defined for command topic
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
             int val = value.getInt();
@@ -976,7 +958,7 @@ class MyConverter : public DataConverter {
 
         virtual ~MyConverter() {}
     private:
-      int mShift = 0;
+      int mShift;
 };
 
 
@@ -993,19 +975,18 @@ class MyPlugin : ConverterPlugin {
 };
 
 // modmqttd search for "converter_plugin" C symbol in loaded dll
-extern "C" BOOST_SYMBOL_EXPORT MyPlugin converter_plugin;
+extern "C" MyPlugin converter_plugin;
 MyPlugin converter_plugin;
 
 ```
 
-Compilation on linux:
+Compilation on Linux:
 
-```
+```bash
 g++ -I<path to mqmgateway source dir> -fPIC -shared myplugin.cpp -o myplugin.so
 ```
 
-
-*myconverter* from this example can be used like this:
+`MyConverter` from this example can be used like this:
 
 ```yaml
 modmqttd:
@@ -1025,12 +1006,13 @@ mqtt:
       name: set_val
       register: tcptest.2.12
       register_type: input
-      converter: myplugin.myconverter(1)
+      # will use '0' default shift value
+      converter: myplugin.myconverter()
     state:
       name: test_val
       register: tcptest.2.12
       register_type: input
-      converter: myplugin.myconverter(1)
+      converter: myplugin.myconverter(2)
 
 ```
 
@@ -1038,7 +1020,7 @@ For more examples see libstdconv source code.
 
 ## Multi-device definitions
 
-Multi-device defintions allows to set slave properties or create a single topic for multiple modbus devices of the same type. This greatly reduces the number of configuration sections that differ only by slave address or modbus network name.
+Multi-device definitions allows setting slave properties or create a single topic for multiple modbus devices of the same type. This greatly reduces the number of configuration sections that differ only by slave address or modbus network name.
 
 ### Multi-device MQTT topics
 
@@ -1063,7 +1045,7 @@ mqtt:
         register: 1
 ```
 
-In the above example 10 registers will be polled and their values will be published as `/basement/meter1/node_1/state`, `/basement/meter2/node_2/state` and so on.
+In the above example 10 registers will be polled, and their values will be published as `/basement/meter1/node_1/state`, `/basement/meter2/node_2/state` and so on.
 
 Slave names are required only if `${slave_name}` placeholder is used.
 

@@ -4,7 +4,6 @@
 #include <regex>
 
 #include <yaml-cpp/yaml.h>
-#include <boost/version.hpp>
 
 #include "exceptions.hpp"
 #include "logging.hpp"
@@ -78,8 +77,6 @@ class ModbusWatchdogConfig {
 
 class ModbusNetworkConfig {
     static constexpr std::chrono::milliseconds MAX_RESPONSE_TIMEOUT = std::chrono::milliseconds(999);
-
-    static boost::log::sources::severity_logger<Log::severity> log;
 
     public:
         typedef enum {

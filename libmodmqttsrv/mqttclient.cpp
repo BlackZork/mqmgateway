@@ -11,8 +11,6 @@
 
 namespace modmqttd {
 
-boost::log::sources::severity_logger<Log::severity> MqttClient::log;
-
 MqttClient::MqttClient(ModMqtt& modmqttd) : mOwner(modmqttd) {
     mMqttImpl.reset(new Mosquitto());
 };
@@ -52,17 +50,17 @@ MqttClient::shutdown() {
 
     switch(mConnectionState) {
         case State::CONNECTED:
-            BOOST_LOG_SEV(log, Log::info) << "Disconnecting from mqtt broker";
+            spdlog::info("Disconnecting from mqtt broker");
             mConnectionState = State::DISCONNECTING;
             mMqttImpl->disconnect();
         break;
         case State::CONNECTING:
             //we do not send disconnect mqtt request if not connected
-            BOOST_LOG_SEV(log, Log::info) << "Cancelling connection request";
+            spdlog::info("Cancelling connection request");
             mIsStarted = false;
             break;
         case State::DISCONNECTING:
-            BOOST_LOG_SEV(log, Log::info) << "Shutdown already in progress, waiting for clean disconnect";
+            spdlog::info("Shutdown already in progress, waiting for clean disconnect");
             break;
         default:
             mIsStarted = false;
@@ -78,11 +76,11 @@ MqttClient::onDisconnect() {
     switch(mConnectionState) {
         case State::CONNECTED:
         case State::CONNECTING:
-            BOOST_LOG_SEV(log, Log::info) << "reconnecting to mqtt broker";
+            spdlog::info("Reconnecting to mqtt broker");
             mMqttImpl->reconnect();
             break;
         case State::DISCONNECTING:
-            BOOST_LOG_SEV(log, Log::info) << "Stopping mosquitto message loop";
+            spdlog::info("Stopping mosquitto message loop");
             mConnectionState = State::DISCONNECTED;
 // https://github.com/BlackZork/mqmgateway/issues/33
 #ifndef __MUSL__
@@ -97,7 +95,7 @@ MqttClient::onDisconnect() {
 
 void
 MqttClient::onConnect() {
-	BOOST_LOG_SEV(log, Log::info) << "Mqtt connected, sending subscriptions…";
+	spdlog::info("Connected, sending subscriptions…");
 
     for(auto cmd: mCommands) {
         mMqttImpl->subscribe(cmd.second.mTopic.c_str());
@@ -116,7 +114,7 @@ MqttClient::onConnect() {
         (*it)->sendMqttNetworkIsUp(true);
     }
 
-	BOOST_LOG_SEV(log, Log::info) << "Mqtt ready to process messages";
+	spdlog::info("Ready to process MQTT messages");
 }
 
 void
@@ -125,7 +123,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
         // we drop changes when there is no connection
         // retain flag is set so
         // broker will send last known value for us.
-    	BOOST_LOG_SEV(log, Log::trace) << "Mqtt broker not connected, dropping MsgRegisterValues data";
+    	spdlog::trace("Mqtt broker not connected, dropping MsgRegisterValues data");
         return;
     }
 
@@ -145,7 +143,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
     // possible if write command registers do not overlap with
     // any MqttObject
     if (affectedObjects == nullptr) {
-    	BOOST_LOG_SEV(log, Log::trace) << "No affected objects for received register values";
+    	spdlog::trace("No affected objects for received register values");
         return;
     }
 
@@ -187,7 +185,7 @@ MqttClient::publishState(MqttObject& obj, bool force) {
         return;
     std::string messageData(MqttPayload::generate(obj));
     if (messageData != obj.getLastPublishedPayload() || force) {
-        BOOST_LOG_SEV(log, Log::debug) << "Publish on topic " << obj.getStateTopic() << ": " << messageData;
+        spdlog::debug("Publish on topic {}: {}", obj.getStateTopic(), messageData);
         mMqttImpl->publish(obj.getStateTopic().c_str(), messageData.length(), messageData.c_str(), obj.getRetain());
         obj.setLastPublishedPayload(messageData);
     }
@@ -293,7 +291,7 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
             [&network](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mNetworkName == network; }
         );
         if (it == mModbusClients.end()) {
-            BOOST_LOG_SEV(log, Log::error) << "Modbus network " << network << " not found for command  " << topic << ", dropping message";
+            spdlog::error("Modbus network {} not found for command {}, dropping message", network, topic);
         } else {
             MqttValue tmpval(createMqttValue(command, payload, payloadlen));
 
@@ -311,11 +309,11 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
             (*it)->sendCommand(command, reg_values);
         }
     } catch (const ConvException& ex) {
-        BOOST_LOG_SEV(log, Log::error) << "Converter error for " << topic << ":" << ex.what();
+        spdlog::error("Converter error for {}: {}", topic, ex.what());
     } catch (const MqttPayloadConversionException& ex) {
-        BOOST_LOG_SEV(log, Log::error) << "Value error for " << topic << ":" << ex.what();
+        spdlog::error("Value error for {}: {}", topic, ex.what());
     } catch (const ObjectCommandNotFoundException&) {
-        BOOST_LOG_SEV(log, Log::error) << "No command for topic " << topic << ", dropping message";
+        spdlog::error("No command for topic {}, dropping message", topic);
     }
 }
 

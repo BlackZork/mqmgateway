@@ -1,73 +1,90 @@
 #include <iostream>
+#include <filesystem>
 
-#include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
+#include "argh/argh.h"
+#include <memory>
+#include <pthread.h>
 #include "libmodmqttsrv/common.hpp"
 #include "libmodmqttsrv/modmqtt.hpp"
-#include "config.hpp"
+#include "libmodmqttsrv/logging.hpp"
+#include "libmodmqttsrv/threadutils.hpp"
 
-namespace args = boost::program_options;
-using namespace std;
+#include "config.hpp"
+#include "version.hpp"
+#include "logging.hpp"
+
+using namespace std::string_literals;
 
 modmqttd::ModMqtt server;
 
-void logCriticalError(std::shared_ptr<boost::log::sources::severity_logger<modmqttd::Log::severity>>& log,
-        const char* message)
-{
-    if (log != NULL)
-        BOOST_LOG_SEV(*log, modmqttd::Log::critical) << message;
+void logCriticalError(const char* message) {
+    if (spdlog::get(modmqttd::Log::loggerName) != NULL)
+        spdlog::critical(message);
     else
-        cerr << message << endl;
+        std::cerr << message << std::endl;
 }
 
+constexpr const char* USAGE = R"(
+Usage:
+  -c, --config     path to configuration file
+  -l, --loglevel   setup logging: 0 off, 1-6 sets loglevel, higher is more verbose
+  -v, --version    print modmqttd version
+  --help           this help message
+)";
+
 int main(int ac, char* av[]) {
-    std::shared_ptr<boost::log::sources::severity_logger<modmqttd::Log::severity>> log;
+    modmqttd::ThreadUtils::set_thread_name("main");
     std::string configPath;
+
     try {
-        args::options_description desc("Arguments");
+        argh::parser cmdl(ac, av, argh::parser::PREFER_PARAM_FOR_UNREG_OPTION);
+        cmdl.add_params({ "-l", "--loglevel", "-c", "--config" });
 
-        int logLevel;
+        int logLevel = -1;
 
-        desc.add_options()
-            ("help", "produce help message")
-            ("loglevel, l", args::value<int>(&logLevel), "setup logging: 0 off, 1-6 sets loglevel, higher is more verbose")
-            ("config, c", args::value<string>(&configPath), "path to configuration file")
-        ;
-
-        args::variables_map vm;
-        args::store(args::parse_command_line(ac, av, desc), vm);
-        args::notify(vm);
-
-        if (vm.count("help")) {
-            cout << desc << "\n";
-            return EXIT_SUCCESS;
+        for(auto& flag: cmdl.flags()) {
+            if (flag == "help") {
+                std::cout << "modmqttd v." << FULL_VERSION << std::endl;
+                std::cout << USAGE << std::endl;
+                return EXIT_SUCCESS;
+            } else if (flag == "version" || flag == "v") {
+                std::cout << FULL_VERSION << std::endl;
+                return EXIT_SUCCESS;
+            } else {
+                std::cerr << "Unknown flag '" << flag << "', use --help for available options" << std::endl;
+                return EXIT_FAILURE;
+            }
         }
 
-        modmqttd::Log::severity level = modmqttd::Log::severity::info;
-        if (vm.count("loglevel")) {
-            level = (modmqttd::Log::severity)(vm["loglevel"].as<int>());
+        modmqttd::Log::severity log_level = modmqttd::Log::severity::info;
+
+        for(auto param: cmdl.params()) {
+            if (param.first == "config" || param.first == "c") {
+                configPath = param.second;
+            } else if (param.first == "loglevel" || param.first == "l") {
+                try {
+                    log_level = modmqttd::Log::parse_severity(param.second);
+                } catch (const std::exception& ex) {
+                    std::cerr << "loglevel must be between 0 and 6" << std::endl;
+                    return EXIT_FAILURE;
+                }
+            }
         }
 
-        modmqttd::Log::init_logging(level);
-        // temporary logger used in main before classes are initalized
-        log.reset(new boost::log::sources::severity_logger<modmqttd::Log::severity>());
-        // TODO add version information
-        BOOST_LOG_SEV(*log, modmqttd::Log::info) << "modmqttd is starting";
-
-        server.init(configPath);
+        server.init(logLevel, configPath);
         server.start();
 
-        BOOST_LOG_SEV(*log, modmqttd::Log::info) << "modmqttd stopped";
+        spdlog::info("modmqttd stopped");
         return EXIT_SUCCESS;
     } catch (const YAML::BadFile& ex) {
         if (configPath == "")
-            configPath = boost::filesystem::current_path().native();
+            configPath = std::filesystem::current_path().native();
         std::string msg = "Failed to load configuration from "s + configPath;
-        logCriticalError(log, msg.c_str());
+        logCriticalError(msg.c_str());
     } catch (const std::exception& ex) {
-        logCriticalError(log, ex.what());
+        logCriticalError(ex.what());
     } catch (...) {
-        logCriticalError(log, "Unknown initialization error occured");
+        logCriticalError("Unknown initialization error occured");
     }
     return EXIT_FAILURE;
 }

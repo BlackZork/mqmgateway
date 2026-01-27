@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <sstream>

@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.13)
-project(modmqttd VERSION 1.0.0)
+
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+include(CheckSymbolExists)
+include(git_version)
+
+project(modmqttd VERSION 0.0.0)
+get_version_from_git()
 
 option(WITHOUT_TESTS "Do not build unit tests")
 set(build_unittests)
@@ -7,43 +14,32 @@ if (WITHOUT_TESTS)
     set(build_unittests EXCLUDE_FROM_ALL)
 endif()
 
-# OLD until min boost version will be bumped to 1.70.x or higher 
-if (POLICY CMP0167)
-    cmake_policy(SET CMP0167 OLD)
-endif()
-
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
-# Uncomment to test with locally installed boost
-#set(Boost_NO_BOOST_CMAKE ON)
-#set(BOOST_NO_SYSTEM_PATHS ON)
-#set(BOOST_ROOT "/path/to/boost")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Boost 1.54.0 COMPONENTS filesystem log program_options REQUIRED)
-set(Boost_USE_STATIC_LIBS        OFF)
-set(Boost_USE_MULTITHREADED      ON)
-set(Boost_USE_STATIC_RUNTIME     OFF)
-set(BOOST_ALL_DYN_LINK           ON) 
-
-message("Boost found at: ${Boost_INCLUDE_DIRS}")
+list(APPEND CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
+list(APPEND CMAKE_REQUIRED_LIBRARIES pthread)
+CHECK_SYMBOL_EXISTS(pthread_setname_np pthread.h HAVE_PTHREAD_SETNAME_NP)
+list(REMOVE_ITEM CMAKE_REQUIRED_DEFINITIONS -D_GNU_SOURCE)
 
 find_package(PkgConfig)
 pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
 pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
 
-find_package(Threads)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
 find_package(RapidJSON REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED) 
 
 find_path(EXPRTK_INCLUDE_DIR "exprtk.hpp")
 message(STATUS "EXPRTK_INCLUDE_DIR => ${EXPRTK_INCLUDE_DIR}")
 
-include_directories(${Boost_INCLUDE_DIRS} ${YAML_CPP_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIRS} .)
-link_directories(${Boost_LIBRARY_DIRS})
-
-# force boost dynamic linking
-add_definitions(-DBOOST_LOG_DYN_LINK)
+include_directories(${YAML_CPP_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIRS} .)
 
 add_subdirectory(libmodmqttconv)
 add_subdirectory(libmodmqttsrv)
@@ -74,8 +70,6 @@ if (EXPRTK_INCLUDE_DIR)
 
     install(TARGETS exprconv DESTINATION lib/modmqttd)
 endif()
-
-
 
 install (TARGETS modmqttd DESTINATION bin)
 

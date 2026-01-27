@@ -80,7 +80,7 @@ class MqttObjectRegisterValue {
     protected:
         bool mReadOk = false;
         bool mHasValue = false;
-        uint16_t mValue;
+        uint16_t mValue = 0;
 };
 
 class MqttObjectDataNode;

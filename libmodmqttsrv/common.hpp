@@ -1,5 +1,6 @@
 #pragma once
 
+#include "defs.h"
 #include "exceptions.hpp"
 #include "logging.hpp"
 
