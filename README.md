@@ -1,6 +1,3 @@
----
-lang: en-US
----
 # MQMGateway - MQTT gateway for modbus networks
 
 A multithreaded C++ service that enables two-way communication and data conversion between multiple [Modbus](http://www.modbus.org/) networks and [MQTT](http://mqtt.org/) clients.
