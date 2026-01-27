@@ -100,8 +100,6 @@
         "sourceFileMap": "${sourceFileMapObj}",
         "externalConsole": false
     },
-    "lldb.library": "/usr/lib/liblldb.so",
-    "lldb.server": "/usr/bin/lldb-server"
     */
     
     

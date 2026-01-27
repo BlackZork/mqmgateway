@@ -252,8 +252,29 @@ TEST_CASE ("Issue 58 parse error for common poll group") {
 }
 
 TEST_CASE ("Topic with slave_name placeholder must have a default network name set") {
-    issue_58_config.mYAML["mqtt"]["objects"][0].remove("network");
-    MockedModMqttServerThread server(issue_58_config.toString(), false);
+const std::string config = R"(
+modmqttd:
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 30
+          name: first-meter
+mqtt:
+  client_id: mqtt_test
+  broker:
+    host: localhost
+  objects:
+    - topic: ${slave_name}
+      slave: 30
+      state:
+        register: 1
+)";
+
+
+    MockedModMqttServerThread server(config, false);
     server.start();
     server.stop();
     REQUIRE(server.initOk() == false);
