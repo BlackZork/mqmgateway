@@ -235,7 +235,7 @@ mqtt:
         register: 1
 )");
 
-TEST_CASE ("issue 58 parse error for common poll group") {
+TEST_CASE ("Issue 58 parse error for common poll group") {
     MockedModMqttServerThread server(issue_58_config.toString());
     server.setModbusRegisterValue("tcptest", 30, 1, modmqttd::RegisterType::HOLDING, 1);
     server.setModbusRegisterValue("tcptest", 30, 2, modmqttd::RegisterType::HOLDING, 2);
@@ -251,7 +251,7 @@ TEST_CASE ("issue 58 parse error for common poll group") {
     server.stop();
 }
 
-TEST_CASE ("topic with slave_name placeholder must have a default network name set") {
+TEST_CASE ("Topic with slave_name placeholder must have a default network name set") {
     issue_58_config.mYAML["mqtt"]["objects"][0].remove("network");
     MockedModMqttServerThread server(issue_58_config.toString(), false);
     server.start();
