@@ -48,7 +48,11 @@ int main(int ac, char* av[]) {
                 std::cout << USAGE << std::endl;
                 return EXIT_SUCCESS;
             } else if (flag == "version" || flag == "v") {
+#ifndef NDEBUG
                 std::cout << FULL_VERSION << std::endl;
+#else
+                std::cout << PROJECT_VERSION << std::endl;
+#endif
                 return EXIT_SUCCESS;
             } else {
                 std::cerr << "Unknown flag '" << flag << "', use --help for available options" << std::endl;
