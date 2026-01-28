@@ -27,6 +27,19 @@ TEST_CASE ("Expr.evaluate should") {
         REQUIRE(output.getValue(0) == 24);
     }
 
+    SECTION("cast negative int value to uint16_t") {
+        args.setArgValue("expression", "M0-1");
+
+        MqttValue input(-1);
+
+        conv->setArgValues(args);
+        ModbusRegisters output = conv->toModbus(input, 1);
+
+        REQUIRE(output.getCount() == 1);
+        REQUIRE(output.getValue(0) == 0xFFFE);
+    }
+
+
     SECTION("convert a single element table to a single modbus register") {
         args.setArgValue("expression", "return [M0*2]");
 

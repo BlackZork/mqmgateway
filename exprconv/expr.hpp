@@ -109,7 +109,6 @@ class ExprtkConverter : public DataConverter {
 
         virtual ~ExprtkConverter() {
             mExpression.release();
-            mSymbolTable.clear();
         }
     private:
         exprtk::symbol_table<double> mSymbolTable;
