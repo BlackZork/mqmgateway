@@ -93,9 +93,11 @@ class ExprtkConverter : public DataConverter {
             for(uint16_t i = 0; i < mValues.size(); i++) {
                 sprintf(buf, "R%d", i);
                 mSymbolTable.add_variable(buf, mValues[i], false);
+
+                sprintf(buf, "M%d", i);
+                mSymbolTable.add_variable(buf, mValues[0], false);
             }
 
-            mSymbolTable.add_variable("M", mValues[0], false);
 
             mExpression.register_symbol_table(mSymbolTable);
             if (!mParser.compile(values["expression"].as_str(), mExpression)) {

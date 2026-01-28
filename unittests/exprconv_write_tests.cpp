@@ -16,7 +16,7 @@ TEST_CASE ("Expr.evaluate should") {
     ConverterArgValues args(conv->getArgs());
 
     SECTION("convert an int value to a single modbus register") {
-        args.setArgValue("expression", "M*2");
+        args.setArgValue("expression", "M0*2");
 
         MqttValue input(12);
 
@@ -28,7 +28,7 @@ TEST_CASE ("Expr.evaluate should") {
     }
 
     SECTION("convert a single element table to a single modbus register") {
-        args.setArgValue("expression", "return [M*2]");
+        args.setArgValue("expression", "return [M0*2]");
 
         MqttValue input(12);
 
@@ -66,7 +66,7 @@ TEST_CASE ("Expr.evaluate should") {
     }
 
     SECTION("throw if int value is out uint16_t range") {
-        args.setArgValue("expression", "M+1");
+        args.setArgValue("expression", "M0+1");
 
         MqttValue input(0xFFFF);
 
