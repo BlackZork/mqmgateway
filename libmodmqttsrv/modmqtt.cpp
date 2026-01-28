@@ -157,7 +157,7 @@ ModMqtt::init(int logLevelNum, const std::string& configPath) {
     modmqttd::Log::init_logging(level);
     spdlog::info("Modmqttd {} is starting", FULL_VERSION);
 
-    ThreadUtils::set_thread_name("modmqtt");
+    ThreadUtils::set_thread_name("modmqttd");
     std::string targetPath(configPath);
     if (configPath.empty()) {
         spdlog::warn("No config path, trying to read config.yaml from working directory");
