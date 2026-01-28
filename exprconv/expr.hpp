@@ -34,12 +34,10 @@ class ExprtkConverter : public DataConverter {
 
             double exprval = mExpression.value();
 
-
             typedef exprtk::results_context<double> results_context_t;
             const auto& results = mExpression.results();
 
             if (std::isnan(exprval)) {
-
                 if (results.count() > 100)
                     throw ConvException("Too many values returned, max=100");
 
@@ -53,7 +51,7 @@ class ExprtkConverter : public DataConverter {
                     switch (ts.type) {
                         case type_t::e_scalar: {
                             double val = *(double*)(ts.data);
-                            ret.appendValue(val);
+                            ret.appendValue(toUInt16(val));
                         } break;
                         case type_t::e_vector:
                             throw ConvException("Invalid list returned on position " + std::to_string(i));
@@ -67,7 +65,7 @@ class ExprtkConverter : public DataConverter {
                     }
                 }
             } else {
-                ret.appendValue(exprval);
+                ret.appendValue(toUInt16(exprval));
             }
 
             return ret;
@@ -145,5 +143,15 @@ class ExprtkConverter : public DataConverter {
         static double int16(const double regValue) {
             uint16_t tmp = uint16_t(regValue);
             return (int16_t)tmp;
+        }
+
+        uint16_t toUInt16(double val) const {
+            try {
+                return ConverterTools::toUInt16(val);
+            } catch (const std::exception& ex) {
+                throw ConvException(ex.what());
+            } catch (...) {
+                throw ConvException("Unknown error when converting "s + std::to_string(val) + " to uint16");
+            }
         }
 };

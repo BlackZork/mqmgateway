@@ -64,6 +64,19 @@ TEST_CASE ("Expr.evaluate should") {
             ConvException
         );
     }
+
+    SECTION("throw if int value is out uint16_t range") {
+        args.setArgValue("expression", "M+1");
+
+        MqttValue input(0xFFFF);
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(
+            conv->toModbus(input, 1),
+            ConvException
+        );
+    }
 }
 
 #endif
