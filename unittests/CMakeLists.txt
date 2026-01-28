@@ -21,6 +21,7 @@ add_executable(tests
      exprconv_float_tests.cpp
     exprconv_int32_tests.cpp
     exprconv_tests.cpp
+    exprconv_write_tests.cpp
     modbus_config_tests.cpp
     modbus_executor_tests.cpp
     modbus_executor_single_delay_tests.cpp

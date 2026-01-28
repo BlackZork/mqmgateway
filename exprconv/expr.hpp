@@ -27,6 +27,53 @@ class ExprtkConverter : public DataConverter {
             return MqttValue::fromDouble(ret, mPrecision);
         }
 
+        virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
+            ModbusRegisters ret;
+
+            mValues[0] = value.getDouble();
+
+            double exprval = mExpression.value();
+
+
+            typedef exprtk::results_context<double> results_context_t;
+            const auto& results = mExpression.results();
+
+            if (std::isnan(exprval)) {
+
+                if (results.count() > 100)
+                    throw ConvException("Too many values returned, max=100");
+
+                if ((int)results.count() != registerCount)
+                    throw ConvException("Got " + std::to_string(results.count()) + "values, need " + std::to_string(registerCount));
+
+                typedef typename results_context_t::type_store_t type_t;
+
+                for(std::size_t i = 0; i < results.count(); i++) {
+                    type_t ts = results[i];
+                    switch (ts.type) {
+                        case type_t::e_scalar: {
+                            double val = *(double*)(ts.data);
+                            ret.appendValue(val);
+                        } break;
+                        case type_t::e_vector:
+                            throw ConvException("Invalid list returned on position " + std::to_string(i));
+                        break;
+                        case type_t::e_string:
+                            throw ConvException("Invalid string value returned on position " + std::to_string(i));
+                        break;
+                        case type_t::e_unknown:
+                            throw ConvException("Unknown value type returned on position " + std::to_string(i));
+                        break;
+                    }
+                }
+            } else {
+                ret.appendValue(exprval);
+            }
+
+            return ret;
+         };
+
+
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
             ret.add("expression", ConverterArgType::STRING, "");
@@ -50,6 +97,8 @@ class ExprtkConverter : public DataConverter {
                 mSymbolTable.add_variable(buf, mValues[i], false);
             }
 
+            mSymbolTable.add_variable("M", mValues[0], false);
+
             mExpression.register_symbol_table(mSymbolTable);
             if (!mParser.compile(values["expression"].as_str(), mExpression)) {
                 throw ConvException(std::string("Exprtk ") + mParser.error());
@@ -60,6 +109,7 @@ class ExprtkConverter : public DataConverter {
 
         virtual ~ExprtkConverter() {
             mExpression.release();
+            mSymbolTable.clear();
         }
     private:
         exprtk::symbol_table<double> mSymbolTable;
