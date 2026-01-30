@@ -11,7 +11,7 @@ modbus:
     - name: tcptest
       address: localhost
       response_timeout: 500ms
-      response_data_timeout: 500s
+      response_data_timeout: 500ms
       port: 501
       slaves:
         - address: 1
@@ -41,6 +41,23 @@ mqtt:
         server.stop();
         REQUIRE(server.initOk() == false);
     }
+
+    SECTION("should not throw if max value for response_timeout is set") {
+        config.mYAML["modbus"]["networks"][0]["response_timeout"] = "999ms";
+        MockedModMqttServerThread server(config.toString(), false);
+        server.start();
+        server.stop();
+        REQUIRE(server.initOk() == true);
+    }
+
+    SECTION("should not throw if max value for response_data_timeout is set") {
+        config.mYAML["modbus"]["networks"][0]["response_data_timeout"] = "999ms";
+        MockedModMqttServerThread server(config.toString(), false);
+        server.start();
+        server.stop();
+        REQUIRE(server.initOk() == true);
+    }
+
 }
 
 
