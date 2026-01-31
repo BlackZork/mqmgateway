@@ -65,6 +65,9 @@ class ExprtkConverter : public DataConverter {
                     }
                 }
             } else {
+                if (registerCount != 1)
+                    throw ConvException("Got a single value, need " + std::to_string(registerCount));
+
                 ret.appendValue(toUInt16(exprval));
             }
 

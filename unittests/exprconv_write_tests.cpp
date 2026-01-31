@@ -27,6 +27,7 @@ TEST_CASE ("Expr.evaluate should") {
         REQUIRE(output.getValue(0) == 24);
     }
 
+
     SECTION("cast negative int value to uint16_t") {
         args.setArgValue("expression", "M0-1");
 
@@ -51,6 +52,35 @@ TEST_CASE ("Expr.evaluate should") {
         REQUIRE(output.getCount() == 1);
         REQUIRE(output.getValue(0) == 24);
     }
+
+
+    SECTION("store two items results table to two registers") {
+        args.setArgValue("expression", "return [M0+1, M0-1]");
+
+        MqttValue input(12);
+
+        conv->setArgValues(args);
+        ModbusRegisters output = conv->toModbus(input, 2);
+
+        REQUIRE(output.getCount() == 2);
+        REQUIRE(output.getValue(0) == 13);
+        REQUIRE(output.getValue(1) == 11);
+    }
+
+
+    SECTION("throw if number of registers do not match") {
+        args.setArgValue("expression", "M0+1");
+
+        MqttValue input(12);
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(
+            conv->toModbus(input, 2),
+            ConvException
+        );
+    }
+
 
     SECTION("throw if returned value is a string") {
         args.setArgValue("expression", "return ['str']");
