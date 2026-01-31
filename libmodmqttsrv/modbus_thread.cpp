@@ -111,6 +111,10 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
         }
     }
     mExecutor.setupInitialPoll(registerMap);
+
+    if (mWatchdog.getConfig().mAutoWatchPeriod) {
+        mWatchdog.setWatchPeriod(mScheduler.getMinPollTime() * 2);
+    }
     //now wait for MqttNetworkState(up)
 }
 

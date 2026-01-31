@@ -33,6 +33,8 @@ namespace modmqttd {
                 std::chrono::steady_clock::duration& outDuration,
                 const std::chrono::time_point<std::chrono::steady_clock>& timePoint
             );
+
+            std::chrono::steady_clock::duration getMinPollTime() const;
         private:
             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisterMap;
     };

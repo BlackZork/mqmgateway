@@ -64,4 +64,21 @@ ModbusScheduler::findRegisterPoll(const MsgRegisterValues& pValues) const {
     return std::shared_ptr<RegisterPoll>();
 }
 
+std::chrono::steady_clock::duration
+ModbusScheduler::getMinPollTime() const {
+    std::chrono::steady_clock::duration ret = std::chrono::steady_clock::duration::max();
+    for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.begin();
+        slave != mRegisterMap.end(); slave++)
+    {
+        for(std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = slave->second.begin();
+            reg_it != slave->second.end(); reg_it++)
+        {
+            const RegisterPoll& reg = **reg_it;
+            if (reg.mRefresh < ret)
+                ret = reg.mRefresh;
+        }
+    }
+    return ret;
+}
+
 }

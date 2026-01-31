@@ -114,4 +114,39 @@ mqtt:
 
 }
 
+SECTION("with a long poll time") {
+static const std::string config = R"(
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  broker:
+    host: localhost
+  objects:
+    - topic: slave1
+      state:
+        register: tcptest.1.1
+        refresh: 30s
+    - topic: slave2
+      state:
+        register: tcptest.2.2
+        refresh: 10s
+)";
+
+    SECTION("should sets its duration two times longer than minimum refresh") {
+        MockedModMqttServerThread server(config);
+        server.start();
+        server.stop();
+
+        //one or two attempts to reconnect
+        REQUIRE(server.getServer().getModbusClient("tcptest").getThread().getWatchdog().getConfig().mWatchPeriod == std::chrono::seconds(20));
+    }
+
+
+}
+
+
 } //CASE

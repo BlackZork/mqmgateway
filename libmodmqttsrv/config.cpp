@@ -77,7 +77,9 @@ ModbusNetworkConfig::ModbusNetworkConfig(const YAML::Node& source) {
     }
 
     if (source["watchdog"]) {
-        ConfigTools::readOptionalValue<std::chrono::milliseconds>(mWatchdogConfig.mWatchPeriod, source["watchdog"], "watch_period");
+        ConfigTools::readOptionalValue<std::chrono::milliseconds>(tmpval, source["watchdog"], "watch_period");
+        mWatchdogConfig.mWatchPeriod = tmpval;
+        mWatchdogConfig.mAutoWatchPeriod = false;
     }
 }
 
