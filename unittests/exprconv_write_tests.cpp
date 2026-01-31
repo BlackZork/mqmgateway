@@ -120,6 +120,17 @@ TEST_CASE ("Expr.evaluate should") {
             ConvException
         );
     }
+
+    SECTION("throw if write helper has bad name") {
+        args.setArgValue("expression", "M0+1");
+        args.setArgValue("write_as", "int15");
+
+        REQUIRE_THROWS_AS(
+            conv->setArgValues(args),
+            ConvException
+        );
+    }
+
 }
 
 #endif
