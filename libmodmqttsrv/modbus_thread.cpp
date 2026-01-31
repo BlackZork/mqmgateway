@@ -113,7 +113,10 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
     mExecutor.setupInitialPoll(registerMap);
 
     if (mWatchdog.getConfig().mAutoWatchPeriod) {
-        mWatchdog.setWatchPeriod(mScheduler.getMinPollTime() * 2);
+        // In auto mode do not use shorter priod than default
+        std::chrono::steady_clock::duration watchPeriod = mScheduler.getMinPollTime() * 2;
+        if (mWatchdog.getConfig().mWatchPeriod < watchPeriod)
+            mWatchdog.setWatchPeriod(watchPeriod);
     }
     //now wait for MqttNetworkState(up)
 }
