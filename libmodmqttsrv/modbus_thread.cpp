@@ -201,6 +201,7 @@ constructIdleWaitMessage(const std::chrono::steady_clock::duration& idleWaitDura
 void
 ModbusThread::run() {
     try {
+        ThreadUtils::set_thread_name(mNetworkName.c_str());
         spdlog::debug("Modbus thread started");
         const int maxReconnectTime = 60;
         std::chrono::steady_clock::duration idleWaitDuration = std::chrono::steady_clock::duration::max();

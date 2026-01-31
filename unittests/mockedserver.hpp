@@ -59,6 +59,8 @@ class ModMqttServerThread {
             return *mException;
         }
 
+        const modmqttd::ModMqtt& getServer() const { return mServer; }
+
         ~ModMqttServerThread() {
             stop();
         }

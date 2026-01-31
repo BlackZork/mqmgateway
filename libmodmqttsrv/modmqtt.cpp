@@ -403,7 +403,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
 
         //initialize modbus thread
         std::shared_ptr<ModbusClient> modbus(new ModbusClient());
-        modbus->init(modbus_config);
+        modbus->start(modbus_config);
         mModbusClients.push_back(modbus);
 
         MsgRegisterPollSpecification spec(modbus_config.mName);
@@ -1007,6 +1007,20 @@ ModMqtt::setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl) {
 void
 ModMqtt::setModbusContextFactory(const std::shared_ptr<IModbusFactory>& factory) {
     mModbusFactory = factory;
+}
+
+const ModbusClient&
+ModMqtt::getModbusClient(const std::string& networkName) const {
+    std::vector<std::shared_ptr<ModbusClient>>::const_iterator it = std::find_if(mModbusClients.begin(),
+        mModbusClients.end(),
+        [&networkName](const std::shared_ptr<ModbusClient>& client)
+            -> bool { return client->mNetworkName == networkName; }
+    );
+
+    if (it == mModbusClients.end())
+        throw std::invalid_argument("Modbus client for network"s + networkName + " not found");
+
+    return **it;
 }
 
 ModMqtt::~ModMqtt() {

@@ -15,6 +15,7 @@ class ModbusWatchdog {
         bool isReconnectRequired() const;
         bool isDeviceRemoved() const { return mDeviceRemoved; }
         const std::string& getDevicePath() const { return mConfig.mDevicePath; }
+        const ModbusWatchdogConfig& getConfig() const { return mConfig; }
         std::chrono::steady_clock::time_point getLastSuccessfulCommandTime() const;
         std::chrono::steady_clock::duration getCurrentErrorPeriod() const {
             return std::chrono::steady_clock::now() - mLastSuccessfulCommandTime;

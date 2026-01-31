@@ -21,8 +21,12 @@ class ModbusThread {
             const std::string pNetworkName,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
             moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue);
+
         void run();
+
+        const ModbusWatchdog getWatchdog() const { return mWatchdog; }
     private:
+
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mToModbusQueue;
         moodycamel::BlockingReaderWriterQueue<QueueItem>& mFromModbusQueue;
 
