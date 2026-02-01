@@ -851,13 +851,14 @@ When an availability value should be computed from multiple registers:
 Exprtk converter allows using exprtk expression language to convert register data to MQTT value.
 Register values are defined as `R0..Rn` variables.
 
-* **evaluate(expression, precision=-1)**
+* **evaluate(expression, precision=-1, write_as="", low_first=false)**
 
-  Usage: state
+  Usage: state, command
 
-  Evaluates [exprtk expression](http://www.partow.net/programming/exprtk/) with up to 10 registers as variables R0-R9 variables.
-
-  &nbsp;
+  Evaluates [exprtk expression](http://www.partow.net/programming/exprtk/) with:
+  
+  * up to 10 registers as variables R0-R9 variables when used in `state` section.
+  * M0 as MQTT value when used in `commands` section
 
   The following custom functions for 32-bit numbers are supported in the expression.
   `ABCD` means a number composed of the byte array `[A, B, C, D]`,
@@ -875,10 +876,10 @@ Register values are defined as `R0..Rn` variables.
   * `flt32bs(R0, R1)`: Cast to float `ABCD` from `R0` == `BA` and `R1` == `DC`.
   * `flt32bs(R1, R0)`: Cast to float `ABCD` from `R0` == `DC` and `R1` == `BA`.
 
-  &nbsp;
-
   If modbus register contains signed integer data, you can use this cast in the expression:
   * `int16(R0)`: Cast uint16 value from `R0' to int16
+
+  All of the above functions can be used as `write_as` helper to store an expression value in modbus registers during writing. Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`BA`.
 
 #### Examples
 
@@ -907,6 +908,47 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
         register_type: input
         count: 2
 ```
+
+Writing expression value as 32-bit `int` into two registers in `ABCD` format:
+
+```yaml
+  objects:
+    - topic: test_state
+      commands:
+      - name: set
+          register: tcptest.1.2
+          register_type: holding
+          count: 2
+          converter: expr.evaluate("M0*2/1000", write_as="int32")
+```
+
+Writing expression value as `float` into two registers in `DCBA` format:
+
+```yaml
+  objects:
+    - topic: test_state
+      commands:
+      - name: set
+          register: tcptest.1.2
+          register_type: holding
+          count: 2
+          converter: expr.evaluate("M0*2/1000", write_as="flt32bs", low_first=true)
+```
+
+Writing multiple return values to separate registers:
+
+```yaml
+  objects:
+    - topic: test_state
+      commands:
+      - name: set
+          register: tcptest.1.2
+          register_type: coil
+          count: 3
+          converter: expr.evaluate("return [M0+1,M0+2,M0+3]")
+```
+
+In any case, the number of registers to be written must match the number of values returned by an expression. If 32bit helper is used, the number of registers must be multiplied by two.
 
 ### Adding custom converters
 
