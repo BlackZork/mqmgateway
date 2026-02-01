@@ -260,10 +260,15 @@ class ExprtkConverter : public DataConverter {
         }
 
         void writeUInt32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
-            uint32_t val = exprval;
+            union {
+                int32_t out_value;
+                uint32_t in_value;
+            } CastData;
+
+            CastData.in_value = exprval;
 
             std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(val, mWriteLowFirst, swapBytes, 2)
+                ConverterTools::int32ToRegisters(CastData.out_value, mWriteLowFirst, swapBytes, 2)
             );
 
             ret.appendValue(regdata[0]);
