@@ -227,10 +227,10 @@ Modbus network configuration parameters are listed below:
 
   Additionally, for RTU network the *device* path is checked on the first error and then in small (300ms) time periods. If modbus RTU device is unplugged, then connection is restarted.
 
-  * **watch_period** (optional, timespan, default=10s)
+  * **watch_period** (optional, timespan, default=auto)
 
-  The amount of time after which the connection should be reestablished if there has been no successful execution of a modbus command.
-
+  The amount of time after which the connection should be reestablished if there has been no successful execution of a modbus command in this period. If not set in the configuration, then this value will be automatically set to twice the minimum refresh value for all topics on the given network, but no less than 10 seconds.
+  
 * **slaves** (optional)
   An optional slave list with modbus specific configuration like register groups to poll (see poll groups below) and timing constraints
 
