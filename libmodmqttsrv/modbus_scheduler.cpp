@@ -47,23 +47,6 @@ ModbusScheduler::getRegistersToPoll(
     return ret;
 }
 
-std::shared_ptr<RegisterPoll>
-ModbusScheduler::findRegisterPoll(const MsgRegisterValues& pValues) const {
-
-    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.find(pValues.mSlaveId);
-    if (slave != mRegisterMap.end()) {
-        std::vector<std::shared_ptr<RegisterPoll>>::const_iterator reg_it = std::find_if(
-            slave->second.begin(), slave->second.end(),
-            [&pValues](const std::shared_ptr<RegisterPoll>& item) -> bool { return item->overlaps(pValues); }
-        );
-        if (reg_it != slave->second.end()) {
-            return *reg_it;
-        }
-    }
-
-    return std::shared_ptr<RegisterPoll>();
-}
-
 std::chrono::steady_clock::duration
 ModbusScheduler::getMinPollTime() const {
     std::chrono::steady_clock::duration ret = std::chrono::steady_clock::duration::max();
