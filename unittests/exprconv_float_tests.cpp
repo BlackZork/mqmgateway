@@ -73,4 +73,65 @@ TEST_CASE("exprtk should read float from two registers") {
     }
 }
 
+TEST_CASE("exprtk should write float") {
+    PluginLoader loader("../exprconv/exprconv.so");
+
+    std::shared_ptr<DataConverter> conv(loader.getConverter("evaluate"));
+
+    std::string val("-1.234567");
+    MqttValue input = MqttValue::fromBinary(val.c_str(), val.length());
+
+    ConverterArgValues args(conv->getArgs());
+
+    SECTION("to two registers in ABCD format") {
+
+        args.setArgValue("expression", "M0*1");
+        args.setArgValue("write_as", "flt32");
+
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(input, 2);
+        const ModbusRegisters expected({TestNumbers::Float::AB, TestNumbers::Float::CD});
+
+        REQUIRE(converted.values() == expected.values());
+    }
+
+    SECTION("to two registers in CDAB format") {
+
+        args.setArgValue("expression", "M0*1");
+        args.setArgValue("write_as", "flt32");
+        args.setArgValue("low_first", "true");
+
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(input, 2);
+        const ModbusRegisters expected({TestNumbers::Float::CD, TestNumbers::Float::AB});
+
+        REQUIRE(converted.values() == expected.values());
+    }
+
+    SECTION("to two registers in BADC format") {
+
+        args.setArgValue("expression", "M0*1");
+        args.setArgValue("write_as", "flt32bs");
+
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(input, 2);
+        const ModbusRegisters expected({TestNumbers::Float::BA, TestNumbers::Float::DC});
+
+        REQUIRE(converted.values() == expected.values());
+    }
+
+    SECTION("to two registers in DCBA format") {
+
+        args.setArgValue("expression", "M0*1");
+        args.setArgValue("write_as", "flt32bs");
+        args.setArgValue("low_first", "true");
+
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(input, 2);
+        const ModbusRegisters expected({TestNumbers::Float::DC, TestNumbers::Float::BA});
+
+        REQUIRE(converted.values() == expected.values());
+    }
+}
+
 #endif
