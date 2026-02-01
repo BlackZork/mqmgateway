@@ -94,6 +94,44 @@ TEST_CASE("exprtk should write float") {
 
         REQUIRE(converted.values() == expected.values());
     }
+
+    SECTION("to two registers in CDAB format") {
+
+        args.setArgValue("expression", "M0*1");
+        args.setArgValue("write_as", "flt32");
+        args.setArgValue("low_first", "true");
+
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(input, 2);
+        const ModbusRegisters expected({TestNumbers::Float::CD, TestNumbers::Float::AB});
+
+        REQUIRE(converted.values() == expected.values());
+    }
+
+    SECTION("to two registers in BADC format") {
+
+        args.setArgValue("expression", "M0*1");
+        args.setArgValue("write_as", "flt32bs");
+
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(input, 2);
+        const ModbusRegisters expected({TestNumbers::Float::BA, TestNumbers::Float::DC});
+
+        REQUIRE(converted.values() == expected.values());
+    }
+
+    SECTION("to two registers in DCBA format") {
+
+        args.setArgValue("expression", "M0*1");
+        args.setArgValue("write_as", "flt32bs");
+        args.setArgValue("low_first", "true");
+
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(input, 2);
+        const ModbusRegisters expected({TestNumbers::Float::DC, TestNumbers::Float::BA});
+
+        REQUIRE(converted.values() == expected.values());
+    }
 }
 
 #endif
