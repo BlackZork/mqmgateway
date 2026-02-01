@@ -909,7 +909,7 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
         count: 2
 ```
 
-Writing expression value as 32-bit `int` into two registers in `ABCD` format:
+Writing expression value as 32-bit int (byte order `ABCD`) into two registers (R0=`AB`, R1=`CD`):
 
 ```yaml
   objects:
@@ -922,7 +922,7 @@ Writing expression value as 32-bit `int` into two registers in `ABCD` format:
           converter: expr.evaluate("M0*2/1000", write_as="int32")
 ```
 
-Writing expression value as `float` into two registers in `DCBA` format:
+Writing expression value as float (byte order `ABCD`) into two registers (R0=`DC`, R1=`BA`):
 
 ```yaml
   objects:
@@ -935,7 +935,7 @@ Writing expression value as `float` into two registers in `DCBA` format:
           converter: expr.evaluate("M0*2/1000", write_as="flt32bs", low_first=true)
 ```
 
-Writing multiple return values to separate registers:
+Writing multiple return values to separate registers R0, R1, R2:
 
 ```yaml
   objects:
