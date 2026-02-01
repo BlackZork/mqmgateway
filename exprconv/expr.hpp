@@ -212,17 +212,17 @@ class ExprtkConverter : public DataConverter {
                         throw ConvException(std::string("Conversion failed, value " + std::to_string(val) + " out of range"));
                     ret.appendValue(val);
                 } else if (mWriteAs == "flt32") {
-                    writeInt32(ret, exprval, false);
+                    writeFloat32(ret, exprval, false);
                 } else if (mWriteAs == "flt32bs") {
-                    writeInt32(ret, exprval, true);
+                    writeFloat32(ret, exprval, true);
                 } else if (mWriteAs == "int32") {
-                    writeInt32(ret, (int32_t)exprval, false);
+                    writeInt32(ret, exprval, false);
                 } else if (mWriteAs == "int32bs") {
-                    writeInt32(ret, (int32_t)exprval, true);
+                    writeInt32(ret, exprval, true);
                 } else if (mWriteAs == "uint32") {
-                    writeInt32(ret, (uint32_t)exprval, false);
+                    writeUInt32(ret, exprval, false);
                 } else if (mWriteAs == "uint32bs") {
-                    writeInt32(ret, (uint32_t)exprval, true);
+                    writeUInt32(ret, exprval, true);
                 }
             } catch (const std::exception& ex) {
                 throw ConvException(mWriteAs + " conversion failed: " + ex.what());
@@ -231,7 +231,7 @@ class ExprtkConverter : public DataConverter {
             }
         }
 
-        void writeInt32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
+        void writeFloat32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
             assert(sizeof(float) == sizeof(int32_t));
             union {
                 int32_t out_value;
@@ -247,4 +247,28 @@ class ExprtkConverter : public DataConverter {
             ret.appendValue(regdata[0]);
             ret.appendValue(regdata[1]);
         }
-};
+
+        void writeInt32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
+            int32_t val = exprval;
+
+            std::vector<uint16_t> regdata(
+                ConverterTools::int32ToRegisters(val, mWriteLowFirst, swapBytes, 2)
+            );
+
+            ret.appendValue(regdata[0]);
+            ret.appendValue(regdata[1]);
+        }
+
+        void writeUInt32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
+            uint32_t val = exprval;
+
+            std::vector<uint16_t> regdata(
+                ConverterTools::int32ToRegisters(val, mWriteLowFirst, swapBytes, 2)
+            );
+
+            ret.appendValue(regdata[0]);
+            ret.appendValue(regdata[1]);
+        }
+
+
+    };
