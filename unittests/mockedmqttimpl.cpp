@@ -152,7 +152,7 @@ MockedMqttImpl::waitForFirstPublish(std::chrono::milliseconds timeout) {
         throw MockedMqttException("Cannot find first published topic");
 
     std::string topic = it->first;
-    mPublishedTopics.clear();
+    mPublishedTopics.erase(it);
     spdlog::info("TEST: Got first published topic: [{}]", topic);
     return topic;
 }

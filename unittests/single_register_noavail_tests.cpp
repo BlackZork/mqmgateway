@@ -76,6 +76,7 @@ mqtt:
         server.waitForPublish("test_switch/availability");
         server.waitForPublish("test_switch/state");
         REQUIRE(server.mqttValue("test_switch/state") == "0");
+        REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.disconnectModbusSlave("tcptest", 1);
 
@@ -84,6 +85,9 @@ mqtt:
 
         //server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
         server.connectModbusSlave("tcptest", 1);
+
+        std::string topic = server.waitForFirstPublish(std::chrono::seconds(5));
+        REQUIRE("test_switch/state" == topic);
 
         server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
