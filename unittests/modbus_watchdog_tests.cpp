@@ -144,9 +144,72 @@ mqtt:
         //one or two attempts to reconnect
         REQUIRE(server.getServer().getModbusClient("tcptest").getThread().getWatchdog().getConfig().mWatchPeriod == std::chrono::seconds(20));
     }
-
-
 }
+
+static const std::string config = R"(
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      watchdog:
+        watch_period: 300ms
+mqtt:
+  client_id: mqtt_test
+  refresh: 100ms
+  broker:
+    host: localhost
+  objects:
+    - topic: slave1
+      state:
+        register: tcptest.1.1
+)";
+
+
+    SECTION("should set availability flag if slave is available after reconnection") {
+        MockedModMqttServerThread server(config);
+        server.start();
+
+        server.waitForPublish("slave1/availability");
+        REQUIRE(server.mqttValue("slave1/availability") == "1");
+
+        server.disconnectModbusSlave("tcptest", 1);
+
+        server.waitForPublish("slave1/availability", std::chrono::milliseconds(1000));
+        REQUIRE(server.mqttValue("slave1/availability") == "0");
+
+        server.connectModbusSlave("tcptest", 1);
+        server.getMockedModbusContext("tcptest").waitForInitialPoll(std::chrono::milliseconds(1000));
+
+        std::string topic = server.waitForFirstPublish();
+        REQUIRE(topic == "slave1/state");
+
+        server.waitForPublish("slave1/availability");
+        REQUIRE(server.mqttValue("slave1/availability") == "1");
+
+        server.stop();
+    }
+
+    SECTION("should not set availability flag if slave is not available after reconnection") {
+        MockedModMqttServerThread server(config);
+        server.start();
+
+        server.waitForPublish("slave1/availability");
+        REQUIRE(server.mqttValue("slave1/availability") == "1");
+
+        server.disconnectModbusSlave("tcptest", 1);
+
+        server.waitForPublish("slave1/availability", std::chrono::milliseconds(1000));
+        REQUIRE(server.mqttValue("slave1/availability") == "0");
+
+        server.getMockedModbusContext("tcptest").waitForInitialPoll();
+
+        // make sure that all changes are published after inital poll
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        REQUIRE(server.mqttValue("slave1/availability") == "0");
+
+        server.stop();
+    }
 
 
 } //CASE

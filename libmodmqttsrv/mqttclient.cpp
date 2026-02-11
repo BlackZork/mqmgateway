@@ -216,7 +216,9 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
 
 void
 MqttClient::processModbusNetworkState(const std::string& pNetworkName, bool pIsUp) {
-    std::set<std::shared_ptr<MqttObject>> processed;
+    // wait for initial poll
+    if (pIsUp)
+        return;
 
     for(MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
     {
@@ -224,6 +226,7 @@ MqttClient::processModbusNetworkState(const std::string& pNetworkName, bool pIsU
             continue;
 
         for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
+            std::set<std::shared_ptr<MqttObject>> processed;
             const std::shared_ptr<MqttObject>& optr = *oit;
             if (processed.find(optr) == processed.end()) {
 
