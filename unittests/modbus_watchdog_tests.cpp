@@ -175,10 +175,11 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        server.waitForPublish("slave1/availability");
+        server.waitForPublish("slave1/availability", std::chrono::milliseconds(1000));
         REQUIRE(server.mqttValue("slave1/availability") == "0");
 
         server.connectModbusSlave("tcptest", 1);
+        server.getMockedModbusContext("tcptest").waitForInitialPoll(std::chrono::milliseconds(1000));
 
         std::string topic = server.waitForFirstPublish();
         REQUIRE(topic == "slave1/state");
@@ -198,7 +199,7 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        server.waitForPublish("slave1/availability");
+        server.waitForPublish("slave1/availability", std::chrono::milliseconds(1000));
         REQUIRE(server.mqttValue("slave1/availability") == "0");
 
         server.getMockedModbusContext("tcptest").waitForInitialPoll();
