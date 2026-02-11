@@ -242,7 +242,7 @@ MqttClient::publishAvailabilityChange(const MqttObject& obj) {
     if (obj.getAvailableFlag() == AvailableFlag::NotSet)
         return;
     char msg = obj.getAvailableFlag() == AvailableFlag::True ? '1' : '0';
-    int msgId;
+    spdlog::debug("Publish on topic {}: {}", obj.getAvailabilityTopic(), msg);
     mMqttImpl->publish(obj.getAvailabilityTopic().c_str(), 1, &msg, true);
 }
 
