@@ -322,7 +322,8 @@ The MQTT section contains broker definition and modbus register mappings. Mappin
   
   * **on_change**: publish new MQTT value only if it is different from the last published one.
   * **every_poll**: publish new MQTT value after every modbus register read.
-  * **once**: publish MQTT value only once after the first successful read of modbus registers.
+  * **once**: publish MQTT value only once after the first successful read of modbus registers. You need to restart modmqttd to re-read already published value.
+
 
 * **broker** (required)
 
@@ -422,13 +423,15 @@ A list of topics where modbus values are published to MQTT broker and subscribed
         * initial poll sets initial state, but does not publish it.
         * all subsequent state changes are published with the MQTT RETAIN flag set to false
         * availability topic messages are always published with the MQTT RETAIN flag set to true
-        * if one of registers was unavailable, only the availability flag is published after the first successful read.
+        * if one of state registers was unavailable, only the availability flag is published after the first successful read of state registers.
 
-        This mode guarantees that the subscriber receives only recent changes. State value that 
+        This mode guarantees that the subscriber receives only recent changes. State value that
         was set before the initial poll or during read error period will not be published.
 
         The only one exception is that modmqttd after start will send a zero-byte payload to a topic
         with retain flag set to false - to delete old retained message if any.
+
+      if publish_mode is set to "once", then state is published only once just after initial poll.
 
 ### A *commands* section
 
