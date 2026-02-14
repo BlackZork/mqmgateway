@@ -11,6 +11,7 @@
 #include "libmodmqttsrv/register_poll.hpp"
 #include "libmodmqttsrv/threadutils.hpp"
 
+
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveReadTime = std::chrono::milliseconds(5);
 const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveWriteTime = std::chrono::milliseconds(10);
 

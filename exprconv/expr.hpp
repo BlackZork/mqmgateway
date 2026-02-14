@@ -37,9 +37,6 @@ class ExprtkConverter : public DataConverter {
 
             double ret = mExpression.value();
 
-            if (mPrecision == 0)
-                return MqttValue::fromInt(ret);
-
             return MqttValue::fromDouble(ret, mPrecision);
         }
 
