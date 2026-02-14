@@ -89,8 +89,6 @@ class ModMqtt {
             std::vector<MsgRegisterPollSpecification>& specs
         );
 
-        bool parseAndAddRefresh(std::stack<std::chrono::milliseconds>& values, const YAML::Node& data);
-
         MqttObject parseObject(
             const YAML::Node& pData,
             const std::string& pDefaultNetwork,

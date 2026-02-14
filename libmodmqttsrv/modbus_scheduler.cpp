@@ -19,6 +19,8 @@ ModbusScheduler::getRegistersToPoll(
         {
             const RegisterPoll& reg = **reg_it;
 
+            //TODO check for value for ONCE and remove
+
             auto time_passed = timePoint - reg.mLastRead;
             auto time_to_poll = reg.mRefresh;
 

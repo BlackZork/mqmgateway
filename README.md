@@ -322,6 +322,7 @@ The MQTT section contains broker definition and modbus register mappings. Mappin
   
   * **on_change**: publish new MQTT value only if it is different from the last published one.
   * **every_poll**: publish new MQTT value after every modbus register read.
+  * **once**: publish MQTT value only once after the first successful read of modbus registers.
 
 * **broker** (required)
 
