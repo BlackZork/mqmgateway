@@ -3,7 +3,7 @@
 #include "defaults.hpp"
 #include "yaml_utils.hpp"
 
-TEST_CASE ("When retain") {
+TEST_CASE ("Retain flag") {
 
 TestConfig config(R"(
 modbus:
@@ -22,7 +22,7 @@ mqtt:
         register: tcptest.1.2
 )");
 
-    SECTION("is set to true then initial poll triggers publish") {
+    SECTION("set to true should trigger publish after initial poll") {
         config.mYAML["mqtt"]["refresh"] = "100ms";
         config.mYAML["mqtt"]["objects"][0]["retain"] = "true";
         MockedModMqttServerThread server(config.toString());
@@ -36,10 +36,10 @@ mqtt:
         REQUIRE(dur <  50);
     }
 
-    SECTION("is set to false") {
+    SECTION("set to false") {
         config.mYAML["mqtt"]["objects"][0]["retain"] = "false";
 
-        SECTION("then initial poll triggers null value publish") {
+        SECTION("should trigger null value publish after initial poll") {
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
             server.start();
@@ -53,7 +53,7 @@ mqtt:
             REQUIRE(server.mqttValue("test_sensor/state") == "2");
         }
 
-        SECTION("and publish mode is every_poll then initial poll triggers publish") {
+        SECTION("should trigger state publish after initial poll for every_poll") {
             config.mYAML["mqtt"]["refresh"] = "20ms";
             config.mYAML["mqtt"]["objects"][0]["publish_mode"] = "every_poll";
             MockedModMqttServerThread server(config.toString());
@@ -68,7 +68,7 @@ mqtt:
             REQUIRE(test_count == 3);
         }
 
-        SECTION("then availability change do not publish old value") {
+        SECTION("should not publish state if availability is unset") {
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
             server.start();
@@ -100,7 +100,7 @@ mqtt:
     }
 }
 
-TEST_CASE ("When retain topic is a part of poll group") {
+TEST_CASE ("Retain flag that is a part of poll group") {
 
 TestConfig config(R"(
 modbus:
@@ -129,7 +129,7 @@ mqtt:
         register: tcptest.1.3
 )");
 
-    SECTION("its value should be ignored if related register value is not changed") {
+    SECTION("should not publish state if related register value is not changed") {
         MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
         server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 3);
