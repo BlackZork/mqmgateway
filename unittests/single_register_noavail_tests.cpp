@@ -3,7 +3,9 @@
 #include "mockedserver.hpp"
 #include "defaults.hpp"
 
-static const std::string config = R"(
+TEST_CASE ("Availability flag") {
+
+std::string config = R"(
 modbus:
   networks:
     - name: tcptest
@@ -21,7 +23,7 @@ mqtt:
         register_type: coil
 )";
 
-    TEST_CASE ("Availability flag for noavail register should be set after first read") {
+    SECTION("for noavail register should be set after first read") {
         MockedModMqttServerThread server(config);
         server.start();
         server.waitForPublish("test_switch/state");
@@ -31,14 +33,14 @@ mqtt:
         server.stop();
     }
 
-    TEST_CASE ("After gateway shutdown noavail register availability flag should be unset") {
+    SECTION ("after shutdown should be unset") {
         MockedModMqttServerThread server(config);
         server.start();
         server.stop();
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
     }
 
-    TEST_CASE ("When noavail registers cannot be read availability flag should be unset") {
+    SECTION ("should be unset if register cannot be read") {
         MockedModMqttServerThread server(config);
 
         server.start();
@@ -53,7 +55,7 @@ mqtt:
         server.stop();
     }
 
-    TEST_CASE ("Value should be set before availability") {
+    SECTION ("should be publised after state") {
         MockedModMqttServerThread server(config);
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::BIT, true);
         server.start();
@@ -64,14 +66,11 @@ mqtt:
     }
 
 
-    TEST_CASE ("Availability flag should be set after reconnect") {
-        int secs = 500;
-
+    SECTION ("should be set after reconnect") {
         MockedModMqttServerThread server(config);
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, false);
 
         server.start();
-
 
         server.waitForPublish("test_switch/availability");
         server.waitForPublish("test_switch/state");
@@ -95,4 +94,4 @@ mqtt:
         server.stop();
     }
 
-//TODO TEST_CASE for order: value first, availablity then
+}
