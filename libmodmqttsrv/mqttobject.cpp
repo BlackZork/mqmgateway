@@ -339,6 +339,8 @@ bool
 MqttObject::needStateRepublish() const {
     if (getPublishMode() == PublishMode::ON_CHANGE)
         return false;
+    else if (getPublishMode() == PublishMode::ONCE)
+        return false;
 
     // EVERY_POLL
     // In this mode we cannot trigger publish
