@@ -218,10 +218,18 @@ mqtt:
         MockedModMqttServerThread server(config.toString());
         server.start();
 
+        server.waitForPublish("slave1/availability");
+        REQUIRE(server.mqttValue("slave1/availability") == "1");
+
         server.disconnectModbusSlave("tcptest", 1);
 
-        // make sure that all changes are published after inital poll
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        server.getMockedModbusContext("tcptest").waitForInitialPoll();
+
+        // slave is unavailable, but register was read
+        // once so its value is available until modmqttd is restarted
+        REQUIRE(server.mqttValue("slave1/availability") == "1");
 
         server.stop();
         REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 1);

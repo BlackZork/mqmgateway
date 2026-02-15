@@ -304,7 +304,7 @@ mqtt:
         register_type: input
 )";
 
-TEST_CASE ("Old style poll groups should work as usual") {
+TEST_CASE ("Old style poll groups should work") {
     MockedModMqttServerThread server(old_valid_pg_config);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
 
