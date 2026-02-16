@@ -84,6 +84,8 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         modmqttd::MqttClient* mOwner;
         int mNextMessageId = 0;
 
+        modmqttd::MqttBrokerConfig mConfig;
+
         std::map<std::string, MqttValue> mTopics;
         std::set<std::string> mSubscriptions;
 
@@ -97,4 +99,5 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         moodycamel::BlockingReaderWriterQueue<modmqttd::QueueItem> mThreadQueue;
         std::shared_ptr<std::thread> mThread;
         static void threadLoop(MockedMqttImpl& owner);
+        void stopThread();
 };

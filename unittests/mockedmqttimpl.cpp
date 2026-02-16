@@ -33,29 +33,39 @@ MockedMqttImpl::threadLoop(MockedMqttImpl& owner) {
 void
 MockedMqttImpl::init(modmqttd::MqttClient* owner, const char* clientId) {
     mOwner = owner;
-    mThread.reset(new std::thread(threadLoop, std::ref(*this)));
 }
 
 void
 MockedMqttImpl::connect(const modmqttd::MqttBrokerConfig& config) {
+    mConfig = config;
+    stopThread();
+    mThread.reset(new std::thread(threadLoop, std::ref(*this)));
     mOwner->onConnect();
 }
 
 void
 MockedMqttImpl::reconnect() {
-    mOwner->onConnect();
+    connect(mConfig);
 }
 
 void
 MockedMqttImpl::disconnect() {
+    stopThread();
     mOwner->onDisconnect();
 }
 
 void
+MockedMqttImpl::stopThread() {
+    if (mThread != nullptr) {
+        mThreadQueue.enqueue(modmqttd::QueueItem::create(MsgEndThread()));
+        mThread->join();
+        mThread.reset();
+    }
+}
+
+void
 MockedMqttImpl::stop() {
-    mThreadQueue.enqueue(modmqttd::QueueItem::create(MsgEndThread()));
-    mThread->join();
-    mThread.reset();
+    stopThread();
 }
 
 void
