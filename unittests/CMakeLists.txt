@@ -78,6 +78,8 @@ add_executable(tests
     stdconv_uint32_tests.cpp
     testnumbers.cpp
     testnumbers.hpp
+    timing.cpp
+    timing.hpp
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )

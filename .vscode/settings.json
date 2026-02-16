@@ -86,7 +86,15 @@
         "forward_list": "cpp",
         "ciso646": "cpp",
         "*.inc": "cpp",
-        "text_encoding": "cpp"
+        "text_encoding": "cpp",
+        "print": "cpp",
+        "stack": "cpp",
+        "__bit_reference": "cpp",
+        "__locale": "cpp",
+        "__split_buffer": "cpp",
+        "__verbose_abort": "cpp",
+        "ios": "cpp",
+        "locale": "cpp"
     },
     "cmake.configureOnOpen": true,
     /*
@@ -122,7 +130,8 @@
         "sourceFileMap": "${sourceFileMapObj}",
         "MIMode": "gdb",
         "testMate.cpp.debug.setEnv": {
-            "MQM_TEST_DEFAULT_WAIT_MS": "300000" //5 min
+            "MQM_TEST_DEBUG_WAIT_SEC": "300" //5 min
+            ,"MQM_TEST_TIMING_FACTOR": "100"
           }        
       }  
 }

@@ -5,6 +5,8 @@
 #include "libmodmqttsrv/logging.hpp"
 #include "libmodmqttsrv/threadutils.hpp"
 
+#include "timing.hpp"
+
 int main( int argc, char* argv[] ) {
   modmqttd::ThreadUtils::set_thread_name("utest");
 
@@ -13,6 +15,8 @@ int main( int argc, char* argv[] ) {
       loglevel = static_cast<modmqttd::Log::severity>(std::atoi(env_p) - 1);
   }
   modmqttd::Log::init_logging(loglevel);
+
+  timing::init();
 
   int result = Catch::Session().run( argc, argv );
 
