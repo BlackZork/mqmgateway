@@ -2,8 +2,11 @@
 
 #include "mockedserver.hpp"
 #include "defaults.hpp"
+#include "yaml_utils.hpp"
 
-static const std::string config = R"(
+TEST_CASE ("Availability flag") {
+
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -19,10 +22,10 @@ mqtt:
       state:
         register: tcptest.1.1
         register_type: coil
-)";
+)");
 
-    TEST_CASE ("Availability flag for noavail register should be set after first read") {
-        MockedModMqttServerThread server(config);
+    SECTION("for noavail register should be set after first read") {
+        MockedModMqttServerThread server(config.toString());
         server.start();
         server.waitForPublish("test_switch/state");
         REQUIRE(server.mqttValue("test_switch/state") == "0");
@@ -31,15 +34,15 @@ mqtt:
         server.stop();
     }
 
-    TEST_CASE ("After gateway shutdown noavail register availability flag should be unset") {
-        MockedModMqttServerThread server(config);
+    SECTION ("after shutdown should be unset") {
+        MockedModMqttServerThread server(config.toString());
         server.start();
         server.stop();
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
     }
 
-    TEST_CASE ("When noavail registers cannot be read availability flag should be unset") {
-        MockedModMqttServerThread server(config);
+    SECTION ("should be unset if register cannot be read") {
+        MockedModMqttServerThread server(config.toString());
 
         server.start();
         server.waitForPublish("test_switch/availability");
@@ -53,8 +56,8 @@ mqtt:
         server.stop();
     }
 
-    TEST_CASE ("Value should be set before availability") {
-        MockedModMqttServerThread server(config);
+    SECTION ("should be publised after state") {
+        MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::BIT, true);
         server.start();
         std::string topic = server.waitForFirstPublish();
@@ -64,14 +67,11 @@ mqtt:
     }
 
 
-    TEST_CASE ("Availability flag should be set after reconnect") {
-        int secs = 500;
-
-        MockedModMqttServerThread server(config);
+    SECTION ("should be set after reconnect") {
+        MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, false);
 
         server.start();
-
 
         server.waitForPublish("test_switch/availability");
         server.waitForPublish("test_switch/state");
@@ -94,5 +94,4 @@ mqtt:
 
         server.stop();
     }
-
-//TODO TEST_CASE for order: value first, availablity then
+}

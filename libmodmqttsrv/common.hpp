@@ -23,7 +23,8 @@ namespace modmqttd {
 
 typedef enum {
     ON_CHANGE=1,
-    EVERY_POLL=2
+    EVERY_POLL=2,
+    ONCE=3
 } PublishMode;
 
 }

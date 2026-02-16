@@ -122,6 +122,8 @@ parsePublishMode(const YAML::Node& data, PublishMode pDefault = PublishMode::ON_
         return PublishMode::ON_CHANGE;
     } else if (pmode == "every_poll") {
         return PublishMode::EVERY_POLL;
+    } else if (pmode == "once") {
+        return PublishMode::ONCE;
     }
 
     throw ConfigurationException(data.Mark(), std::string("Invalid publish mode '") + pmode + "', valid values are: on_change, every_poll");

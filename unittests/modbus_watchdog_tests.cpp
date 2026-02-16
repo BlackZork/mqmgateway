@@ -2,6 +2,7 @@
 
 #include "defaults.hpp"
 #include "mockedserver.hpp"
+#include "yaml_utils.hpp"
 
 TEST_CASE ("Modbus watchdog") {
 
@@ -146,7 +147,7 @@ mqtt:
     }
 }
 
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -163,11 +164,11 @@ mqtt:
     - topic: slave1
       state:
         register: tcptest.1.1
-)";
+)");
 
 
-    SECTION("should set availability flag if slave is available after reconnection") {
-        MockedModMqttServerThread server(config);
+    SECTION("should set availability flag if slave is available after reconnect") {
+        MockedModMqttServerThread server(config.toString());
         server.start();
 
         server.waitForPublish("slave1/availability");
@@ -190,8 +191,8 @@ mqtt:
         server.stop();
     }
 
-    SECTION("should not set availability flag if slave is not available after reconnection") {
-        MockedModMqttServerThread server(config);
+    SECTION("should not set availability flag if slave is not available after reconnect") {
+        MockedModMqttServerThread server(config.toString());
         server.start();
 
         server.waitForPublish("slave1/availability");
@@ -209,6 +210,29 @@ mqtt:
         REQUIRE(server.mqttValue("slave1/availability") == "0");
 
         server.stop();
+    }
+
+
+    SECTION("should not read modbus registers after reconnect if publish_mode is set to once") {
+        config.mYAML["mqtt"]["publish_mode"] = "once";
+        MockedModMqttServerThread server(config.toString());
+        server.start();
+
+        server.waitForPublish("slave1/availability");
+        REQUIRE(server.mqttValue("slave1/availability") == "1");
+
+        server.disconnectModbusSlave("tcptest", 1);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        server.getMockedModbusContext("tcptest").waitForInitialPoll();
+
+        // slave is unavailable, but register was read
+        // once so its value is available until modmqttd is restarted
+        REQUIRE(server.mqttValue("slave1/availability") == "1");
+
+        server.stop();
+        REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 1);
     }
 
 

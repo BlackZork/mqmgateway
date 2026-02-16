@@ -18,7 +18,20 @@ MsgRegisterPoll::merge(const MsgRegisterPoll& other) {
         mRefreshMsec = other.mRefreshMsec;
     } else if (other.mRefreshMsec != INVALID_REFRESH && mRefreshMsec > other.mRefreshMsec) {
         mRefreshMsec = other.mRefreshMsec;
-        spdlog::debug("Setting refresh {} on existing register", mRefreshMsec, mRegister);
+        spdlog::debug("Setting refresh {}ms on existing register {}", mRefreshMsec, mRegister);
+    }
+
+    switch(mPublishMode) {
+        case PublishMode::EVERY_POLL:
+            ;; // no change
+        break;
+        case PublishMode::ON_CHANGE:
+            if (other.mPublishMode == PublishMode::EVERY_POLL)
+                mPublishMode = other.mPublishMode;
+        break;
+        case PublishMode::ONCE:
+            mPublishMode = other.mPublishMode;
+        break;
     }
 }
 

@@ -1,8 +1,9 @@
-#include "threadutils.hpp"
 #define CATCH_CONFIG_CONSOLE_WIDTH 300
 #define CATCH_CONFIG_RUNNER
 #include "catch2/catch_all.hpp"
+
 #include "libmodmqttsrv/logging.hpp"
+#include "libmodmqttsrv/threadutils.hpp"
 
 int main( int argc, char* argv[] ) {
   modmqttd::ThreadUtils::set_thread_name("utest");

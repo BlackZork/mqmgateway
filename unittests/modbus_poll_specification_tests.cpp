@@ -127,4 +127,85 @@ TEST_CASE("MsgRegisterPollSpecification merge tests") {
         REQUIRE(specs.mRegisters[1].isSameAs(createPoll(4,8)));
     }
 
+    SECTION("Merging once to on_change should preserve on_change") {
+
+        specs.mRegisters.push_back(createPoll(1,3));
+
+        modmqttd::MsgRegisterPoll op(createPoll(2,4));
+        op.mPublishMode = modmqttd::PublishMode::ONCE;
+        specs.merge(op);
+
+        REQUIRE(specs.mRegisters.size() == 1);
+        REQUIRE(specs.mRegisters.front().mPublishMode == modmqttd::PublishMode::ON_CHANGE);
+    }
+
+    SECTION("Merging once to every_poll should preserve every_poll") {
+
+        modmqttd::MsgRegisterPoll dest(createPoll(2,4));
+        dest.mPublishMode = modmqttd::PublishMode::EVERY_POLL;
+        specs.mRegisters.push_back(dest);
+
+        modmqttd::MsgRegisterPoll op(createPoll(2,4));
+        op.mPublishMode = modmqttd::PublishMode::ONCE;
+        specs.merge(op);
+
+        REQUIRE(specs.mRegisters.size() == 1);
+        REQUIRE(specs.mRegisters.front().mPublishMode == modmqttd::PublishMode::EVERY_POLL);
+    }
+
+    SECTION("Merging every_poll to once should switch to every_poll") {
+
+        modmqttd::MsgRegisterPoll dest(createPoll(2,4));
+        dest.mPublishMode = modmqttd::PublishMode::ONCE;
+        specs.mRegisters.push_back(dest);
+
+        modmqttd::MsgRegisterPoll op(createPoll(2,4));
+        op.mPublishMode = modmqttd::PublishMode::EVERY_POLL;
+        specs.merge(op);
+
+        REQUIRE(specs.mRegisters.size() == 1);
+        REQUIRE(specs.mRegisters.front().mPublishMode == modmqttd::PublishMode::EVERY_POLL);
+    }
+
+    SECTION("Merging on_change to once should switch to on_change") {
+
+        modmqttd::MsgRegisterPoll dest(createPoll(2,4));
+        dest.mPublishMode = modmqttd::PublishMode::ONCE;
+        specs.mRegisters.push_back(dest);
+
+        modmqttd::MsgRegisterPoll op(createPoll(2,4));
+        op.mPublishMode = modmqttd::PublishMode::ON_CHANGE;
+        specs.merge(op);
+
+        REQUIRE(specs.mRegisters.size() == 1);
+        REQUIRE(specs.mRegisters.front().mPublishMode == modmqttd::PublishMode::ON_CHANGE);
+    }
+
+    SECTION("Merging on_change to every_poll should preserve every_poll") {
+
+        modmqttd::MsgRegisterPoll dest(createPoll(2,4));
+        dest.mPublishMode = modmqttd::PublishMode::EVERY_POLL;
+        specs.mRegisters.push_back(dest);
+
+        modmqttd::MsgRegisterPoll op(createPoll(2,4));
+        op.mPublishMode = modmqttd::PublishMode::ON_CHANGE;
+        specs.merge(op);
+
+        REQUIRE(specs.mRegisters.size() == 1);
+        REQUIRE(specs.mRegisters.front().mPublishMode == modmqttd::PublishMode::EVERY_POLL);
+    }
+
+    SECTION("Merging every_poll to on_change should switch to every_poll") {
+
+        modmqttd::MsgRegisterPoll dest(createPoll(2,4));
+        dest.mPublishMode = modmqttd::PublishMode::ON_CHANGE;
+        specs.mRegisters.push_back(dest);
+
+        modmqttd::MsgRegisterPoll op(createPoll(2,4));
+        op.mPublishMode = modmqttd::PublishMode::EVERY_POLL;
+        specs.merge(op);
+
+        REQUIRE(specs.mRegisters.size() == 1);
+        REQUIRE(specs.mRegisters.front().mPublishMode == modmqttd::PublishMode::EVERY_POLL);
+    }
 }

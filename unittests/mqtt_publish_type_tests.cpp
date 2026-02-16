@@ -78,5 +78,16 @@ mqtt:
         REQUIRE(other_count > 2);
 
     }
+
+    SECTION ("is set to once then registers are not refreshed") {
+        config.mYAML["mqtt"]["publish_mode"] = "once";
+        MockedModMqttServerThread server(config.toString());
+        server.start();
+        server.waitForPublish("test_sensor/state");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        server.stop();
+        // both registers should be read once
+        REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    }
 }
 

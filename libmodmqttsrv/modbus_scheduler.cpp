@@ -7,10 +7,11 @@ std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>
 ModbusScheduler::getRegistersToPoll(
     std::chrono::steady_clock::duration& outDuration,
     const std::chrono::time_point<std::chrono::steady_clock>& timePoint
-) {
+) const {
     std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> ret;
 
     outDuration = std::chrono::steady_clock::duration::max();
+
     for(std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::const_iterator slave = mRegisterMap.begin();
         slave != mRegisterMap.end(); slave++)
     {
@@ -18,6 +19,9 @@ ModbusScheduler::getRegistersToPoll(
             reg_it != slave->second.end(); reg_it++)
         {
             const RegisterPoll& reg = **reg_it;
+
+            if (reg.mPublishMode == PublishMode::ONCE && reg.mLastReadOk)
+                continue;
 
             auto time_passed = timePoint - reg.mLastRead;
             auto time_to_poll = reg.mRefresh;
@@ -43,7 +47,6 @@ ModbusScheduler::getRegistersToPoll(
             }
         }
     }
-
     return ret;
 }
 
@@ -63,5 +66,25 @@ ModbusScheduler::getMinPollTime() const {
     }
     return ret;
 }
+
+void
+ModbusScheduler::remove(int pSlaveId, int pRegisterNumber, RegisterType pRegisterType) {
+    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::iterator sit = mRegisterMap.find(pSlaveId);
+    if (sit != mRegisterMap.end()) {
+        auto rit = std::find_if(
+            sit->second.begin(),
+            sit->second.end(),
+            [&pRegisterNumber, pRegisterType](const std::shared_ptr<RegisterPoll>& rpoll)
+            -> bool { return rpoll->mRegister == pRegisterNumber && rpoll->mRegisterType == pRegisterType; }
+        );
+
+        if (rit != sit->second.end()) {
+            sit->second.erase(rit);
+            if (sit->second.empty())
+                mRegisterMap.erase(sit);
+        }
+    }
+}
+
 
 }

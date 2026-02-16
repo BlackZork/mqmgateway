@@ -43,6 +43,7 @@ add_executable(tests
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp
     mqtt_named_scalar_conv_tests.cpp
+    mqtt_once_tests.cpp
     mqtt_poll_groups_tests.cpp
     mqtt_publish_retain_tests.cpp
     mqtt_publish_type_tests.cpp

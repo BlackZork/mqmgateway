@@ -197,9 +197,14 @@ class MqttObject {
 
         void setLastPublishedPayload(const std::string& pVal) {
             mLastPublishedPayload = pVal;
-            mLastPublishTime = std::chrono::steady_clock::now();
         }
+
+        void setLastPublishTime(const std::chrono::steady_clock::time_point& ts) {
+            mLastPublishTime = ts;
+        }
+
         const std::string& getLastPublishedPayload() const { return mLastPublishedPayload; }
+        const std::chrono::steady_clock::time_point& getLastPublishTime() const { return mLastPublishTime; }
 
         void setPublishMode(const PublishMode& pMode, std::chrono::milliseconds pEveryPollRefresh);
 

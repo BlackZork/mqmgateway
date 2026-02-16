@@ -25,12 +25,13 @@ class Mosquitto : public IMqttImpl {
         virtual void disconnect();
 
         virtual void subscribe(const char* topic);
-        virtual void publish(const char* topic, int len, const void* data, bool retain);
+        virtual int publish(const char* topic, int len, const void* data, bool retain);
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);
         virtual void on_log(int level, const char* message);
         virtual void on_message(const struct mosquitto_message *message);
+        virtual void on_publish(int messageId);
         virtual ~Mosquitto();
     private:
         mosquitto *mMosq = NULL;

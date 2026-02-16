@@ -31,13 +31,13 @@ static void on_disconnect_wrapper(struct mosquitto *mosq, void *userdata, int rc
 	m->on_disconnect(rc);
 }
 
-/*
+
 static void on_publish_wrapper(struct mosquitto *mosq, void *userdata, int mid)
 {
 	class Mosquitto *m = (class Mosquitto *)userdata;
 	m->on_publish(mid);
 }
-*/
+
 
 static void on_message_wrapper(struct mosquitto *mosq, void *userdata, const struct mosquitto_message *message)
 {
@@ -136,7 +136,7 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
         mosquitto_connect_callback_set(mMosq, on_connect_wrapper);
         mosquitto_connect_with_flags_callback_set(mMosq, on_connect_with_flags_wrapper);
         mosquitto_disconnect_callback_set(mMosq, on_disconnect_wrapper);
-        //mosquitto_publish_callback_set(mMosq, on_publish_wrapper);
+        mosquitto_publish_callback_set(mMosq, on_publish_wrapper);
         mosquitto_message_callback_set(mMosq, on_message_wrapper);
         //mosquitto_subscribe_callback_set(mMosq, on_subscribe_wrapper);
         //mosquitto_unsubscribe_callback_set(mMosq, on_unsubscribe_wrapper);
@@ -178,10 +178,11 @@ Mosquitto::subscribe(const char* topic) {
     mosquitto_subscribe(mMosq, &msgId, topic, 0);
 }
 
-void
+int
 Mosquitto::publish(const char* topic, int len, const void* data, bool retain) {
     int msgId;
     mosquitto_publish(mMosq, &msgId, topic, len, data, 0, retain);
+    return msgId;
 }
 
 
@@ -195,6 +196,11 @@ void
 Mosquitto::on_connect(int rc) {
     spdlog::info("Connection established");
     mOwner->onConnect();
+}
+
+void
+Mosquitto::on_publish(int messageId) {
+    mOwner->onPublish(messageId);
 }
 
 void
