@@ -41,3 +41,4 @@ mqtt:
     server.requirePublishCount("once_topic/state", 1);
 }
 
+//TODO 2-3 read errors before first successful read, availability check

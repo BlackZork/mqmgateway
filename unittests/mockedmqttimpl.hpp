@@ -7,6 +7,9 @@
 
 #include "libmodmqttsrv/imqttimpl.hpp"
 #include "libmodmqttsrv/logging.hpp"
+#include "libmodmqttsrv/queue_item.hpp"
+
+#include "readerwriterqueue/readerwriterqueue.h"
 
 class MockedMqttException : public modmqttd::ModMqttException {
     public:
@@ -47,6 +50,8 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
             };
     };
     public:
+        MockedMqttImpl();
+
         virtual void init(modmqttd::MqttClient* owner, const char* clientId);
         virtual void connect(const modmqttd::MqttBrokerConfig& config);
         virtual void reconnect();
@@ -54,11 +59,12 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         virtual void stop();
 
         virtual void subscribe(const char* topic);
-        virtual void publish(const char* topic, int len, const void* data, bool retain);
+        virtual int publish(const char* topic, int len, const void* data, bool retain);
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);
         virtual void on_log(int level, const char* message);
+        virtual void on_publish(int messageId);
 
         //unit test tools
         bool waitForSubscription(const char* topic, std::chrono::milliseconds timeout);
@@ -72,8 +78,11 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout);
         //clear all topics and simulate broker disconnection
         void resetBroker();
+
+        virtual ~MockedMqttImpl();
     private:
         modmqttd::MqttClient* mOwner;
+        int mNextMessageId = 0;
 
         std::map<std::string, MqttValue> mTopics;
         std::set<std::string> mSubscriptions;
@@ -84,4 +93,8 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         std::mutex mMutex;
         std::condition_variable mCondition;
+
+        moodycamel::BlockingReaderWriterQueue<modmqttd::QueueItem> mThreadQueue;
+        std::shared_ptr<std::thread> mThread;
+        static void threadLoop(MockedMqttImpl& owner);
 };

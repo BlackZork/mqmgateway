@@ -1,9 +1,39 @@
 #include "mockedmqttimpl.hpp"
+
 #include "libmodmqttsrv/mqttclient.hpp"
+#include "libmodmqttsrv/threadutils.hpp"
+
+struct MsgEndThread {};
+
+struct MsgPublishId {
+    public:
+        MsgPublishId(int id) : mId(id) {}
+        int mId;
+};
+
+MockedMqttImpl::MockedMqttImpl() {
+}
+
+void
+MockedMqttImpl::threadLoop(MockedMqttImpl& owner) {
+    modmqttd::ThreadUtils::set_thread_name("mqttmock");
+    modmqttd::QueueItem item;
+    while (owner.mThreadQueue.wait_dequeue_timed(item, std::chrono::milliseconds(100))) {
+        if (item.isSameAs(typeid(MsgEndThread)))
+            return;
+
+        if (item.isSameAs(typeid(MsgPublishId))) {
+            auto msg = item.getData<MsgPublishId>();
+            std::this_thread::sleep_for(std::chrono::milliseconds(3));
+            owner.on_publish(msg->mId);
+        }
+    }
+}
 
 void
 MockedMqttImpl::init(modmqttd::MqttClient* owner, const char* clientId) {
     mOwner = owner;
+    mThread.reset(new std::thread(threadLoop, std::ref(*this)));
 }
 
 void
@@ -23,7 +53,9 @@ MockedMqttImpl::disconnect() {
 
 void
 MockedMqttImpl::stop() {
-    //nothing to do
+    mThreadQueue.enqueue(modmqttd::QueueItem::create(MsgEndThread()));
+    mThread->join();
+    mThread.reset();
 }
 
 void
@@ -34,7 +66,7 @@ MockedMqttImpl::subscribe(const char* topic) {
     mCondition.notify_all();
 }
 
-void
+int
 MockedMqttImpl::publish(const char* topic, int len, const void* data, bool retain) {
     std::unique_lock<std::mutex> lck(mMutex);
 
@@ -54,8 +86,13 @@ MockedMqttImpl::publish(const char* topic, int len, const void* data, bool retai
         mOwner->onMessage(topic, data, len);
     }
     spdlog::info("TEST: publish {}: <{}>", topic, v.val);
+    mThreadQueue.enqueue(modmqttd::QueueItem::create(MsgPublishId(++mNextMessageId)));
+
+
     mPublishedTopics.insert(std::make_pair(topic, mPublishedTopics.size() + 1));
     mCondition.notify_all();
+
+    return mNextMessageId;
 }
 
 void
@@ -65,8 +102,12 @@ void
 MockedMqttImpl::on_connect(int rc) {}
 
 void
-MockedMqttImpl::on_log(int level, const char* message) {}
+MockedMqttImpl::on_publish(int messageId) {
+    mOwner->onPublish(messageId);
+}
 
+void
+MockedMqttImpl::on_log(int level, const char* message) {}
 
 bool
 MockedMqttImpl::waitForPublish(const char* topic, std::chrono::milliseconds timeout) {
@@ -228,4 +269,7 @@ MockedMqttImpl::mqttNullValue(const char* topic) {
     return data.len == 0;
 }
 
-
+MockedMqttImpl::~MockedMqttImpl() {
+    if (mThread != nullptr)
+        stop();
+}

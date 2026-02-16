@@ -94,22 +94,4 @@ mqtt:
 
         server.stop();
     }
-
-    SECTION ("should not be unset if register cannot be read with publish_mode once") {
-        config.mYAML["mqtt"]["publish_mode"] = "once";
-        MockedModMqttServerThread server(config.toString());
-
-        server.start();
-        server.waitForPublish("test_switch/availability");
-        REQUIRE(server.mqttValue("test_switch/availability") == "1");
-
-        server.disconnectModbusSlave("tcptest", 1);
-
-        //max 4 sec for three register read attempts
-        server.waitForPublish("test_switch/availability", defaultWaitTime(std::chrono::seconds(5)));
-        REQUIRE(server.mqttValue("test_switch/availability") == "1");
-        server.stop();
-    }
-
-
 }

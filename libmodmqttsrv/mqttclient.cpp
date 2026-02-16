@@ -158,7 +158,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
                 // then publish state changes only
                 // if availability is already set to true
                 if (obj->getRetain()) {
-                    publishState(*obj, true);
+                    publishState(obj, true);
                 } else {
                     // delete retained message
                     if (oldAvail == AvailableFlag::NotSet) {
@@ -168,26 +168,45 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
                             obj->setLastPublishedPayload(MqttPayload::generate(*obj));
                     }
                     if (obj->getPublishMode() == PublishMode::EVERY_POLL)
-                        publishState(*obj, true);
+                        publishState(obj, true);
                 }
             }
-
             publishAvailabilityChange(*obj);
         } else {
-            publishState(*obj, obj->needStateRepublish());
+            publishState(obj, obj->needStateRepublish());
         }
     }
 }
 
 void
-MqttClient::publishState(MqttObject& obj, bool force) {
-    if (obj.getAvailableFlag() != AvailableFlag::True)
+MqttClient::publishState(const std::shared_ptr<MqttObject>& obj, bool force) {
+    std::unique_lock<std::mutex> lck(mMqttImplLock);
+
+    if (obj->getAvailableFlag() != AvailableFlag::True)
         return;
-    std::string messageData(MqttPayload::generate(obj));
-    if (messageData != obj.getLastPublishedPayload() || force) {
-        spdlog::debug("Publish on topic {}: {}", obj.getStateTopic(), messageData);
-        mMqttImpl->publish(obj.getStateTopic().c_str(), messageData.length(), messageData.c_str(), obj.getRetain());
-        obj.setLastPublishedPayload(messageData);
+    if (obj->getPublishMode() == PublishMode::ONCE) {
+        if (obj->getLastPublishTime() != std::chrono::steady_clock::time_point::min())
+            return;
+    }
+
+    if (force) {
+        auto pit = std::find_if(
+            mPendingStatePublications.begin(),
+            mPendingStatePublications.end(),
+            [&obj](auto&& pair) -> bool {
+                return pair.second == obj;
+            }
+        );
+        if (pit != mPendingStatePublications.end())
+            force = false;
+    }
+
+    std::string messageData(MqttPayload::generate(*obj));
+    if (messageData != obj->getLastPublishedPayload() || force) {
+        spdlog::debug("Publish on topic {}: {}", obj->getStateTopic(), messageData);
+        int msgId = mMqttImpl->publish(obj->getStateTopic().c_str(), messageData.length(), messageData.c_str(), obj->getRetain());
+        obj->setLastPublishedPayload(messageData);
+        mPendingStatePublications[msgId] = obj;
     }
 }
 
@@ -206,7 +225,7 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
         obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
         AvailableFlag newAvail = obj->getAvailableFlag();
 
-        publishState(*obj);
+        publishState(obj);
 
         if (oldAvail != newAvail) {
             publishAvailabilityChange(*obj);
@@ -259,7 +278,7 @@ MqttClient::publishAll() {
             const std::shared_ptr<MqttObject>& optr = *oit;
             if (published.find(optr) == published.end()) {
                 if ((*oit)->getAvailableFlag() == AvailableFlag::True)
-                    publishState(**oit, true);
+                    publishState(*oit, true);
                 publishAvailabilityChange(**oit);
                 published.insert(*oit);
             }
@@ -286,7 +305,7 @@ void
 MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
     try {
         const MqttObjectCommand& command = findCommand(topic);
-        const std::string network = command.mModbusNetworkName;
+        const std::string& network = command.mModbusNetworkName;
 
         //TODO is is thread safe to iterate on modbus clients from mosquitto callback?
         std::vector<std::shared_ptr<ModbusClient>>::const_iterator it = std::find_if(
@@ -318,6 +337,18 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
     } catch (const ObjectCommandNotFoundException&) {
         spdlog::error("No command for topic {}, dropping message", topic);
     }
+}
+
+void
+MqttClient::onPublish(int messageId) {
+    std::unique_lock<std::mutex> lck(mMqttImplLock);
+    auto pit = mPendingStatePublications.find(messageId);
+    if (pit == mPendingStatePublications.end())
+        return;
+
+    pit->second->setLastPublishTime(std::chrono::steady_clock::now());
+    spdlog::trace("Erasing messageId={}", messageId);
+    mPendingStatePublications.erase(pit);
 }
 
 void

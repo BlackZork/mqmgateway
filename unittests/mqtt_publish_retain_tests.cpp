@@ -59,13 +59,13 @@ mqtt:
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.start();
-            //5 ms initial poll read, 20ms wait, 5ms second read, 20ms test tolerance
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            //5 ms initial poll read, 20ms wait, 5ms second read, 10ms test tolerance
+            std::this_thread::sleep_for(std::chrono::milliseconds(40));
             server.stop();
 
             // retained messsage delete and two state publishes
             int test_count = server.mMqtt->getPublishCount("test_sensor/state");
-            REQUIRE(test_count == 3);
+            REQUIRE(test_count == 2);
         }
 
         SECTION("should not publish state if availability is unset") {

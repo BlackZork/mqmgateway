@@ -18,11 +18,12 @@ class IMqttImpl {
         virtual void stop() = 0;
 
         virtual void subscribe(const char* topic) = 0;
-        virtual void publish(const char* topic, int len, const void* data, bool retain) = 0;
+        virtual int publish(const char* topic, int len, const void* data, bool retain) = 0;
 
         virtual void on_disconnect(int rc) = 0;
         virtual void on_connect(int rc)= 0;
         virtual void on_log(int level, const char* message)= 0;
+        virtual void on_publish(int messageId) = 0;
         virtual ~IMqttImpl() {};
 };
 
