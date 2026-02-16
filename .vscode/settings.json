@@ -94,7 +94,8 @@
         "__split_buffer": "cpp",
         "__verbose_abort": "cpp",
         "ios": "cpp",
-        "locale": "cpp"
+        "locale": "cpp",
+        "__node_handle": "cpp"
     },
     "cmake.configureOnOpen": true,
     /*
