@@ -18,7 +18,7 @@ const std::chrono::milliseconds MockedModbusContext::sDefaultSlaveWriteTime = st
 void
 MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool internalOperation) {
     if (!internalOperation) {
-        std::this_thread::sleep_for(mWriteTime);
+        timing::sleep_for(mWriteTime);
         mWriteCount++;
         if (mDisconnected) {
             errno = EIO;
@@ -68,7 +68,7 @@ MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool inter
 std::vector<uint16_t>
 MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool internalOperation) {
     if (!internalOperation) {
-        std::this_thread::sleep_for(mReadTime);
+        timing::sleep_for(mReadTime);
         mReadCount++;
         if (mDisconnected) {
             errno = EIO;

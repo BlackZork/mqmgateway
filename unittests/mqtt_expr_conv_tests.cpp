@@ -1,7 +1,6 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 #include "testnumbers.hpp"
 

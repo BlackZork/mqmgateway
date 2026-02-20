@@ -1,10 +1,14 @@
-#include "catch2/catch_all.hpp"
+#include <thread>
+#include <catch2/catch_all.hpp>
+
 #include "libmodmqttsrv/modmqtt.hpp"
 
+#include "yaml_utils.hpp"
 #include "mockedserver.hpp"
-#include <thread>
 
-static const std::string config = R"(
+TEST_CASE ("Start and stop real server that cannot connect to anything") {
+
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -43,15 +47,14 @@ mqtt:
         register: tcptest.1.2
         register_type: bit
         available_value: 1
-)";
+)");
 
 
-TEST_CASE ("Start and stop real server that cannot connect to anything") {
-    ModMqttServerThread server(config);
+    ModMqttServerThread server(config.toString());
     server.start();
     // we need to sleep to let mqtt server to start waiting on gHasMessagesCondition
     // in mqtt initial connection loop
     // otherwise stop signal is missed and test will last for 5 seconds
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    timing::sleep_for(std::chrono::milliseconds(50));
     server.stop();
 }

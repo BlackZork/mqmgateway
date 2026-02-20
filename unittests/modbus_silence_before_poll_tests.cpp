@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 
@@ -42,7 +41,7 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
         server.waitForPublish("test_sensor/state");
         auto ptime = server.getLastPollTime() - first_poll_ts;
-        REQUIRE(ptime > std::chrono::milliseconds(15));
+        REQUIRE(ptime > timing::milliseconds(15));
         REQUIRE(server.mqttValue("test_sensor/state") == "2");
 
         server.stop();
@@ -66,7 +65,7 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
         server.waitForPublish("test_sensor/state");
         auto ptime = server.getLastPollTime() - first_poll_ts;
-        REQUIRE(ptime > std::chrono::milliseconds(30));
+        REQUIRE(ptime > timing::milliseconds(30));
         REQUIRE(server.mqttValue("test_sensor/state") == "2");
 
         server.stop();
@@ -87,7 +86,7 @@ mqtt:
         server.waitForPublish("test_sensor/state");
         auto ptime = server.getLastPollTime() - first_poll_ts;
         // add 5ms for poll time, 10ms for code execution
-        REQUIRE(ptime < std::chrono::milliseconds(40));
+        REQUIRE(ptime < timing::milliseconds(40));
         REQUIRE(server.mqttValue("test_sensor/state") == "2");
 
         server.stop();
@@ -108,7 +107,7 @@ mqtt:
         server.waitForPublish("test_sensor/state");
         auto ptime = server.getLastPollTime() - first_poll_ts;
         // add 5ms for poll time
-        REQUIRE(ptime > std::chrono::milliseconds(20));
+        REQUIRE(ptime > timing::milliseconds(20));
         REQUIRE(server.mqttValue("test_sensor/state") == "2");
 
         server.stop();

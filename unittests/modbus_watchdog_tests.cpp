@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 
-#include "defaults.hpp"
 #include "mockedserver.hpp"
 #include "yaml_utils.hpp"
 
@@ -8,7 +7,7 @@ TEST_CASE ("Modbus watchdog") {
 
 SECTION("on TCP network") {
 
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -28,11 +27,11 @@ mqtt:
     - topic: slave2
       state:
         register: tcptest.2.2
-)";
+)");
 
 
     SECTION("should restart connection if no command can be executed") {
-        MockedModMqttServerThread server(config);
+        MockedModMqttServerThread server(config.toString());
         server.start();
 
         server.waitForPublish("slave2/availability");
@@ -41,7 +40,7 @@ mqtt:
         server.disconnectModbusSlave("tcptest", 1);
         server.disconnectModbusSlave("tcptest", 2);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        timing::sleep_for(std::chrono::milliseconds(500));
         server.stop();
 
         //one or two attempts to reconnect
@@ -50,7 +49,7 @@ mqtt:
     }
 
     SECTION("should not restart connection if at least one slave is alive") {
-        MockedModMqttServerThread server(config);
+        MockedModMqttServerThread server(config.toString());
         server.start();
 
         server.waitForPublish("slave2/availability");
@@ -58,7 +57,7 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        timing::sleep_for(std::chrono::milliseconds(1000));
         server.stop();
 
         //no reconnections, slave1 was alive all the time
@@ -68,7 +67,7 @@ mqtt:
 }
 
 SECTION("on RTU network") {
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: rtutest
@@ -91,10 +90,10 @@ mqtt:
     - topic: slave2
       state:
         register: rtutest.2.2
-)";
+)");
 
     SECTION("should close usb serial port if unplugged") {
-        MockedModMqttServerThread server(config);
+        MockedModMqttServerThread server(config.toString());
         server.start();
 
         server.waitForPublish("slave2/availability");
@@ -105,7 +104,7 @@ mqtt:
         server.disconnectModbusSlave("rtutest", 1);
         server.disconnectModbusSlave("rtutest", 2);
 
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        timing::sleep_for(std::chrono::seconds(2));
         server.stop();
 
         //at least one attempt to reconnect
@@ -116,7 +115,7 @@ mqtt:
 }
 
 SECTION("with a long poll time") {
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -135,15 +134,15 @@ mqtt:
       state:
         register: tcptest.2.2
         refresh: 10s
-)";
+)");
 
     SECTION("should sets its duration two times longer than minimum refresh") {
-        MockedModMqttServerThread server(config);
+        MockedModMqttServerThread server(config.toString());
         server.start();
         server.stop();
 
         //one or two attempts to reconnect
-        REQUIRE(server.getServer().getModbusClient("tcptest").getThread().getWatchdog().getConfig().mWatchPeriod == std::chrono::seconds(20));
+        REQUIRE(server.getServer().getModbusClient("tcptest").getThread().getWatchdog().getConfig().mWatchPeriod == timing::seconds(20));
     }
 }
 
@@ -176,11 +175,11 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        server.waitForPublish("slave1/availability", std::chrono::milliseconds(1000));
+        server.waitForPublish("slave1/availability");
         REQUIRE(server.mqttValue("slave1/availability") == "0");
 
         server.connectModbusSlave("tcptest", 1);
-        server.getMockedModbusContext("tcptest").waitForInitialPoll(std::chrono::milliseconds(1000));
+        server.getMockedModbusContext("tcptest").waitForInitialPoll();
 
         std::string topic = server.waitForFirstPublish();
         REQUIRE(topic == "slave1/state");
@@ -200,13 +199,13 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        server.waitForPublish("slave1/availability", std::chrono::milliseconds(1000));
+        server.waitForPublish("slave1/availability");
         REQUIRE(server.mqttValue("slave1/availability") == "0");
 
         server.getMockedModbusContext("tcptest").waitForInitialPoll();
 
         // make sure that all changes are published after inital poll
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        timing::sleep_for(std::chrono::seconds(1));
         REQUIRE(server.mqttValue("slave1/availability") == "0");
 
         server.stop();
@@ -223,7 +222,7 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        timing::sleep_for(std::chrono::milliseconds(500));
 
         server.getMockedModbusContext("tcptest").waitForInitialPoll();
 

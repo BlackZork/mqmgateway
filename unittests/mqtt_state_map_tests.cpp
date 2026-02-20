@@ -1,9 +1,12 @@
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
+#include "yaml_utils.hpp"
 #include "jsonutils.hpp"
-#include "defaults.hpp"
 
-static const std::string config = R"(
+
+TEST_CASE ("Named tuple should update if first component changes") {
+
+    TestConfig config(R"(
 modmqttd:
 modbus:
   networks:
@@ -24,10 +27,9 @@ mqtt:
         - name: sensor2
           register: tcptest.1.3
           register_type: input
-)";
+)");
 
-TEST_CASE ("Named tuple should update if first component changes") {
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 2);
     server.start();

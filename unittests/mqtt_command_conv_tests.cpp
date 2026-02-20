@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 
 static const std::string config_converter = R"(
 modmqttd:

@@ -1,11 +1,11 @@
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
+#include "yaml_utils.hpp"
 #include "jsonutils.hpp"
-#include "defaults.hpp"
 
 TEST_CASE ("Named map should output json map with converted values") {
 
-const std::string config = R"(
+TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -32,10 +32,10 @@ mqtt:
           register: tcptest.1.3
           register_type: input
           converter: std.divide(10,precision=2)
-)";
+)");
 
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1234);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 100);
     server.start();
@@ -47,7 +47,7 @@ mqtt:
 
 TEST_CASE ("Named map should output json map with sublist converted to scalars") {
 
-const std::string config = R"(
+TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -76,9 +76,9 @@ mqtt:
           register_type: input
           count: 2
           converter: std.int32()
-)";
+)");
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 1);
     server.setModbusRegisterValue("tcptest", 2, 4, modmqttd::RegisterType::INPUT, 2);

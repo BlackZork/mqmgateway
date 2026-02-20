@@ -5,8 +5,6 @@ endif()
 find_package(Catch2 REQUIRED)
 
 add_executable(tests
-    defaults.cpp
-    defaults.hpp
     jsonutils.cpp
     jsonutils.hpp
     main.cpp
@@ -16,6 +14,10 @@ add_executable(tests
     mockedmqttimpl.hpp
     mockedserver.hpp
     modbus_utils.hpp
+    testnumbers.cpp
+    testnumbers.hpp
+    timing.cpp
+    timing.hpp
     # tests
     converter_name_parser_tests.cpp
     exprconv_float_tests.cpp
@@ -76,10 +78,6 @@ add_executable(tests
     stdconv_string_tests.cpp
     stdconv_tests.cpp
     stdconv_uint32_tests.cpp
-    testnumbers.cpp
-    testnumbers.hpp
-    timing.cpp
-    timing.hpp
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )

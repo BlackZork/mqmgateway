@@ -44,6 +44,14 @@ timing::milliseconds(int value) {
     return ret;
 }
 
+std::chrono::seconds
+timing::seconds(int value) {
+    std::chrono::seconds ret = std::chrono::seconds(value);
+    ret *= sFactor;
+    return ret;
+}
+
+
 void
 timing::sleep_for(std::chrono::milliseconds value) {
     auto tgtval = value * sFactor;

@@ -8,7 +8,6 @@
 
 #include "mockedmqttimpl.hpp"
 #include "mockedmodbuscontext.hpp"
-#include "defaults.hpp"
 #include "timing.hpp"
 
 #include "catch2/catch_all.hpp"

@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 TEST_CASE ("once should not publish state if register is read by another topic") {

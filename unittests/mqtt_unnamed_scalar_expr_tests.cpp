@@ -1,8 +1,10 @@
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
-#include "defaults.hpp"
+#include "yaml_utils.hpp"
 
-static const std::string config = R"(
+TEST_CASE ("Expression on unnamed scalar should be evaluated") {
+
+TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/exprconv
@@ -24,10 +26,9 @@ mqtt:
         register: tcptest.1.2
         register_type: input
         converter: expr.evaluate("R0 - 65536")
-)";
+)");
 
-TEST_CASE ("Expression on unnamed scalar should be evaluated") {
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     int16_t negative = -20;
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, negative);
     server.start();

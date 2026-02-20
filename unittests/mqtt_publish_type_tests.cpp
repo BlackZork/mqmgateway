@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 TEST_CASE ("When publish_type") {
@@ -30,7 +29,7 @@ mqtt:
         server.start();
         server.waitForPublish("test_sensor/state");
         REQUIRE(server.mqttValue("test_sensor/state") == "1");
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        timing::sleep_for(std::chrono::milliseconds(50));
         server.stop();
         server.requirePublishCount("test_sensor/state", 1);
     }
@@ -42,7 +41,7 @@ mqtt:
         server.start();
         server.waitForPublish("test_sensor/state");
         REQUIRE(server.mqttValue("test_sensor/state") == "1");
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        timing::sleep_for(std::chrono::milliseconds(50));
         server.stop();
         server.requirePublishCount("test_sensor/state", 1);
     }
@@ -54,7 +53,7 @@ mqtt:
         server.start();
         server.waitForPublish("test_sensor/state");
         REQUIRE(server.mqttValue("test_sensor/state") == "1");
-        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+        timing::sleep_for(std::chrono::milliseconds(60));
         server.stop();
         int count = server.mMqtt->getPublishCount("test_sensor/state");
         REQUIRE(count > 2);
@@ -68,7 +67,7 @@ mqtt:
         server.start();
         server.waitForPublish("test_sensor/state");
         REQUIRE(server.mqttValue("test_sensor/state") == "2");
-        std::this_thread::sleep_for(std::chrono::milliseconds(70));
+        timing::sleep_for(std::chrono::milliseconds(70));
         server.stop();
 
         int test_count = server.mMqtt->getPublishCount("test_sensor/state");
@@ -84,7 +83,7 @@ mqtt:
         MockedModMqttServerThread server(config.toString());
         server.start();
         server.waitForPublish("test_sensor/state");
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        timing::sleep_for(std::chrono::milliseconds(50));
         server.stop();
         // both registers should be read once
         REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 2);

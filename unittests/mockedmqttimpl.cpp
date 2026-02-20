@@ -26,7 +26,7 @@ MockedMqttImpl::threadLoop(MockedMqttImpl& owner) {
 
         if (item.isSameAs(typeid(MsgPublishId))) {
             auto msg = item.getData<MsgPublishId>();
-            std::this_thread::sleep_for(std::chrono::milliseconds(3));
+            timing::sleep_for(std::chrono::milliseconds(3));
             owner.on_publish(msg->mId);
         }
     }

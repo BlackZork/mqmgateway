@@ -1,8 +1,10 @@
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
-#include "defaults.hpp"
+#include "yaml_utils.hpp"
 
-static const std::string config = R"(
+TEST_CASE ("Expression on list should evaluate") {
+
+TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/exprconv
@@ -27,10 +29,9 @@ mqtt:
             register_type: input
           - register: tcptest.1.3
             register_type: input
-)";
+)");
 
-TEST_CASE ("Expression on list should evaluate") {
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 10);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, 3);
     server.start();

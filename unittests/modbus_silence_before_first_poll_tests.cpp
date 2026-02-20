@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 
@@ -40,7 +39,7 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 2);
         server.waitForPublish("need_silence/state");
         auto ptime = server.getLastPollTime() - first_poll_ts;
-        REQUIRE(ptime < std::chrono::milliseconds(100));
+        REQUIRE(ptime < timing::milliseconds(100));
         REQUIRE(server.mqttValue("need_silence/state") == "2");
 
         server.stop();
@@ -103,7 +102,7 @@ SECTION("should be respected if slave changes between polls") {
     auto stime = server.getLastPollTime();
     auto ptime = stime - first_poll_ts;
     //5ms poll time + 50ms silence
-    REQUIRE(ptime > std::chrono::milliseconds(50));
+    REQUIRE(ptime > timing::milliseconds(50));
 
     // need_silence was polled before fast_one
     // check last published mqtt value
@@ -143,7 +142,7 @@ SECTION("should be respected if delay_before_command is set") {
     auto ptime = stime - first_poll_ts;
     //5ms poll time + 50ms silence
     //but not 100ms from delay_before_command
-    REQUIRE(ptime > std::chrono::milliseconds(50));
+    REQUIRE(ptime > timing::milliseconds(50));
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 20);
 
     // need_silence was polled again, but after 25 ms
@@ -152,8 +151,8 @@ SECTION("should be respected if delay_before_command is set") {
     server.waitForPublish("need_silence/state");
     ptime = server.getLastPollTime() - stime;
     //5ms poll time + 25ms silence
-    REQUIRE(ptime > std::chrono::milliseconds(25));
-    REQUIRE(ptime < std::chrono::milliseconds(50));
+    REQUIRE(ptime > timing::milliseconds(25));
+    REQUIRE(ptime < timing::milliseconds(50));
 
     server.stop();
 }

@@ -1,7 +1,6 @@
 #include "catch2/catch_all.hpp"
 
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 TEST_CASE ("Availability flag") {
@@ -14,7 +13,7 @@ modbus:
       port: 501
 mqtt:
   client_id: mqtt_test
-  refresh: 1s
+  refresh: 10ms
   broker:
     host: localhost
   objects:
@@ -50,8 +49,7 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        //max 4 sec for three register read attempts
-        server.waitForPublish("test_switch/availability", defaultWaitTime(std::chrono::seconds(5)));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
         server.stop();
     }
@@ -80,16 +78,16 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
 
         //server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
         server.connectModbusSlave("tcptest", 1);
 
-        std::string topic = server.waitForFirstPublish(std::chrono::seconds(5));
+        std::string topic = server.waitForFirstPublish();
         REQUIRE("test_switch/state" == topic);
 
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        server.waitForPublish("test_switch/availability");
         REQUIRE(server.mqttValue("test_switch/availability") == "1");
 
         server.stop();

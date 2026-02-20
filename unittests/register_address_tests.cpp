@@ -1,13 +1,11 @@
-#include "catch2/catch_all.hpp"
-
-#include "config.hpp"
-#include "defaults.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
+#include "yaml_utils.hpp"
 
 using namespace Catch::Matchers;
 
 TEST_CASE ("decimal register address should start from 1") {
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -27,10 +25,10 @@ mqtt:
         register: tcptest.1.2
         register_type: holding
         refresh: 2s
-)";
+)");
 
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.start();
 
     server.waitForPublish("test_switch/state");
@@ -45,7 +43,7 @@ mqtt:
 }
 
 TEST_CASE ("decimal register address should not allow 0") {
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -61,10 +59,10 @@ mqtt:
         register: tcptest.1.0
         register_type: holding
         refresh: 2s
-)";
+)");
 
 
-    MockedModMqttServerThread server(config, false);
+    MockedModMqttServerThread server(config.toString(), false);
     server.start();
     server.stop();
     server.requireException<modmqttd::ConfigurationException>("Use hex address for 0-based");
@@ -73,7 +71,7 @@ mqtt:
 
 
 TEST_CASE ("hex register address should start from 0") {
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -92,10 +90,10 @@ mqtt:
       state:
         register: tcptest.1.0x0
         register_type: holding
-)";
+)");
 
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.start();
 
     server.waitForPublish("test_switch/state");
@@ -115,7 +113,7 @@ mqtt:
 
 
 TEST_CASE ("slave with id=0 should be allowed") {
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -146,9 +144,9 @@ mqtt:
       state:
         register: 0.2
         register_type: holding
-)";
+)");
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     // should not throw config exception
     server.start();
     server.stop();
