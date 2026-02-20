@@ -131,8 +131,7 @@
         "sourceFileMap": "${sourceFileMapObj}",
         "MIMode": "gdb",
         "testMate.cpp.debug.setEnv": {
-            "MQM_TEST_DEBUG_WAIT_SEC": "300" //5 min
-            ,"MQM_TEST_TIMING_FACTOR": "100"
+            "MQM_TEST_TIMING_FACTOR": "100"
           }        
       }  
 }

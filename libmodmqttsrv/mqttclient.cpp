@@ -203,8 +203,8 @@ MqttClient::publishState(const std::shared_ptr<MqttObject>& obj, bool force) {
 
     std::string messageData(MqttPayload::generate(*obj));
     if (messageData != obj->getLastPublishedPayload() || force) {
-        spdlog::debug("Publish on topic {}: {}", obj->getStateTopic(), messageData);
         int msgId = mMqttImpl->publish(obj->getStateTopic().c_str(), messageData.length(), messageData.c_str(), obj->getRetain());
+        spdlog::debug("Publish {} on topic {}: {}", msgId, obj->getStateTopic(), messageData);
         obj->setLastPublishedPayload(messageData);
         mPendingStatePublications[msgId] = obj;
     }

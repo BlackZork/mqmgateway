@@ -3,40 +3,9 @@
 #include <yaml-cpp/yaml.h>
 #include <set>
 
-//https://stackoverflow.com/questions/70426203/iterate-through-all-nodes-in-yaml-cpp-including-recursive-anchor-alias
-class YAMLScalarVisitor {
-    public:
-        using Callback = std::function<void(const std::string&, YAML::Node&)>;
-        YAMLScalarVisitor(Callback cb): mSeen(), cb(cb) {}
+#include "libmodmqttsrv/yaml_converters.hpp"
 
-        void operator()(YAML::Node &cur) {
-            mSeen.push_back(cur);
-            if (cur.IsMap()) {
-                for (YAML::iterator pair = cur.begin(); pair != cur.end(); ++pair) {
-                    mMapKey = pair->first.as<std::string>();
-                    descend(pair->second);
-                }
-            } else if (cur.IsSequence()) {
-                mMapKey.clear();
-                for (YAML::iterator it = cur.begin(); it != cur.end(); ++it)
-                    descend(it->first);
-            } else if (cur.IsScalar()) {
-                if (!mMapKey.empty())
-                    cb(mMapKey, cur);
-                mMapKey.clear();
-            }
-        }
-    private:
-        void descend(YAML::Node &target) {
-            if (std::find(mSeen.begin(), mSeen.end(), target) != mSeen.end())
-                (*this)(target);
-        }
-
-        std::vector<YAML::Node> mSeen;
-        std::string mMapKey;
-        Callback cb;
-};
-
+#include "timing.hpp"
 
 class TestConfig {
     public:
@@ -58,14 +27,16 @@ class TestConfig {
             if (mEmitted)
                 throw new std::logic_error("Cannot emit config twice - use SECTIONs and a config object in TEST_CASE");
 
+            adjustTimings();
+
             YAML::Emitter out;
             out << mYAML;
 
             mEmitted = true;
 
-            adjustTimings();
-
-            return out.c_str();
+            std::string ret(out.c_str());
+            spdlog::trace(ret);
+            return ret;
         }
 
     YAML::Node mYAML;
@@ -75,12 +46,40 @@ class TestConfig {
         bool mEmitted = false;
 
         void adjustTimings() {
-            const std::set<std::string>& tn = mTimeNodes;
-            YAMLScalarVisitor([tn](const std::string& key, YAML::Node &scalar) {
-                if (tn.find(key) != tn.end()) {
-                    //TODO parse and scale
-                    //scalar = YAML::Node("test");
+            if (timing::getFactor() == 1)
+                return;
+            traverse(mYAML, "", mYAML);
+        }
+
+        void traverse(YAML::Node& parent, const std::string& key, YAML::Node& node) {
+            if (node.IsMap()) {
+                for (YAML::iterator it = node.begin(); it != node.end(); ++it) {
+                    traverse(node, it->first.as<std::string>(), it->second);
                 }
-            })(mYAML);
+            }
+            else if (node.IsSequence()) {
+                for (YAML::iterator it = node.begin(); it != node.end(); ++it) {
+                    YAML::Node item(*it);
+                    traverse(node, "", item);
+                }
+            }
+            else if (node.IsScalar()) {
+                const std::set<std::string>& tn = mTimeNodes;
+                if (tn.find(key) != tn.end()) {
+                    const std::regex re("([0-9]+)(ms|s|min)");
+                    std::cmatch matches;
+                    std::string strval = node.as<std::string>();
+
+                    if (!std::regex_match(strval.c_str(), matches, re))
+                        FAIL(strval + " cannot be adjusted");
+
+                    int mval = std::stoi(matches[1]);
+                    std::string unit = matches[2];
+
+                    int aval = mval * timing::getFactor();
+
+                    parent[key] = std::to_string(aval) + unit;
+                }
+            }
         }
 };

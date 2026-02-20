@@ -15,7 +15,7 @@
 #include "libmodmqttsrv/logging.hpp"
 #include "libmodmqttsrv/config.hpp"
 
-#include "defaults.hpp"
+#include "timing.hpp"
 
 class MockedModbusContext : public modmqttd::IModbusContext {
     public:
@@ -74,9 +74,9 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual std::vector<uint16_t> readModbusRegisters(int slaveId, const modmqttd::RegisterPoll& regData);
         virtual void writeModbusRegisters(int slaveId, const modmqttd::RegisterWrite& msg);
         virtual modmqttd::ModbusNetworkConfig::Type getNetworkType() const { return modmqttd::ModbusNetworkConfig::Type::TCPIP; };
-        virtual uint16_t waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout = defaultWaitTime());
+        virtual uint16_t waitForModbusValue(int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout = timing::defaultWait);
         virtual uint16_t getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype);
-        virtual void waitForInitialPoll(std::chrono::milliseconds timeout = defaultWaitTime());
+        virtual void waitForInitialPoll(std::chrono::milliseconds timeout = timing::defaultWait);
 
 
         int getReadCount(int slaveId) const;
@@ -150,7 +150,7 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
 
         void disconnectSerialPortFor(const char* network);
 
-        uint16_t waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout = defaultWaitTime());
+        uint16_t waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout = timing::defaultWait);
     private:
         std::shared_ptr<MockedModbusContext> getOrCreateContext(const char* network);
         std::shared_ptr<MockedModbusContext> findOrReturnFirstContext(const char* network) const;

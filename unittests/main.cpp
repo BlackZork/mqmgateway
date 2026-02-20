@@ -20,7 +20,7 @@ int main( int argc, char* argv[] ) {
 
   int result = Catch::Session().run( argc, argv );
 
-  // global clean-up…
+  // global clean-u u goes here
 
   return result;
 }

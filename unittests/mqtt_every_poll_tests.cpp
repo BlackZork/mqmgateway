@@ -1,6 +1,6 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
+#include "timing.hpp"
 #include "yaml_utils.hpp"
 
 TEST_CASE ("every_poll unnamed list") {
@@ -31,7 +31,7 @@ mqtt:
         server.start();
 
         server.waitForPublish("test_sensor/state");
-        std::this_thread::sleep_for(std::chrono::milliseconds(80));
+        std::this_thread::sleep_for(timing::milliseconds(80));
         server.stop();
         // initial poll + one publish after 50ms
         server.requirePublishCount("test_sensor/state", 2);
@@ -89,7 +89,7 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 2);
         server.start();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(80));
+        timing::sleep_for(std::chrono::milliseconds(80));
         server.stop();
         REQUIRE(server.getPublishCount("test_sensor2/state") >= 4);
     }
