@@ -35,8 +35,8 @@ SECTION ("should issue many write calls if write fails") {
     server.publish("write_fail/set", "7");
 
     // delay before command is 50ms, should try at least 2 times in this period
-    timing::sleep_for(std::chrono::milliseconds(200));
-    //timing::sleep_for(std::chrono::minutes(5));
+    std::this_thread::sleep_for(timing::milliseconds(200));
+    //std::this_thread::sleep_for(timing::minutes(5));
 
 
     server.stop();
@@ -56,7 +56,7 @@ SECTION ("should not issue many write calls if write_retries is zeroed") {
     server.waitForSubscription("write_fail/set");
     server.publish("write_fail/set", "7");
 
-    timing::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(timing::milliseconds(200));
 
     server.stop();
 
@@ -76,7 +76,7 @@ SECTION ("should issue many write calls if write_retries is set on slave level")
     server.waitForSubscription("write_fail/set");
     server.publish("write_fail/set", "7");
 
-    timing::sleep_for(std::chrono::milliseconds(200));
+    std::this_thread::sleep_for(timing::milliseconds(200));
 
     server.stop();
 

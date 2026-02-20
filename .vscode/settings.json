@@ -131,6 +131,7 @@
         "sourceFileMap": "${sourceFileMapObj}",
         "MIMode": "gdb",
         "testMate.cpp.debug.setEnv": {
+            "MQM_TEST_LOGLEVEL": "trace",
             "MQM_TEST_TIMING_FACTOR": "100"
           }        
       }  

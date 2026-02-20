@@ -55,7 +55,7 @@ TEST_CASE("ModbusExecutor for first delay config") {
         REQUIRE(executor.allDone());
 
         //make some silence
-        timing::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(timing::milliseconds(5));
 
         executor.addPollList(registers);
         // reg1 should be polled first because we have silence to use
@@ -64,7 +64,7 @@ TEST_CASE("ModbusExecutor for first delay config") {
         REQUIRE(waitTime > timing::milliseconds(5));
         REQUIRE(!executor.allDone());
 
-        timing::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(timing::milliseconds(10));
         //poll of reg1 after silence
         waitTime = executor.executeNext();
         REQUIRE(waitTime == timing::milliseconds::zero());
@@ -89,14 +89,14 @@ TEST_CASE("ModbusExecutor for first delay config") {
         REQUIRE(!executor.allDone());
 
         //slave changed, reg1 needs 15 ms delay
-        timing::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(timing::milliseconds(20));
 
         waitTime = executor.executeNext();
         REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(1,1));
         REQUIRE(executor.allDone());
 
         //make silence that can acomodate both delays
-        timing::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(timing::milliseconds(30));
 
         executor.addPollList(registers);
         waitTime = executor.executeNext();
@@ -111,7 +111,7 @@ TEST_CASE("ModbusExecutor for first delay config") {
         REQUIRE(!executor.allDone());
 
         //make silence that can acomodate reg1
-        timing::sleep_for(std::chrono::milliseconds(15));
+        std::this_thread::sleep_for(timing::milliseconds(15));
 
         waitTime = executor.executeNext();
         REQUIRE(modbus_factory.getLastReadRegisterAddress() == std::tuple<int, int>(1,1));

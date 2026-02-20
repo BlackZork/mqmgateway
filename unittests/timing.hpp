@@ -14,9 +14,11 @@ class timing {
         static std::chrono::milliseconds defaultWait;
         static std::chrono::milliseconds milliseconds(int value);
         static std::chrono::seconds seconds(int value);
-        static void sleep_for(std::chrono::milliseconds value);
         static double getFactor() { return sFactor; }
         static std::chrono::seconds maxTestTime;
+        static std::chrono::milliseconds substract(std::chrono::time_point<std::chrono::steady_clock> left, std::chrono::time_point<std::chrono::steady_clock> right) {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(left - right);
+        }
     private:
         static double sFactor;
 };

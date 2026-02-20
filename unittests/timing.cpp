@@ -51,12 +51,4 @@ timing::seconds(int value) {
     return ret;
 }
 
-
-void
-timing::sleep_for(std::chrono::milliseconds value) {
-    auto tgtval = value * sFactor;
-    spdlog::trace("Sleeping for {}", tgtval);
-    std::this_thread::sleep_for(tgtval);
-}
-
 std::chrono::milliseconds timing::defaultWait = std::chrono::seconds(5);

@@ -55,6 +55,6 @@ mqtt:
     // we need to sleep to let mqtt server to start waiting on gHasMessagesCondition
     // in mqtt initial connection loop
     // otherwise stop signal is missed and test will last for 5 seconds
-    timing::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(timing::milliseconds(50));
     server.stop();
 }

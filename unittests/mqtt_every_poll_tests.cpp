@@ -31,7 +31,7 @@ mqtt:
         server.start();
 
         server.waitForPublish("test_sensor/state");
-        timing::sleep_for(std::chrono::milliseconds(80));
+        std::this_thread::sleep_for(timing::milliseconds(80));
         server.stop();
         // initial poll + one publish after 50ms
         server.requirePublishCount("test_sensor/state", 2);
@@ -45,7 +45,7 @@ mqtt:
         server.start();
 
         server.waitForPublish("test_sensor/state");
-        timing::sleep_for(std::chrono::milliseconds(80));
+        std::this_thread::sleep_for(timing::milliseconds(80));
         server.stop();
         // should respect 1.2 10ms refresh
         // which gives at least 4 mqtt messages in 80ms
@@ -89,7 +89,7 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 2);
         server.start();
 
-        timing::sleep_for(std::chrono::milliseconds(80));
+        std::this_thread::sleep_for(timing::milliseconds(80));
         server.stop();
         REQUIRE(server.getPublishCount("test_sensor2/state") >= 4);
     }
@@ -102,7 +102,7 @@ mqtt:
         server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 2);
         server.start();
 
-        timing::sleep_for(std::chrono::milliseconds(80));
+        std::this_thread::sleep_for(timing::milliseconds(80));
         server.stop();
         REQUIRE(server.getPublishCount("test_sensor1/state") >= 4);
     }

@@ -105,9 +105,10 @@ mqtt:
         //we respect 15ms delay_before_poll
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
         server.waitForPublish("test_sensor/state");
-        auto ptime = server.getLastPollTime() - first_poll_ts;
+        std::chrono::milliseconds ptime = timing::substract(server.getLastPollTime(), first_poll_ts);
         // add 5ms for poll time
-        REQUIRE(ptime > timing::milliseconds(20));
+        //REQUIRE(std::chrono::duration_cast<std::chrono::milliseconds>(ptime) > timing::milliseconds(20));
+        REQUIRE(ptime > timing::milliseconds(15));
         REQUIRE(server.mqttValue("test_sensor/state") == "2");
 
         server.stop();

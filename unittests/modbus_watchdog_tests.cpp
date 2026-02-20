@@ -40,7 +40,7 @@ mqtt:
         server.disconnectModbusSlave("tcptest", 1);
         server.disconnectModbusSlave("tcptest", 2);
 
-        timing::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(timing::milliseconds(500));
         server.stop();
 
         //one or two attempts to reconnect
@@ -57,7 +57,7 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        timing::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(timing::milliseconds(1000));
         server.stop();
 
         //no reconnections, slave1 was alive all the time
@@ -104,7 +104,7 @@ mqtt:
         server.disconnectModbusSlave("rtutest", 1);
         server.disconnectModbusSlave("rtutest", 2);
 
-        timing::sleep_for(std::chrono::seconds(2));
+        std::this_thread::sleep_for(timing::seconds(2));
         server.stop();
 
         //at least one attempt to reconnect
@@ -205,7 +205,7 @@ mqtt:
         server.getMockedModbusContext("tcptest").waitForInitialPoll();
 
         // make sure that all changes are published after inital poll
-        timing::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(timing::seconds(1));
         REQUIRE(server.mqttValue("slave1/availability") == "0");
 
         server.stop();
@@ -222,7 +222,7 @@ mqtt:
 
         server.disconnectModbusSlave("tcptest", 1);
 
-        timing::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(timing::milliseconds(500));
 
         server.getMockedModbusContext("tcptest").waitForInitialPoll();
 

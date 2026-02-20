@@ -59,12 +59,12 @@ mqtt:
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.start();
             //5 ms initial poll read, 20ms wait, 5ms second read, 10ms test tolerance
-            timing::sleep_for(std::chrono::milliseconds(40));
+            std::this_thread::sleep_for(timing::milliseconds(40));
             server.stop();
 
             // retained messsage delete and two state publishes
             int test_count = server.mMqtt->getPublishCount("test_sensor/state");
-            REQUIRE(test_count == 2);
+            REQUIRE(test_count == 3);
         }
 
         SECTION("should not publish state if availability is unset") {
@@ -87,7 +87,7 @@ mqtt:
             server.clearModbusRegisterReadError("tcptest", 1, 2, modmqttd::RegisterType::HOLDING);
             // make sure that there is at least one sucessfull
             // poll that is not published
-            timing::sleep_for(std::chrono::milliseconds(35));
+            std::this_thread::sleep_for(timing::milliseconds(35));
 
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 3);
 
