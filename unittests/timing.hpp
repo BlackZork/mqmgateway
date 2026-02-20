@@ -5,6 +5,11 @@
 
 class timing {
     public:
+        class milliseconds {
+            public:
+                static std::chrono::milliseconds zero() { return std::chrono::milliseconds::zero(); }
+        };
+
         static void init(double factor=0);
         static std::chrono::milliseconds defaultWait;
         static std::chrono::milliseconds milliseconds(int value);

@@ -16,7 +16,7 @@ int main( int argc, char* argv[] ) {
   }
   modmqttd::Log::init_logging(loglevel);
 
-  timing::init(1);
+  timing::init(100);
 
   int result = Catch::Session().run( argc, argv );
 
