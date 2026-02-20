@@ -28,12 +28,12 @@ TEST_CASE("ModbusExecutor") {
         executor.setupInitialPoll(registers);
 
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(executor.allDone());
 
         executor.addPollList(registers);
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(executor.allDone());
     }
 
@@ -43,7 +43,7 @@ TEST_CASE("ModbusExecutor") {
         auto reg = registers.addPoll(1, 1);
         executor.setupInitialPoll(registers);
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(reg->getValues()[0] == 5);
         REQUIRE(executor.allDone());
     }
@@ -57,12 +57,12 @@ TEST_CASE("ModbusExecutor") {
 
         executor.setupInitialPoll(registers);
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(reg1->getValues()[0] == 5);
         REQUIRE(!executor.allDone());
 
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(reg2->getValues()[0] == 6);
         REQUIRE(executor.allDone());
     }
@@ -76,12 +76,12 @@ TEST_CASE("ModbusExecutor") {
 
         executor.setupInitialPoll(registers);
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(reg1->getValues()[0] == 5);
         REQUIRE(!executor.allDone());
 
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(reg2->getValues()[0] == 60);
         REQUIRE(executor.allDone());
     }
@@ -89,10 +89,10 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should not delay register read on initial poll") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
 
-        auto reg = registers.addPoll(1, 1, std::chrono::milliseconds(5));
+        auto reg = registers.addPoll(1, 1, timing::milliseconds(5));
         executor.setupInitialPoll(registers);
         waitTime = executor.executeNext();
-        REQUIRE(waitTime == std::chrono::milliseconds::zero());
+        REQUIRE(waitTime == timing::milliseconds::zero());
         REQUIRE(reg->getValues()[0] == 5);
         REQUIRE(executor.allDone());
     }
@@ -100,7 +100,7 @@ TEST_CASE("ModbusExecutor") {
     SECTION("after doing initial poll for single register") {
         modbus_factory.setModbusRegisterValue("test",1,1,modmqttd::RegisterType::HOLDING, 5);
 
-        auto reg = registers.addPollDelayed(1, 1, std::chrono::milliseconds(50));
+        auto reg = registers.addPollDelayed(1, 1, timing::milliseconds(50));
         executor.setupInitialPoll(registers);
         waitTime = executor.executeNext();
         REQUIRE(executor.allDone());
@@ -110,30 +110,30 @@ TEST_CASE("ModbusExecutor") {
             // next poll
             executor.addPollList(registers);
             waitTime = executor.executeNext();
-            REQUIRE(waitTime > std::chrono::milliseconds(40));
+            REQUIRE(waitTime > timing::milliseconds(40));
             REQUIRE(!executor.allDone());
 
             //simulate shorter wait than required
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(timing::milliseconds(20));
             waitTime = executor.executeNext();
             REQUIRE(!executor.allDone());
-            REQUIRE(std::chrono::milliseconds::zero() < waitTime);
-            REQUIRE(waitTime < std::chrono::milliseconds(50));
+            REQUIRE(timing::milliseconds::zero() < waitTime);
+            REQUIRE(waitTime < timing::milliseconds(50));
 
             // required silence period reached
-            std::this_thread::sleep_for(std::chrono::milliseconds(40));
+            std::this_thread::sleep_for(timing::milliseconds(40));
             waitTime = executor.executeNext();
-            REQUIRE(waitTime == std::chrono::milliseconds::zero());
+            REQUIRE(waitTime == timing::milliseconds::zero());
             REQUIRE(reg->getValues()[0] == 5);
             REQUIRE(executor.allDone());
         }
 
         SECTION("should not delay register read if there was enough silence time") {
-            std::this_thread::sleep_for(std::chrono::milliseconds(70));
+            std::this_thread::sleep_for(timing::milliseconds(70));
 
             executor.addPollList(registers);
             waitTime = executor.executeNext();
-            REQUIRE(waitTime == std::chrono::milliseconds::zero());
+            REQUIRE(waitTime == timing::milliseconds::zero());
             REQUIRE(reg->getValues()[0] == 5);
             REQUIRE(executor.allDone());
         }
@@ -145,7 +145,7 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 6);
 
         auto reg1 = registers.addPoll(1, 1);
-        auto reg2 = registers.addPollDelayed(2, 20, std::chrono::milliseconds(50));
+        auto reg2 = registers.addPollDelayed(2, 20, timing::milliseconds(50));
 
         executor.setupInitialPoll(registers);
         executor.executeNext(); // 2.20 is polled first because it requires silence
@@ -158,15 +158,15 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",2,20,modmqttd::RegisterType::HOLDING, 60);
 
         SECTION("should poll waiting register with max delay first") {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(timing::milliseconds(100));
             executor.addPollList(registers);
             waitTime = executor.executeNext();
-            REQUIRE(waitTime == std::chrono::milliseconds::zero());
+            REQUIRE(waitTime == timing::milliseconds::zero());
             REQUIRE(reg2->getValues()[0] == 60);
             REQUIRE(!executor.allDone());
 
             waitTime = executor.executeNext();
-            REQUIRE(waitTime == std::chrono::milliseconds::zero());
+            REQUIRE(waitTime == timing::milliseconds::zero());
             REQUIRE(reg1->getValues()[0] == 10);
             REQUIRE(executor.allDone());
         }
@@ -179,7 +179,7 @@ TEST_CASE("ModbusExecutor") {
 
         auto reg1 = registers.addPoll(1, 1);
         auto reg2 = registers.addPoll(2, 20);
-        auto reg3 = registers.addPollDelayed(2, 21, std::chrono::milliseconds(50));
+        auto reg3 = registers.addPollDelayed(2, 21, timing::milliseconds(50));
 
         executor.setupInitialPoll(registers);
         executor.executeNext(); // 2.21 is polled first because it requires silence
@@ -288,7 +288,7 @@ TEST_CASE("ModbusExecutor") {
         modbus_factory.setModbusRegisterValue("test",1,20,modmqttd::RegisterType::HOLDING, 10);
         modbus_factory.setModbusRegisterValue("test",1,21,modmqttd::RegisterType::HOLDING, 20);
         registers.addPoll(1, 1);
-        registers.addPollDelayed(1, 2, std::chrono::milliseconds(50));
+        registers.addPollDelayed(1, 2, timing::milliseconds(50));
         registers.addPoll(1, 3);
 
         // do initial poll
@@ -299,14 +299,14 @@ TEST_CASE("ModbusExecutor") {
         executor.executeNext(); //1,1 or 1,3
 
         // elect 1.2 after enough silence
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(timing::milliseconds(100));
         executor.addPollList(registers);
         REQUIRE(executor.getCommandsLeft() == 6);
         REQUIRE(executor.getWaitingCommand()->getRegister() == 1);
         executor.executeNext(); //1,1
 
         // still polling, should not relect 1,2
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(timing::milliseconds(100));
         executor.addPollList(registers);
         //we do not increase commands left to avoid queue lock if
         //scheduler adds registers quickly
@@ -354,7 +354,7 @@ TEST_CASE("ModbusExecutor") {
     SECTION("should delay retry of last write command") {
         modbus_factory.setModbusRegisterWriteError("test", 1, 1, modmqttd::RegisterType::HOLDING);
 
-        auto cmd(registers.createWriteDelayed(1, 1, 0x3, std::chrono::milliseconds(10)));
+        auto cmd(registers.createWriteDelayed(1, 1, 0x3, timing::milliseconds(10)));
         cmd->setMaxRetryCounts(0,1);
         executor.addWriteCommand(cmd);
 
@@ -364,9 +364,9 @@ TEST_CASE("ModbusExecutor") {
 
         auto delay = executor.executeNext();
         REQUIRE(!executor.allDone());
-        REQUIRE(delay > std::chrono::milliseconds(5));
+        REQUIRE(delay > timing::milliseconds(5));
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(timing::milliseconds(10));
 
         executor.executeNext();
         REQUIRE(executor.allDone());

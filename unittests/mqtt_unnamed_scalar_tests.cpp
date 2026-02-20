@@ -1,8 +1,10 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
+#include "yaml_utils.hpp"
 
-static const std::string config = R"(
+TEST_CASE ("Unnamed scalar should output raw value") {
+
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -18,10 +20,9 @@ mqtt:
       state:
         register: tcptest.1.2
         register_type: input
-)";
+)");
 
-TEST_CASE ("Unnamed scalar should output raw value") {
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 32456);
     server.start();
     // default mocked modbus read time is 5ms per register

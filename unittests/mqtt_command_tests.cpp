@@ -1,8 +1,11 @@
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
-#include "defaults.hpp"
+#include "yaml_utils.hpp"
 
-static const std::string config = R"(
+
+TEST_CASE("Write single register") {
+
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -21,10 +24,10 @@ mqtt:
       state:
         register: tcptest.1.2
         register_type: holding
-)";
+)");
 
-TEST_CASE ("Holding register valid write") {
-    MockedModMqttServerThread server(config);
+SECTION ("holding type") {
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
@@ -40,8 +43,8 @@ TEST_CASE ("Holding register valid write") {
     server.stop();
 }
 
-TEST_CASE ("Coil register valid write") {
-    MockedModMqttServerThread server(config);
+SECTION ("coil type") {
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::COIL, 0);
     server.start();
 
@@ -57,8 +60,8 @@ TEST_CASE ("Coil register valid write") {
     server.stop();
 }
 
-TEST_CASE ("Mqtt invalid value should not crash server") {
-    MockedModMqttServerThread server(config);
+SECTION ("with invalid coil value should not crash server") {
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::COIL, 0);
     server.start();
 
@@ -75,10 +78,12 @@ TEST_CASE ("Mqtt invalid value should not crash server") {
     server.stop();
 }
 
+} //CASE
+
 
 TEST_CASE ("Command topic") {
 
-static const std::string config_subpath = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -97,10 +102,10 @@ mqtt:
       state:
         register: tcptest.1.2
         register_type: holding
-)";
+)");
 
 SECTION("with subpath should map to valid object") {
-    MockedModMqttServerThread server(config_subpath);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
@@ -117,9 +122,9 @@ SECTION("with subpath should map to valid object") {
 }
 
 SECTION("with path in command name should map to valid object") {
-    std::string config = std::regex_replace(config_subpath, std::regex("- name: set"), "- name: command/set");
+    config.mYAML["mqtt"]["objects"][0]["commands"][0]["name"] = "command/set";
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.start();
 
@@ -139,7 +144,8 @@ SECTION("with path in command name should map to valid object") {
 }
 
 
-static const std::string config_multiple = R"(
+TEST_CASE ("Write multiple registers with default converter") {
+TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -166,9 +172,10 @@ mqtt:
         register_type: holding
         count: 2
         converter: std.int32()
-)";
-TEST_CASE ("Write multiple registers with default converter") {
-    MockedModMqttServerThread server(config_multiple);
+)");
+
+
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
     server.start();

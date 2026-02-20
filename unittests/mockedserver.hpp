@@ -8,7 +8,7 @@
 
 #include "mockedmqttimpl.hpp"
 #include "mockedmodbuscontext.hpp"
-#include "defaults.hpp"
+#include "timing.hpp"
 
 #include "catch2/catch_all.hpp"
 
@@ -102,7 +102,7 @@ class MockedModMqttServerThread : public ModMqttServerThread {
             mServer.addConverterPath("../exprconv");
         };
 
-    void waitForSubscription(const char* topic, std::chrono::milliseconds timeout = defaultWaitTime()) {
+    void waitForSubscription(const char* topic, std::chrono::milliseconds timeout = timing::defaultWait) {
         INFO("Checking for subscription on " << topic);
         bool is_subscribed = mMqtt->waitForSubscription(topic, timeout);
         CAPTURE(topic);
@@ -115,11 +115,11 @@ class MockedModMqttServerThread : public ModMqttServerThread {
      * Warning: it will not work if you setModbusRegisterValue() for register
      * that is not in poll specification (not used in any mqtt object config)
      */
-    void waitForInitialPoll(const char* pNetworkName, std::chrono::milliseconds timeout = defaultWaitTime()) {
+    void waitForInitialPoll(const char* pNetworkName, std::chrono::milliseconds timeout = timing::defaultWait) {
         mModbusFactory->getMockedModbusContext(pNetworkName).waitForInitialPoll(timeout);
     }
 
-    void waitForPublish(const char* topic, std::chrono::milliseconds timeout = defaultWaitTime()) {
+    void waitForPublish(const char* topic, std::chrono::milliseconds timeout = timing::defaultWait) {
         INFO("Checking for publish on " << topic);
         bool is_published = mMqtt->waitForPublish(topic, timeout);
         CAPTURE(topic);
@@ -135,7 +135,7 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         return mMqtt->getPublishCount(topic);
     }
 
-    std::string waitForFirstPublish(std::chrono::milliseconds timeout = defaultWaitTime()) {
+    std::string waitForFirstPublish(std::chrono::milliseconds timeout = timing::defaultWait) {
         std::string topic = mMqtt->waitForFirstPublish(timeout);
         INFO("Getting first published topic");
         REQUIRE(!topic.empty());
@@ -146,7 +146,7 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         mMqtt->publish(topic, value.length(), value.c_str(), retain);
     }
 
-    void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = defaultWaitTime()) {
+    void waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout = timing::defaultWait) {
         std::string current  = mMqtt->waitForMqttValue(topic, expected, timeout);
         REQUIRE(current == expected);
     }
@@ -171,7 +171,7 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         return mModbusFactory->getModbusRegisterValue(network, slaveId, regNum, regtype);
     }
 
-    void waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout = defaultWaitTime()) {
+    void waitForModbusValue(const char* network, int slaveId, int regNum, modmqttd::RegisterType regType, uint16_t val, std::chrono::milliseconds timeout = timing::defaultWait) {
         uint16_t current_val = mModbusFactory->waitForModbusValue(network, slaveId, regNum, regType, val, timeout);
         REQUIRE(current_val == val);
     }

@@ -3,6 +3,8 @@
 #include "libmodmqttsrv/mqttclient.hpp"
 #include "libmodmqttsrv/threadutils.hpp"
 
+#include "timing.hpp"
+
 struct MsgEndThread {};
 
 struct MsgPublishId {
@@ -18,13 +20,13 @@ void
 MockedMqttImpl::threadLoop(MockedMqttImpl& owner) {
     modmqttd::ThreadUtils::set_thread_name("mqttmock");
     modmqttd::QueueItem item;
-    while (owner.mThreadQueue.wait_dequeue_timed(item, std::chrono::milliseconds(100))) {
+    while (owner.mThreadQueue.wait_dequeue_timed(item, timing::maxTestTime)) {
         if (item.isSameAs(typeid(MsgEndThread)))
             return;
 
         if (item.isSameAs(typeid(MsgPublishId))) {
             auto msg = item.getData<MsgPublishId>();
-            std::this_thread::sleep_for(std::chrono::milliseconds(3));
+            std::this_thread::sleep_for(timing::milliseconds(3));
             owner.on_publish(msg->mId);
         }
     }
@@ -94,9 +96,10 @@ MockedMqttImpl::publish(const char* topic, int len, const void* data, bool retai
     std::set<std::string>::const_iterator sit = mSubscriptions.find(topic);
     if (sit != mSubscriptions.end()) {
         mOwner->onMessage(topic, data, len);
+    } else {
+        mThreadQueue.enqueue(modmqttd::QueueItem::create(MsgPublishId(++mNextMessageId)));
     }
     spdlog::info("TEST: publish {}: <{}>", topic, v.val);
-    mThreadQueue.enqueue(modmqttd::QueueItem::create(MsgPublishId(++mNextMessageId)));
 
 
     mPublishedTopics.insert(std::make_pair(topic, mPublishedTopics.size() + 1));

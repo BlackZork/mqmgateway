@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 TEST_CASE ("Retain flag") {
@@ -32,8 +31,8 @@ mqtt:
         server.waitForPublish("test_sensor/state");
         // ensure that this was the first poll
         auto end = std::chrono::steady_clock::now();
-        auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - initialPollStart).count();
-        REQUIRE(dur <  50);
+        auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - initialPollStart);
+        REQUIRE(dur <  timing::milliseconds(50));
     }
 
     SECTION("set to false") {
@@ -60,12 +59,12 @@ mqtt:
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.start();
             //5 ms initial poll read, 20ms wait, 5ms second read, 10ms test tolerance
-            std::this_thread::sleep_for(std::chrono::milliseconds(40));
+            std::this_thread::sleep_for(timing::milliseconds(40));
             server.stop();
 
             // retained messsage delete and two state publishes
             int test_count = server.mMqtt->getPublishCount("test_sensor/state");
-            REQUIRE(test_count == 2);
+            REQUIRE(test_count == 3);
         }
 
         SECTION("should not publish state if availability is unset") {
@@ -81,14 +80,14 @@ mqtt:
 
             // do not publish 1 -> 2 change because availability is 0
             server.setModbusRegisterReadError("tcptest", 1, 2, modmqttd::RegisterType::HOLDING);
-            server.waitForPublish("test_sensor/availability", defaultWaitTime() * 4);
+            server.waitForPublish("test_sensor/availability");
             REQUIRE(server.mqttValue("test_sensor/availability") == "0");
 
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.clearModbusRegisterReadError("tcptest", 1, 2, modmqttd::RegisterType::HOLDING);
             // make sure that there is at least one sucessfull
             // poll that is not published
-            std::this_thread::sleep_for(std::chrono::milliseconds(35));
+            std::this_thread::sleep_for(timing::milliseconds(35));
 
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 3);
 

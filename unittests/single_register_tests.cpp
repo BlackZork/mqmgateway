@@ -1,9 +1,11 @@
-#include "catch2/catch_all.hpp"
-
-#include "defaults.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
+#include "yaml_utils.hpp"
 
-static const std::string config = R"(
+//TODO regroup this tests
+TEST_CASE ("Common:s") {
+
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -11,7 +13,7 @@ modbus:
       port: 501
 mqtt:
   client_id: mqtt_test
-  refresh: 1s
+  refresh: 100ms
   broker:
     host: localhost
   objects:
@@ -23,16 +25,16 @@ mqtt:
         register: tcptest.1.2
         register_type: bit
         available_value: 1
-)";
+)");
 
-    TEST_CASE ("Start and stop mocked server without throwing exceptions") {
-        MockedModMqttServerThread server(config);
+    SECTION ("Start and stop mocked server without throwing exceptions") {
+        MockedModMqttServerThread server(config.toString());
         server.start();
         server.stop();
     }
 
-    TEST_CASE ("When modbus network is connected availability flag for registers should be set") {
-        MockedModMqttServerThread server(config);
+    SECTION ("When modbus network is connected availability flag for registers should be set") {
+        MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, false);
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.start();
@@ -41,8 +43,8 @@ mqtt:
         server.stop();
     }
 
-    TEST_CASE ("mqtt availability should be unset for object with bad value in modbus availability register") {
-        MockedModMqttServerThread server(config);
+    SECTION ("mqtt availability should be unset for object with bad value in modbus availability register") {
+        MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, false);
         server.start();
         server.waitForPublish("test_switch/availability");
@@ -50,15 +52,15 @@ mqtt:
         server.stop();
     }
 
-    TEST_CASE ("After gateway shutdown mqtt availability flag should be unset") {
-        MockedModMqttServerThread server(config);
+    SECTION ("After gateway shutdown mqtt availability flag should be unset") {
+        MockedModMqttServerThread server(config.toString());
         server.start();
         server.stop();
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
     }
 
-    TEST_CASE ("When modbus network is connected object state should be published immediately") {
-        MockedModMqttServerThread server(config);
+    SECTION ("When modbus network is connected object state should be published immediately") {
+        MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
         server.start();
@@ -68,8 +70,8 @@ mqtt:
         server.stop();
     }
 
-    TEST_CASE ("When registers cannot be read availability flag should be unset") {
-        MockedModMqttServerThread server(config);
+    SECTION ("When registers cannot be read availability flag should be unset") {
+        MockedModMqttServerThread server(config.toString());
 
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.start();
@@ -79,28 +81,28 @@ mqtt:
         server.disconnectModbusSlave("tcptest", 1);
 
         //max 5 sec for three register read attempts
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        server.waitForPublish("test_switch/availability", timing::seconds(5));
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
         server.stop();
     }
 
-    TEST_CASE ("When registers cannot be read state should not be updated") {
-        MockedModMqttServerThread server(config);
+    SECTION ("When registers cannot be read state should not be updated") {
+        MockedModMqttServerThread server(config.toString());
 
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.disconnectModbusSlave("tcptest", 1);
         server.start();
 
         //max 5 sec for three register read attempts
-        server.waitForPublish("test_switch/availability", std::chrono::seconds(5));
+        server.waitForPublish("test_switch/availability", timing::seconds(5));
         REQUIRE(server.mqttValue("test_switch/availability") == "0");
         server.stop();
 
         server.requirePublishCount("test_switch/state", 0);
     }
 
-    TEST_CASE ("If broker is restarted all mqtt objects should be republished") {
-        MockedModMqttServerThread server(config);
+    SECTION ("If broker is restarted all mqtt objects should be republished") {
+        MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, true);
         server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::COIL, true);
         server.start();
@@ -119,3 +121,5 @@ mqtt:
 
         server.stop();
     }
+
+}

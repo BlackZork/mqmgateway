@@ -1,6 +1,5 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 TEST_CASE ("Write value in write-only configuration should succeed") {
@@ -81,7 +80,7 @@ mqtt:
 
     auto now = std::chrono::steady_clock::now();
     server.publish("test_switch/set1", "7");
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::this_thread::sleep_for(timing::milliseconds(50));
     server.publish("test_switch/set2", "8");
     server.waitForModbusValue("tcptest",2,2, modmqttd::RegisterType::HOLDING, 0x8, std::chrono::milliseconds(70000));
     auto after = std::chrono::steady_clock::now();
@@ -125,10 +124,10 @@ mqtt:
     auto now = std::chrono::steady_clock::now();
     server.publish("test_switch/set", "7");
     server.publish("test_switch/set", "8");
-    server.waitForModbusValue("tcptest",1,2, modmqttd::RegisterType::HOLDING, 0x8, std::chrono::milliseconds(700));
+    server.waitForModbusValue("tcptest",1,2, modmqttd::RegisterType::HOLDING, 0x8, timing::milliseconds(700));
     auto after = std::chrono::steady_clock::now();
 
-    REQUIRE(after - now >= std::chrono::milliseconds(500));
+    REQUIRE(after - now >= timing::milliseconds(500));
 
     server.stop();
 }
@@ -171,10 +170,10 @@ mqtt:
     auto now = std::chrono::steady_clock::now();
     server.publish("test_switch/set1", "7");
     server.publish("test_switch/set2", "8");
-    server.waitForModbusValue("tcptest",2,2, modmqttd::RegisterType::HOLDING, 0x8, std::chrono::milliseconds(700));
+    server.waitForModbusValue("tcptest",2,2, modmqttd::RegisterType::HOLDING, 0x8, timing::milliseconds(700));
     auto after = std::chrono::steady_clock::now();
 
-    REQUIRE(after - now >= std::chrono::milliseconds(500));
+    REQUIRE(after - now >= timing::milliseconds(500));
 
     server.stop();
 }

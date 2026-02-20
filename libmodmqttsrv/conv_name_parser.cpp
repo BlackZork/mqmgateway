@@ -5,8 +5,10 @@
 #include <regex>
 #include <string>
 
-#include "exceptions.hpp"
 #include "libmodmqttconv/convargs.hpp"
+
+#include "exceptions.hpp"
+#include "strutils.hpp"
 
 using namespace std::string_literals;
 
@@ -201,8 +203,11 @@ ConverterSpecification
 ConverterNameParser::parse(const std::string& spec) {
     std::regex re(RE_CONV);
 
+    std::string val(spec);
+    StrUtils::trim(val);
+
     std::cmatch matches;
-    if (!std::regex_match(spec.c_str(), matches, re))
+    if (!std::regex_match(val.c_str(), matches, re))
         throw ConvNameParserException("Supply converter spec in form: plugin.converter(value1, param=value2, …)");
 
     ConverterSpecification ret;
