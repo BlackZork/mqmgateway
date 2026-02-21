@@ -1,6 +1,7 @@
-ARG ALPINE_VERSION=3.22.3
+ARG ALPINE_VERSION=3.23.3
+
 FROM alpine:${ALPINE_VERSION} AS builder
-RUN apk update && apk add --no-cache \
+RUN apk update && apk -v add --no-cache \
       git build-base cmake pkgconf spdlog-dev libmodbus-dev mosquitto-dev yaml-cpp-dev rapidjson-dev catch2-3
 
 ARG EXPRTK_URL=https://github.com/ArashPartow/exprtk/raw/master/exprtk.hpp
@@ -27,7 +28,7 @@ RUN make install
 FROM alpine:${ALPINE_VERSION} AS runtime
 COPY --from=builder /opt/mqmgateway/install/ /usr/
 COPY --from=builder /opt/mqmgateway/source/modmqttd/config.template.yaml /etc/modmqttd/config.yaml
-RUN apk update && apk add --no-cache \
+RUN apk update && apk -v add --no-cache \
   spdlog libmodbus mosquitto yaml-cpp && \
   apk cache purge
 ENTRYPOINT [ "/usr/bin/modmqttd" ]
