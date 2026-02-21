@@ -19,6 +19,13 @@ ModbusWatchdog::init(const ModbusWatchdogConfig& conf) {
     }
 }
 
+void
+ModbusWatchdog::setWatchPeriod(std::chrono::steady_clock::duration pWatchPeriod) {
+    mConfig.mWatchPeriod = pWatchPeriod;
+    spdlog::info("Watchdog period updated to {}",
+        std::chrono::duration_cast<std::chrono::seconds>(mConfig.mWatchPeriod)
+    );
+}
 
 void
 ModbusWatchdog::inspectCommand(const RegisterCommand& command) {

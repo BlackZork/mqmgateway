@@ -5,8 +5,6 @@ endif()
 find_package(Catch2 REQUIRED)
 
 add_executable(tests
-    defaults.cpp
-    defaults.hpp
     jsonutils.cpp
     jsonutils.hpp
     main.cpp
@@ -16,11 +14,17 @@ add_executable(tests
     mockedmqttimpl.hpp
     mockedserver.hpp
     modbus_utils.hpp
+    testnumbers.cpp
+    testnumbers.hpp
+    timing.cpp
+    timing.hpp
     # tests
     converter_name_parser_tests.cpp
-     exprconv_float_tests.cpp
+    exprconv_float_tests.cpp
     exprconv_int32_tests.cpp
     exprconv_tests.cpp
+    exprconv_uint32_tests.cpp
+    exprconv_write_tests.cpp
     modbus_config_tests.cpp
     modbus_executor_tests.cpp
     modbus_executor_single_delay_tests.cpp
@@ -35,11 +39,13 @@ add_executable(tests
     mqtt_command_only_tests.cpp
     mqtt_command_conv_tests.cpp
     mqtt_every_poll_tests.cpp
+    mqtt_expr_conv_tests.cpp
     mqtt_config_tests.cpp
     mqtt_json_conv_tests.cpp
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp
     mqtt_named_scalar_conv_tests.cpp
+    mqtt_once_tests.cpp
     mqtt_poll_groups_tests.cpp
     mqtt_publish_retain_tests.cpp
     mqtt_publish_type_tests.cpp
@@ -72,8 +78,6 @@ add_executable(tests
     stdconv_string_tests.cpp
     stdconv_tests.cpp
     stdconv_uint32_tests.cpp
-    testnumbers.cpp
-    testnumbers.hpp
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )

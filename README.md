@@ -1,6 +1,3 @@
----
-lang: en-US
----
 # MQMGateway - MQTT gateway for modbus networks
 
 A multithreaded C++ service that enables two-way communication and data conversion between multiple [Modbus](http://www.modbus.org/) networks and [MQTT](http://mqtt.org/) clients.
@@ -30,7 +27,7 @@ Main features:
   * support for custom conversion plugins
   * support for conversion in both directions
 * Fast modbus frequency polling, configurable per network, per MQTT object and per register
-* Out of the box compatibility with [HomeAssistant](https://www.home-assistant.io/integrations/mqtt/) and [OpenAI](https://www.openhab.org/addons/bindings/mqtt.generic/) interfaces
+* Out of the box compatibility with [HomeAssistant](https://www.home-assistant.io/integrations/mqtt/) and [OpenHAB](https://www.openhab.org/addons/bindings/mqtt/) interfaces
 
 MQMGateway depends on [libmodbus](https://libmodbus.org/) and [Mosquitto](https://mosquitto.org/) MQTT library. See main [CMakeLists.txt](CMakeLists.txt) for full list of dependencies. It is developed under Linux, but it should be easy to port it to other platforms.
 
@@ -230,10 +227,10 @@ Modbus network configuration parameters are listed below:
 
   Additionally, for RTU network the *device* path is checked on the first error and then in small (300ms) time periods. If modbus RTU device is unplugged, then connection is restarted.
 
-  * **watch_period** (optional, timespan, default=10s)
+  * **watch_period** (optional, timespan, default=auto)
 
-  The amount of time after which the connection should be reestablished if there has been no successful execution of a modbus command.
-
+  The amount of time after which the connection should be reestablished if there has been no successful execution of a modbus command in this period. If not set in the configuration, then this value will be automatically set to twice the minimum refresh value for all topics on the given network, but no less than 10 seconds.
+  
 * **slaves** (optional)
   An optional slave list with modbus specific configuration like register groups to poll (see poll groups below) and timing constraints
 
@@ -325,6 +322,8 @@ The MQTT section contains broker definition and modbus register mappings. Mappin
   
   * **on_change**: publish new MQTT value only if it is different from the last published one.
   * **every_poll**: publish new MQTT value after every modbus register read.
+  * **once**: publish MQTT value only once after the first successful read of modbus registers. You need to restart modmqttd to re-read already published value.
+
 
 * **broker** (required)
 
@@ -424,13 +423,15 @@ A list of topics where modbus values are published to MQTT broker and subscribed
         * initial poll sets initial state, but does not publish it.
         * all subsequent state changes are published with the MQTT RETAIN flag set to false
         * availability topic messages are always published with the MQTT RETAIN flag set to true
-        * if one of registers was unavailable, only the availability flag is published after the first successful read.
+        * if one of state registers was unavailable, only the availability flag is published after the first successful read of state registers.
 
-        This mode guarantees that the subscriber receives only recent changes. State value that 
+        This mode guarantees that the subscriber receives only recent changes. State value that
         was set before the initial poll or during read error period will not be published.
 
         The only one exception is that modmqttd after start will send a zero-byte payload to a topic
         with retain flag set to false - to delete old retained message if any.
+
+      if publish_mode is set to "once", then state is published only once just after initial poll.
 
 ### A *commands* section
 
@@ -854,13 +855,14 @@ When an availability value should be computed from multiple registers:
 Exprtk converter allows using exprtk expression language to convert register data to MQTT value.
 Register values are defined as `R0..Rn` variables.
 
-* **evaluate(expression, precision=-1)**
+* **evaluate(expression, precision=-1, write_as="", low_first=false)**
 
-  Usage: state
+  Usage: state, command
 
-  Evaluates [exprtk expression](http://www.partow.net/programming/exprtk/) with up to 10 registers as variables R0-R9 variables.
-
-  &nbsp;
+  Evaluates [exprtk expression](http://www.partow.net/programming/exprtk/) with:
+  
+  * up to 10 registers as variables R0-R9 variables when used in `state` section.
+  * M0 as MQTT value when used in `commands` section
 
   The following custom functions for 32-bit numbers are supported in the expression.
   `ABCD` means a number composed of the byte array `[A, B, C, D]`,
@@ -878,10 +880,10 @@ Register values are defined as `R0..Rn` variables.
   * `flt32bs(R0, R1)`: Cast to float `ABCD` from `R0` == `BA` and `R1` == `DC`.
   * `flt32bs(R1, R0)`: Cast to float `ABCD` from `R0` == `DC` and `R1` == `BA`.
 
-  &nbsp;
-
   If modbus register contains signed integer data, you can use this cast in the expression:
   * `int16(R0)`: Cast uint16 value from `R0' to int16
+
+  All of the above functions can be used as `write_as` helper to store an expression value in modbus registers during writing. Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`BA`.
 
 #### Examples
 
@@ -910,6 +912,47 @@ Reading the state of a 32-bit float value (byte order `ABCD`) spanning two regis
         register_type: input
         count: 2
 ```
+
+Writing expression value as 32-bit int (byte order `ABCD`) into two registers (R0=`AB`, R1=`CD`):
+
+```yaml
+  objects:
+    - topic: test_state
+      commands:
+      - name: set
+          register: tcptest.1.2
+          register_type: holding
+          count: 2
+          converter: expr.evaluate("M0*2/1000", write_as="int32")
+```
+
+Writing expression value as float (byte order `ABCD`) into two registers (R0=`DC`, R1=`BA`):
+
+```yaml
+  objects:
+    - topic: test_state
+      commands:
+      - name: set
+          register: tcptest.1.2
+          register_type: holding
+          count: 2
+          converter: expr.evaluate("M0*2/1000", write_as="flt32bs", low_first=true)
+```
+
+Writing multiple return values to separate registers R0, R1, R2:
+
+```yaml
+  objects:
+    - topic: test_state
+      commands:
+      - name: set
+          register: tcptest.1.2
+          register_type: coil
+          count: 3
+          converter: expr.evaluate("return [M0+1,M0+2,M0+3]")
+```
+
+In any case, the number of registers to be written must match the number of values returned by an expression. If 32bit helper is used, the number of registers must be multiplied by two.
 
 ### Adding custom converters
 

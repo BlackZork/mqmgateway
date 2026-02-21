@@ -3,6 +3,7 @@
 #include <thread>
 #include "queue_item.hpp"
 #include "mqttobject.hpp"
+#include "modbus_thread.hpp"
 #include "mqttcommand.hpp"
 #include "modbus_messages.hpp"
 #include "../readerwriterqueue/readerwriterqueue.h"
@@ -18,7 +19,7 @@ class ModbusClient {
         moodycamel::BlockingReaderWriterQueue<QueueItem> mFromModbusQueue;
         moodycamel::BlockingReaderWriterQueue<QueueItem> mToModbusQueue;
 
-        void init(const ModbusNetworkConfig& config);
+        void start(const ModbusNetworkConfig& config);
 
         void sendCommand(const MqttObjectCommand& cmd, const ModbusRegisters& reg_values) {
             MsgRegisterValues val(
@@ -44,11 +45,15 @@ class ModbusClient {
 
         void stop();
         ~ModbusClient() { stop(); }
-    private:
-        static void threadLoop(const std::string& pNetworkName, moodycamel::BlockingReaderWriterQueue<QueueItem>& in, moodycamel::BlockingReaderWriterQueue<QueueItem>& out);
 
+        // for unit tests
+        const ModbusThread& getThread() const;
+    private:
+        static void threadLoop(ModbusThread& treadImpl);
         ModbusClient(const ModbusClient&);
-        std::shared_ptr<std::thread> mModbusThread;
+
+        std::unique_ptr<ModbusThread> mThreadImpl;
+        std::shared_ptr<std::thread> mThread;
 };
 
 

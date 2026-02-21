@@ -20,7 +20,6 @@ namespace modmqttd {
                 return mRegisterMap;
             }
 
-            std::shared_ptr<RegisterPoll> findRegisterPoll(const MsgRegisterValues& pValues) const;
             /**
              * Returns map of devices with list of registers, that
              * should be polled now.
@@ -32,7 +31,11 @@ namespace modmqttd {
             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> getRegistersToPoll(
                 std::chrono::steady_clock::duration& outDuration,
                 const std::chrono::time_point<std::chrono::steady_clock>& timePoint
-            );
+            ) const;
+
+            std::chrono::steady_clock::duration getMinPollTime() const;
+
+            void remove(int pSlaveId, int pRegisterNumber, RegisterType pRegisterType);
         private:
             std::map<int, std::vector<std::shared_ptr<RegisterPoll>>> mRegisterMap;
     };

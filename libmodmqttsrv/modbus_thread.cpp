@@ -111,6 +111,13 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
         }
     }
     mExecutor.setupInitialPoll(registerMap);
+
+    if (mWatchdog.getConfig().mAutoWatchPeriod) {
+        // In auto mode do not use shorter priod than default
+        std::chrono::steady_clock::duration watchPeriod = mScheduler.getMinPollTime() * 2;
+        if (mWatchdog.getConfig().mWatchPeriod < watchPeriod)
+            mWatchdog.setWatchPeriod(watchPeriod);
+    }
     //now wait for MqttNetworkState(up)
 }
 
@@ -201,6 +208,7 @@ constructIdleWaitMessage(const std::chrono::steady_clock::duration& idleWaitDura
 void
 ModbusThread::run() {
     try {
+        ThreadUtils::set_thread_name(mNetworkName.c_str());
         spdlog::debug("Modbus thread started");
         const int maxReconnectTime = 60;
         std::chrono::steady_clock::duration idleWaitDuration = std::chrono::steady_clock::duration::max();

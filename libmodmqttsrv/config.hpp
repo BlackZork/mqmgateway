@@ -71,7 +71,10 @@ class ConfigTools {
 
 class ModbusWatchdogConfig {
     public:
-        std::chrono::milliseconds mWatchPeriod = std::chrono::seconds(10);
+        // if true deduce watch period from poll specification
+        // when received from thread
+        bool mAutoWatchPeriod = true;
+        std::chrono::steady_clock::duration mWatchPeriod = std::chrono::seconds(10);
         std::string mDevicePath;
 };
 

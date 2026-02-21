@@ -1,7 +1,6 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 static const std::string config1 = R"(
@@ -150,11 +149,10 @@ TEST_CASE ("Availablity should be changed for all registers in poll group") {
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 10);
     server.setModbusRegisterReadError("tcptest", 1, 1, modmqttd::RegisterType::INPUT);
 
-    //wait for 4sec for three read attempts
-    server.waitForPublish("first_state/availability", defaultWaitTime(std::chrono::milliseconds(4000)));
+    server.waitForPublish("first_state/availability");
     REQUIRE(server.mqttValue("first_state/availability") == "0");
 
-    server.waitForPublish("second_state/availability", defaultWaitTime(std::chrono::milliseconds(4000)));
+    server.waitForPublish("second_state/availability");
     REQUIRE(server.mqttValue("second_state/availability") == "0");
 
     server.stop();
@@ -304,7 +302,7 @@ mqtt:
         register_type: input
 )";
 
-TEST_CASE ("Old style poll groups should work as usual") {
+TEST_CASE ("Old style poll groups should work") {
     MockedModMqttServerThread server(old_valid_pg_config);
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::INPUT, 1);
 

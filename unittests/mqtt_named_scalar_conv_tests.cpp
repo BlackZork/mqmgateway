@@ -1,12 +1,12 @@
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
+#include "yaml_utils.hpp"
 #include "jsonutils.hpp"
-#include "defaults.hpp"
 
 
 TEST_CASE ("Named scalar should output converted value") {
 
-static const std::string config = R"(
+TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -29,10 +29,10 @@ mqtt:
         register: tcptest.1.2
         register_type: input
         converter: std.divide(10,precision=3)
-)";
+)");
 
 
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, 32456);
     server.start();
     // default mocked modbus read time is 5ms per register

@@ -43,6 +43,9 @@ class ModMqtt {
 
         void setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl);
         ~ModMqtt();
+
+        // currently for unit tests only
+        const ModbusClient& getModbusClient(const std::string& networkName) const;
     private:
         struct ModbusInitData {
             std::vector<MsgRegisterPollSpecification> mPollSpecification;
@@ -85,8 +88,6 @@ class ModMqtt {
             PublishMode pCurrentMode,
             std::vector<MsgRegisterPollSpecification>& specs
         );
-
-        bool parseAndAddRefresh(std::stack<std::chrono::milliseconds>& values, const YAML::Node& data);
 
         MqttObject parseObject(
             const YAML::Node& pData,

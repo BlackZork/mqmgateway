@@ -90,7 +90,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true,annotation-index.org.opencontainers.image.description=MQTT gateway for modbus networks
           build-args: |
-            MQM_TEST_DEFAULT_WAIT_MS=400
+            MQM_TEST_TIMING_FACTOR=10
       -
         name: Export digest
         run: |

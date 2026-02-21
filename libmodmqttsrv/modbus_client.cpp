@@ -1,35 +1,38 @@
 #include "common.hpp"
 #include "modbus_client.hpp"
-#include "modbus_thread.hpp"
 #include "modbus_messages.hpp"
 #include "threadutils.hpp"
 
 namespace modmqttd {
 
 void
-ModbusClient::init(const ModbusNetworkConfig& config) {
+ModbusClient::start(const ModbusNetworkConfig& config) {
     mNetworkName = config.mName;
-    mModbusThread.reset(new std::thread(threadLoop, std::ref(mNetworkName), std::ref(mToModbusQueue), std::ref(mFromModbusQueue)));
+    mThreadImpl.reset(new ModbusThread(config.mName, mToModbusQueue, mFromModbusQueue));
+    mThread.reset(new std::thread(threadLoop, std::ref(*mThreadImpl)));
     mToModbusQueue.enqueue(QueueItem::create(config));
 };
 
 void ModbusClient::stop() {
-    if (mModbusThread != nullptr) {
+    if (mThread != nullptr) {
         mToModbusQueue.enqueue(QueueItem::create(EndWorkMessage()));
-        mModbusThread->join();
-        mModbusThread.reset();
+        mThread->join();
+        mThread.reset();
     }
 };
 
 void
-ModbusClient::threadLoop(
-    const std::string& pNetworkName,
-    moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
-    moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
+ModbusClient::threadLoop(ModbusThread& threadImpl)
 {
-    ThreadUtils::set_thread_name(pNetworkName.c_str());
-    ModbusThread thread(pNetworkName, toModbusQueue, fromModbusQueue);
-    thread.run();
+    threadImpl.run();
 };
+
+const ModbusThread&
+ModbusClient::getThread() const {
+    if (mThreadImpl == nullptr)
+        throw std::logic_error("Modbus thread not created yet");
+    return *mThreadImpl;
+}
+
 
 }; //namespace

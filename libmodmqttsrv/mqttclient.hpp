@@ -38,11 +38,6 @@ class MqttClient {
         void addCommand(const MqttObjectCommand& pCommand);
         const std::map<std::string, MqttObjectCommand>& getCommands() const { return mCommands; }
 
-        //publish all data after broker is reconnected
-        void publishAll();
-        void publishState(MqttObject& obj, bool force=false);
-        void publishAvailabilityChange(const MqttObject& obj);
-
         void processRegisterValues(const std::string& modbusNetworkName, const MsgRegisterValues& values);
         void processRegistersOperationFailed(const std::string& modbusNetworkName, const ModbusSlaveAddressRange& values);
         void processModbusNetworkState(const std::string& modbusNetworkName, bool isUp);
@@ -51,10 +46,17 @@ class MqttClient {
         void onDisconnect();
         void onConnect();
         void onMessage(const char* topic, const void* payload, int payload_len);
+        void onPublish(int messageId) {}
 
         //for unit tests
         void setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl) { mMqttImpl = impl; }
     private:
+        //publish all data after broker is reconnected
+        void publishAll();
+        void publishState(const std::shared_ptr<MqttObject>&, bool force=false);
+        void publishAvailabilityChange(const MqttObject& obj);
+
+
         std::shared_ptr<IMqttImpl> mMqttImpl;
 
         void subscribeToCommandTopic(const std::string& objectName, const MqttObjectCommand& cmd);

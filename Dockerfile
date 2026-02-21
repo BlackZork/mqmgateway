@@ -19,8 +19,8 @@ RUN cmake \
 WORKDIR /opt/mqmgateway/build
 RUN make -j$(nproc)
 ARG MQM_TEST_ALLOW_FAILURE=false
-ARG MQM_TEST_DEFAULT_WAIT_MS
-ARG MQM_TEST_LOGLEVEL=3
+ARG MQM_TEST_TIMING_FACTOR
+ARG MQM_TEST_LOGLEVEL=info
 RUN if [ -z "${MQM_TEST_SKIP}" ]; then cd unittests; ./tests || [ "${MQM_TEST_ALLOW_FAILURE}" = "true" ]; fi
 RUN make install
 

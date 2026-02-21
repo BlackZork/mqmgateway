@@ -122,6 +122,8 @@ parsePublishMode(const YAML::Node& data, PublishMode pDefault = PublishMode::ON_
         return PublishMode::ON_CHANGE;
     } else if (pmode == "every_poll") {
         return PublishMode::EVERY_POLL;
+    } else if (pmode == "once") {
+        return PublishMode::ONCE;
     }
 
     throw ConfigurationException(data.Mark(), std::string("Invalid publish mode '") + pmode + "', valid values are: on_change, every_poll");
@@ -157,7 +159,7 @@ ModMqtt::init(int logLevelNum, const std::string& configPath) {
     modmqttd::Log::init_logging(level);
     spdlog::info("Modmqttd {} is starting", FULL_VERSION);
 
-    ThreadUtils::set_thread_name("modmqtt");
+    ThreadUtils::set_thread_name("modmqttd");
     std::string targetPath(configPath);
     if (configPath.empty()) {
         spdlog::warn("No config path, trying to read config.yaml from working directory");
@@ -403,7 +405,7 @@ ModMqtt::initModbusClients(const YAML::Node& config) {
 
         //initialize modbus thread
         std::shared_ptr<ModbusClient> modbus(new ModbusClient());
-        modbus->init(modbus_config);
+        modbus->start(modbus_config);
         mModbusClients.push_back(modbus);
 
         MsgRegisterPollSpecification spec(modbus_config.mName);
@@ -1007,6 +1009,20 @@ ModMqtt::setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl) {
 void
 ModMqtt::setModbusContextFactory(const std::shared_ptr<IModbusFactory>& factory) {
     mModbusFactory = factory;
+}
+
+const ModbusClient&
+ModMqtt::getModbusClient(const std::string& networkName) const {
+    std::vector<std::shared_ptr<ModbusClient>>::const_iterator it = std::find_if(mModbusClients.begin(),
+        mModbusClients.end(),
+        [&networkName](const std::shared_ptr<ModbusClient>& client)
+            -> bool { return client->mNetworkName == networkName; }
+    );
+
+    if (it == mModbusClients.end())
+        throw std::invalid_argument("Modbus client for network"s + networkName + " not found");
+
+    return **it;
 }
 
 ModMqtt::~ModMqtt() {

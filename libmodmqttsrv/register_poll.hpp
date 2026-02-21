@@ -65,7 +65,10 @@ class RegisterPoll : public RegisterCommand {
         virtual bool executedOk() const { return mLastReadOk; };
 
 
-        void update(const std::vector<uint16_t> newValues) { mLastValues = newValues; mCount = newValues.size(); }
+        void update(const std::vector<uint16_t>& newValues) {
+            mLastValues = newValues;
+            mCount = newValues.size();
+        }
 
         std::chrono::steady_clock::duration mRefresh;
 

@@ -1,10 +1,11 @@
-#include "catch2/catch_all.hpp"
+#include <catch2/catch_all.hpp>
+
 #include "mockedserver.hpp"
-#include "defaults.hpp"
+#include "yaml_utils.hpp"
 
-#include <yaml-cpp/yaml.h>
+TEST_CASE ("Register id specified as hex should be parsed") {
 
-static const std::string config = R"(
+TestConfig config(R"(
 modbus:
   networks:
     - name: tcptest
@@ -27,11 +28,10 @@ mqtt:
       state:
         register: 0xf
         register_type: input
-)";
+)");
 
 
-TEST_CASE ("Register id specified as hex should be parsed") {
-    MockedModMqttServerThread server(config);
+    MockedModMqttServerThread server(config.toString());
     server.start();
     server.stop();
     return;

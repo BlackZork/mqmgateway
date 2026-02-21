@@ -1,7 +1,6 @@
 #include "catch2/catch_all.hpp"
 #include "mockedserver.hpp"
 #include "jsonutils.hpp"
-#include "defaults.hpp"
 #include "yaml_utils.hpp"
 
 TEST_CASE ("Unnamed state list without register value") {
@@ -35,7 +34,7 @@ SECTION ("should not be available") {
     server.start();
 
     //wait for 4sec for three read attempts
-    server.waitForPublish("test_state/availability", defaultWaitTime(std::chrono::milliseconds(4000)));
+    server.waitForPublish("test_state/availability");
     REQUIRE(server.mqttValue("test_state/availability") == "0");
     server.stop();
 }
