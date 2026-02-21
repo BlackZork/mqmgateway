@@ -46,7 +46,7 @@ class MqttClient {
         void onDisconnect();
         void onConnect();
         void onMessage(const char* topic, const void* payload, int payload_len);
-        void onPublish(int messageId);
+        void onPublish(int messageId) {}
 
         //for unit tests
         void setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl) { mMqttImpl = impl; }
@@ -80,11 +80,6 @@ class MqttClient {
          * MqttObject can be a member of multiple lists on this map
         */
         MqttPollObjMap mObjects;
-
-        // mosquitto message id -> published MqttObject
-        std::map<int, std::shared_ptr<MqttObject>> mPendingStatePublications;
-
-        std::mutex mMqttImplLock;
 
         /**
          * Direct relation between command and objects that poll the

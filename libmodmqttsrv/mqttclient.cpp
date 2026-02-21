@@ -147,58 +147,48 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
         return;
     }
 
-    for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
-        AvailableFlag oldAvail = obj->getAvailableFlag();
-        obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
-        AvailableFlag newAvail = obj->getAvailableFlag();
+    try {
+        for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
+            AvailableFlag oldAvail = obj->getAvailableFlag();
+            obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
+            AvailableFlag newAvail = obj->getAvailableFlag();
 
-        if (oldAvail != newAvail) {
-            if (newAvail == AvailableFlag::True) {
-                // if object is not retained
-                // then publish state changes only
-                // if availability is already set to true
-                if (obj->getRetain()) {
-                    publishState(obj, true);
-                } else {
-                    // delete retained message
-                    if (oldAvail == AvailableFlag::NotSet) {
-                        mMqttImpl->publish(obj->getStateTopic().c_str(), 0, NULL, true);
-                        // remember initial payload for comparsion with subsequent modbus data updates
-                        if (!obj->getRetain())
-                            obj->setLastPublishedPayload(MqttPayload::generate(*obj));
-                    }
-                    if (obj->getPublishMode() == PublishMode::EVERY_POLL)
+            if (oldAvail != newAvail) {
+                if (newAvail == AvailableFlag::True) {
+                    // if object is not retained
+                    // then publish state changes only
+                    // if availability is already set to true
+                    if (obj->getRetain()) {
                         publishState(obj, true);
+                    } else {
+                        // delete retained message
+                        if (oldAvail == AvailableFlag::NotSet) {
+                            mMqttImpl->publish(obj->getStateTopic().c_str(), 0, NULL, true);
+                            // remember initial payload for comparsion with subsequent modbus data updates
+                            if (!obj->getRetain())
+                                obj->setLastPublishedPayload(MqttPayload::generate(*obj));
+                        }
+                        if (obj->getPublishMode() == PublishMode::EVERY_POLL)
+                            publishState(obj, true);
+                    }
                 }
+                publishAvailabilityChange(*obj);
+            } else {
+                publishState(obj, obj->needStateRepublish());
             }
-            publishAvailabilityChange(*obj);
-        } else {
-            publishState(obj, obj->needStateRepublish());
         }
+    } catch (const MosquittoException& ex) {
+        spdlog::error("Failed to publish mqtt state message: {}", ex.what());
     }
 }
 
 void
 MqttClient::publishState(const std::shared_ptr<MqttObject>& obj, bool force) {
-    std::unique_lock<std::mutex> lck(mMqttImplLock);
-
     if (obj->getAvailableFlag() != AvailableFlag::True)
         return;
     if (obj->getPublishMode() == PublishMode::ONCE) {
         if (obj->getLastPublishTime() != std::chrono::steady_clock::time_point::min())
             return;
-    }
-
-    if (force) {
-        auto pit = std::find_if(
-            mPendingStatePublications.begin(),
-            mPendingStatePublications.end(),
-            [&obj](auto&& pair) -> bool {
-                return pair.second == obj;
-            }
-        );
-        if (pit != mPendingStatePublications.end())
-            force = false;
     }
 
     std::string messageData(MqttPayload::generate(*obj));
@@ -207,7 +197,6 @@ MqttClient::publishState(const std::shared_ptr<MqttObject>& obj, bool force) {
         spdlog::debug("Publish {} on topic {}: {}", msgId, obj->getStateTopic(), messageData);
         obj->setLastPublishedPayload(messageData);
         obj->setLastPublishTime(std::chrono::steady_clock::now());
-        mPendingStatePublications[msgId] = obj;
     }
 }
 
@@ -264,9 +253,13 @@ void
 MqttClient::publishAvailabilityChange(const MqttObject& obj) {
     if (obj.getAvailableFlag() == AvailableFlag::NotSet)
         return;
-    char msg = obj.getAvailableFlag() == AvailableFlag::True ? '1' : '0';
-    spdlog::debug("Publish on topic {}: {}", obj.getAvailabilityTopic(), msg);
-    mMqttImpl->publish(obj.getAvailabilityTopic().c_str(), 1, &msg, true);
+    try {
+        char msg = obj.getAvailableFlag() == AvailableFlag::True ? '1' : '0';
+        mMqttImpl->publish(obj.getAvailabilityTopic().c_str(), 1, &msg, true);
+        spdlog::debug("Publish on topic {}: {}", obj.getAvailabilityTopic(), msg);
+    } catch (const MosquittoException& ex) {
+        spdlog::error("Failed to publish mqtt availability message: {}", ex.what());
+    }
 }
 
 void
@@ -277,6 +270,7 @@ MqttClient::publishAll() {
     {
         for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
             const std::shared_ptr<MqttObject>& optr = *oit;
+
             if (published.find(optr) == published.end()) {
                 if ((*oit)->getAvailableFlag() == AvailableFlag::True)
                     publishState(*oit, true);
@@ -338,17 +332,6 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
     } catch (const ObjectCommandNotFoundException&) {
         spdlog::error("No command for topic {}, dropping message", topic);
     }
-}
-
-void
-MqttClient::onPublish(int messageId) {
-    std::unique_lock<std::mutex> lck(mMqttImplLock);
-    auto pit = mPendingStatePublications.find(messageId);
-    if (pit == mPendingStatePublications.end())
-        return;
-
-    spdlog::trace("Erasing messageId={}", messageId);
-    mPendingStatePublications.erase(pit);
 }
 
 void

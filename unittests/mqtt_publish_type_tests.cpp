@@ -88,5 +88,7 @@ mqtt:
         // both registers should be read once
         REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 2);
     }
+
+    //TODO test for ONCE when publish failed or broker is disconnected
 }
 

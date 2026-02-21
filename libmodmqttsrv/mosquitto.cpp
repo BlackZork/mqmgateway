@@ -181,7 +181,8 @@ Mosquitto::subscribe(const char* topic) {
 int
 Mosquitto::publish(const char* topic, int len, const void* data, bool retain) {
     int msgId;
-    mosquitto_publish(mMosq, &msgId, topic, len, data, 0, retain);
+    int rc = mosquitto_publish(mMosq, &msgId, topic, len, data, 0, retain);
+    throwOnCriticalError(rc);
     return msgId;
 }
 
