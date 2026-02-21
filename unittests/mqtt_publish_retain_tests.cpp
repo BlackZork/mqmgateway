@@ -53,13 +53,14 @@ mqtt:
         }
 
         SECTION("should trigger state publish after initial poll for every_poll") {
-            config.mYAML["mqtt"]["refresh"] = "20ms";
+            config.mYAML["mqtt"]["refresh"] = "100ms";
             config.mYAML["mqtt"]["objects"][0]["publish_mode"] = "every_poll";
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.start();
-            //5 ms initial poll read, 10ms wait, 5ms second read, 5ms test tolerance
-            std::this_thread::sleep_for(timing::milliseconds(25));
+            //5 ms initial poll read, 100ms wait, 5ms second read, 50ms test tolerance
+            //100ms because 5ms read takes big time share if refresh is 10ms
+            std::this_thread::sleep_for(timing::milliseconds(160));
             server.stop();
 
             // retained messsage delete and two state publishes
