@@ -1,7 +1,7 @@
 #include "modbus_slave.hpp"
 #include "yaml_converters.hpp"
 #include "config.hpp"
-#include <spdlog/spdlog.h>
+#include "logging.hpp"
 
 namespace modmqttd {
 

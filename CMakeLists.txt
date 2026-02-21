@@ -14,7 +14,7 @@ if (WITHOUT_TESTS)
     set(build_unittests EXCLUDE_FROM_ALL)
 endif()
 
-#set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -35,6 +35,8 @@ find_package(yaml-cpp REQUIRED)
 find_package(RapidJSON REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED) 
+
+add_compile_definitions(SPDLOG_COMPILED_LIB)
 
 find_path(EXPRTK_INCLUDE_DIR "exprtk.hpp")
 message(STATUS "EXPRTK_INCLUDE_DIR => ${EXPRTK_INCLUDE_DIR}")

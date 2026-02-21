@@ -58,8 +58,8 @@ mqtt:
             MockedModMqttServerThread server(config.toString());
             server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
             server.start();
-            //5 ms initial poll read, 20ms wait, 5ms second read, 10ms test tolerance
-            std::this_thread::sleep_for(timing::milliseconds(40));
+            //5 ms initial poll read, 10ms wait, 5ms second read, 5ms test tolerance
+            std::this_thread::sleep_for(timing::milliseconds(25));
             server.stop();
 
             // retained messsage delete and two state publishes
