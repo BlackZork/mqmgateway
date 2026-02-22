@@ -1,18 +1,18 @@
 #include <cstddef>
-#include <spdlog/common.h>
-#include <spdlog/sinks/stdout_sinks.h>
 #include <sys/stat.h>
+#include <iostream>
 #include <string>
 #include <ostream>
+#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <spdlog/pattern_formatter.h>
 
-#include <spdlog/spdlog.h>
+#include <spdlog/pattern_formatter.h>
+#include <spdlog/common.h>
+#include <spdlog/sinks/stdout_sinks.h>
 
 #include "defs.h"
 #include "logging.hpp"
-#include <iostream>
 
 using namespace std::string_literals;
 
