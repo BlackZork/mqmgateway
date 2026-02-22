@@ -65,7 +65,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
    5. rapidJSON
    6. libc headers (recommended, for pthreads support)
    7. exprtk (optional, for exprtk expressions language support in YAML declarations)
-   8. Catch2 (optional, for unit tests)
+   8. Catch2 v3 (optional, for unit tests)
 
 3. Configure and build project:
 
