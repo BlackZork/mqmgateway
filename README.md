@@ -53,7 +53,7 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
 
 ## From sources
 
-1. `git clone https://github.com/BlackZork/mqmgateway.git#branch=master`
+1. `git clone https://github.com/BlackZork/mqmgateway.git`
 
    You can also use `branch=<tagname>` to clone specific release or download sources from [Releases page](https://github.com/BlackZork/mqmgateway/releases)
 
@@ -63,8 +63,9 @@ Cameron Desrochers. See license terms in [LICENSE.md](readerwriterqueue/LICENSE.
    3. mosquitto
    4. yaml-cpp
    5. rapidJSON
-   6. exprtk (optional, for exprtk expressions language support in YAML declarations)
-   7. Catch2 (optional, for unit tests)
+   6. libc headers (recommended, for pthreads support)
+   7. exprtk (optional, for exprtk expressions language support in YAML declarations)
+   8. Catch2 (optional, for unit tests)
 
 3. Configure and build project:
 
