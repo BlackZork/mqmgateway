@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <thread>
 
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/common.h>
