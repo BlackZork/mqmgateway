@@ -12,6 +12,7 @@ on:
       - 'modmqttd.service'
       - 'modmqttd/config.template.yaml'
       - 'buildtests/*'
+      - '.vscode/*'
   workflow_dispatch:
 
 jobs:

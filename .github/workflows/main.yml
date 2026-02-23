@@ -12,6 +12,7 @@ on:
       - 'modmqttd.service'
       - 'modmqttd/config.template.yaml'
       - 'buildtests/*'
+      - '.vscode/*'
   release:
     types: [published]
   workflow_dispatch:
