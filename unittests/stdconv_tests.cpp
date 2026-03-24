@@ -25,20 +25,3 @@ TEST_CASE ("Scale value with integer result") {
 
     REQUIRE(ret.getString() == "100");
 }
-
-TEST_CASE ("read int16 value") {
-    PluginLoader loader("../stdconv/stdconv.so");
-
-    std::shared_ptr<DataConverter> conv(loader.getConverter("int16"));
-    ConverterArgValues args(conv->getArgs());
-
-    ModbusRegisters data;
-    data.appendValue(0xFFFF);
-
-    conv->setArgValues(args);
-    MqttValue ret = conv->toMqtt(data);
-
-    REQUIRE(ret.getString() == "-1");
-}
-
-

@@ -8,7 +8,7 @@
 
 #ifdef HAVE_EXPRTK
 
-TEST_CASE ("exprtk should read int16") {
+TEST_CASE ("exprtk should read uint16") {
     PluginLoader loader("../exprconv/exprconv.so");
 
     std::shared_ptr<DataConverter> conv(loader.getConverter("evaluate"));
@@ -36,7 +36,7 @@ TEST_CASE ("exprtk should read int16") {
     }
 }
 
-TEST_CASE ("exprtk should write int16") {
+TEST_CASE ("exprtk should write uint16") {
     PluginLoader loader("../exprconv/exprconv.so");
 
     std::shared_ptr<DataConverter> conv(loader.getConverter("evaluate"));
