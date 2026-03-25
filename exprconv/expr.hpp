@@ -82,7 +82,7 @@ class ExprtkConverter : public DataConverter {
             } else {
                 int registersNeeded = getWriteRegistersCount(1);
                 if (registerCount != registersNeeded)
-                    throw ConvException("Got a single value, need " + std::to_string(registerCount));
+                    throw ConvException("Got a single value, need " + std::to_string(registersNeeded));
 
                 writeRegisterValues(ret, exprval);
                 //ret.appendValue(toUInt16(exprval));
@@ -109,6 +109,8 @@ class ExprtkConverter : public DataConverter {
             mSymbolTable.add_function("flt32",   flt32);
             mSymbolTable.add_function("flt32bs", flt32bs);
             mSymbolTable.add_function("int16", int16);
+            mSymbolTable.add_function("int16bs", int16bs);
+            mSymbolTable.add_function("uint16bs", uint16bs);
             mSymbolTable.add_constants();
 
             char buf[16];
@@ -130,6 +132,9 @@ class ExprtkConverter : public DataConverter {
             // for write only
             std::vector<std::string> writeHelpers {
                 "int16",
+                "int16bs",
+                "uint16",
+                "uint16bs",
                 "int32",
                 "int32bs",
                 "uint32",
@@ -188,26 +193,42 @@ class ExprtkConverter : public DataConverter {
         }
 
         static double int16(const double regValue) {
-            uint16_t tmp = uint16_t(regValue);
-            return (int16_t)tmp;
+            uint16_t val = uint16_t(regValue);
+            return (int16_t)val;
         }
+
+        static double uint16bs(const double regValue) {
+            uint16_t val = uint16_t(regValue);
+            val = ConverterTools::setByteOrder(val, true);
+            return val;
+        }
+
+        static double int16bs(const double regValue) {
+            uint16_t val = uint16_t(regValue);
+            val = ConverterTools::setByteOrder(val, true);
+            return (int16_t)(val);
+        }
+
 
         //write helpers
         int getWriteRegistersCount(int resultsCount) const {
-            if (mWriteAs.empty() || mWriteAs == "int16")
+            if (mWriteAs.empty() || mWriteAs == "int16" || mWriteAs == "int16bs" || mWriteAs == "uint16bs" || mWriteAs == "uint16")
                 return resultsCount;
             return 2*resultsCount;
         }
 
         void writeRegisterValues(ModbusRegisters& ret, double exprval) const {
             try {
-                if (mWriteAs.empty())
-                    ret.appendValue(ConverterTools::toUInt16(exprval));
-                else if (mWriteAs == "int16") {
-                    int32_t val = exprval;
-                    if (val < INT16_MIN || val > INT16_MAX)
-                        throw ConvException(std::string("Conversion failed, value " + std::to_string(val) + " out of range"));
-                    ret.appendValue(val);
+                if (mWriteAs.empty() || mWriteAs == "uint16") {
+                    writeUInt16(ret, exprval, false);
+                } else if (mWriteAs == "uint16bs") {
+                    writeUInt16(ret, exprval, true);
+                } else if (mWriteAs == "int16") {
+                    writeInt16(ret, exprval, false);
+                } else if (mWriteAs == "int16bs") {
+                    writeInt16(ret, exprval, true);
+                } else if (mWriteAs == "uint16bs") {
+                    writeInt16(ret, exprval, true);
                 } else if (mWriteAs == "flt32") {
                     writeFloat32(ret, exprval, false);
                 } else if (mWriteAs == "flt32bs") {
@@ -226,6 +247,24 @@ class ExprtkConverter : public DataConverter {
             } catch (...) {
                 throw ConvException("Unknown error when converting "s + std::to_string(exprval) + " using " + mWriteAs);
             }
+        }
+
+        void writeInt16(ModbusRegisters& ret, double exprval, bool swapBytes) const {
+            int32_t tmp = exprval;
+            if (tmp < INT16_MIN || tmp > INT16_MAX)
+                throw ConvException(std::string("Conversion failed, value " + std::to_string(tmp) + " out of range"));
+            int16_t toWrite = tmp;
+            toWrite = ConverterTools::setByteOrder(toWrite, swapBytes);
+            ret.appendValue(toWrite);
+        }
+
+        void writeUInt16(ModbusRegisters& ret, double exprval, bool swapBytes) const {
+            int32_t tmp = exprval;
+            if (tmp < 0 || tmp > UINT16_MAX)
+                throw ConvException(std::string("Conversion failed, value " + std::to_string(tmp) + " out of range"));
+            uint16_t toWrite = tmp;
+            toWrite = ConverterTools::setByteOrder(toWrite, swapBytes);
+            ret.appendValue(toWrite);
         }
 
         void writeFloat32(ModbusRegisters& ret, double exprval, bool swapBytes) const {

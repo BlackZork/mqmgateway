@@ -21,6 +21,8 @@ add_executable(tests
     # tests
     converter_name_parser_tests.cpp
     exprconv_float_tests.cpp
+    exprconv_int16_tests.cpp
+    exprconv_uint16_tests.cpp
     exprconv_int32_tests.cpp
     exprconv_tests.cpp
     exprconv_uint32_tests.cpp
@@ -71,6 +73,7 @@ add_executable(tests
     stdconv_bit_tests.cpp
     stdconv_divide_tests.cpp
     stdconv_int8_tests.cpp
+    stdconv_int16_tests.cpp
     stdconv_int32_tests.cpp
     stdconv_map_tests.cpp
     stdconv_multiply_tests.cpp

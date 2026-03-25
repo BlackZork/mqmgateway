@@ -34,19 +34,4 @@ TEST_CASE ("A number should be converted by exprtk") {
     }
 }
 
-TEST_CASE ("A uint16_t register data should be converted to exprtk value") {
-    PluginLoader loader("../exprconv/exprconv.so");
-
-    std::shared_ptr<DataConverter> conv(loader.getConverter("evaluate"));
-    ConverterArgValues args(conv->getArgs());
-
-    args.setArgValue("expression", "int16(R0)");
-    const ModbusRegisters input(0xFFFF);
-
-    conv->setArgValues(args);
-    MqttValue output = conv->toMqtt(input);
-
-    REQUIRE(output.getString() == "-1");
-}
-
 #endif
