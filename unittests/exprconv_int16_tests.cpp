@@ -27,7 +27,7 @@ TEST_CASE ("exprtk should read int16") {
 
     SECTION("from single register byte swapped") {
         args.setArgValue("expression", "int16bs(R0)");
-        const ModbusRegisters input(TestNumbers::Int::AB);
+        const ModbusRegisters input(TestNumbers::Int::BA);
 
         conv->setArgValues(args);
         MqttValue output = conv->toMqtt(input);

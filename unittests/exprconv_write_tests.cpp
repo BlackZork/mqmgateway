@@ -30,6 +30,7 @@ TEST_CASE ("Expr.evaluate should") {
 
     SECTION("cast negative int value to uint16_t") {
         args.setArgValue("expression", "M0-1");
+        args.setArgValue("write_as", "int16");
 
         MqttValue input(-1);
 

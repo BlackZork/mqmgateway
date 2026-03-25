@@ -28,15 +28,6 @@ class ConverterTools {
             return val;
         }
 
-        /**
-         * Converts double argument to uint16_t
-         * */
-        static int16_t toUInt16(double val) {
-            if (val < INT16_MIN || val > INT16_MAX)
-                throw std::invalid_argument("Conversion failed, value "s + std::to_string(val) + " out of range");
-            return val;
-        }
-
 
         /**
          * Converts string argument to int
