@@ -721,11 +721,17 @@ modmqttd contains *std* library with basic converters ready to use:
 
   Parses and writes modbus register data as unsigned int8. Second byte is parsed by default, set `first=true` to read the first byte.
 
-* **int16()**
+* **int16(swap_bytes=false)**
 
   Usage: state, command
 
-  Parses and writes modbus register data as signed int16.
+  Parses and writes modbus register data as signed int16. See **divide** for description of `swap_bytes` argument.
+
+* **uint16(swap_bytes=false)**
+
+  Usage: state, command
+
+  Parses and writes modbus register data as unsinged int16. See **divide** for description of `swap_bytes` argument.
 
 * **int32(low_first=false, swap_bytes=false)**
 
@@ -881,10 +887,14 @@ Register values are defined as `R0..Rn` variables.
   * `flt32bs(R0, R1)`: Cast to float `ABCD` from `R0` == `BA` and `R1` == `DC`.
   * `flt32bs(R1, R0)`: Cast to float `ABCD` from `R0` == `DC` and `R1` == `BA`.
 
-  If modbus register contains signed integer data, you can use this cast in the expression:
-  * `int16(R0)`: Cast uint16 value from `R0' to int16
+  Custom functions for 16-bit numbers `[A,B]`:
+  * `int16(R0)`: Cast uint16 value from `R0` == `AB` to int16
+  * `int16bs(R0)`: Cast uint16 value from `R0` == `BA` to int16
+  * `uint16(R0)`: Read uint16 value from `R0` == `AB`
+  * `uint16bs(R0)`: Read uint16 value from `R0` == `BA`
 
-  All of the above functions can be used as `write_as` helper to store an expression value in modbus registers during writing. Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`BA`.
+  All of the above functions can be used as `write_as` helper to store an expression value in modbus registers during writing. 
+  Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`BA`.
 
 #### Examples
 
