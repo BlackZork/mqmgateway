@@ -108,7 +108,11 @@ ConverterArgParser::parse(const std::string& argStr) {
                         mArgValue.clear();
                     break;
                     case ARGVALUE:
-                        throw ConvNameParserException("Name for argument " + std::to_string(ret.count() + 1) + " cannot be quoted");
+                        if (str_delimiter == 0x0) {
+                            throw ConvNameParserException("Name for argument " + std::to_string(ret.count() + 1) + " cannot be quoted");
+                        } else {
+                            mArgValue += c;
+                        }
                     break;
                     case ESCAPE:
                         mArgValue += getEscapedChar(c);
@@ -137,10 +141,12 @@ ConverterArgParser::parse(const std::string& argStr) {
                         str_delimiter = c;
                     break;
                     case ARGVALUE:
-                        if (str_delimiter == c)
+                        if (str_delimiter == c) {
                             mCurrentState.pop();
-                        else
+                            str_delimiter = 0x0;
+                        } else {
                             mArgValue += c;
+                        }
                     break;
                     case ESCAPE:
                         mArgValue += getEscapedChar(c);
@@ -155,10 +161,12 @@ ConverterArgParser::parse(const std::string& argStr) {
                         str_delimiter = c;
                     break;
                     case ARGVALUE:
-                        if (str_delimiter == c)
+                        if (str_delimiter == c) {
                             mCurrentState.pop();
-                        else
+                            str_delimiter = 0x0;
+                        } else {
                             mArgValue += c;
+                        }
                         break;
                     case ESCAPE:
                         mArgValue += getEscapedChar(c);

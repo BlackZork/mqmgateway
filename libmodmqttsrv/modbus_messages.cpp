@@ -1,7 +1,7 @@
 #include "modbus_messages.hpp"
 
 #include <deque>
-#include <spdlog/spdlog.h>
+#include "logging.hpp"
 
 namespace modmqttd {
 

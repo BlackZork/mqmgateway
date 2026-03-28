@@ -73,7 +73,8 @@ class RegisterPoll : public RegisterCommand {
         std::chrono::steady_clock::duration mRefresh;
 
         bool mLastReadOk = false;
-        std::chrono::steady_clock::time_point mLastRead;
+        std::chrono::steady_clock::time_point mLastReadStartTime;
+        std::chrono::steady_clock::time_point mLastReadFinishTime;
 
         int mReadErrors;
         std::chrono::steady_clock::time_point mFirstErrorTime;

@@ -23,7 +23,7 @@ ModbusScheduler::getRegistersToPoll(
             if (reg.mPublishMode == PublishMode::ONCE && reg.mLastReadOk)
                 continue;
 
-            auto time_passed = timePoint - reg.mLastRead;
+            auto time_passed = timePoint - reg.mLastReadStartTime;
             auto time_to_poll = reg.mRefresh;
 
             if (time_passed >= reg.mRefresh) {

@@ -83,6 +83,9 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         int getWriteCount(int slaveId) const;
         int getConnectionCount() const { return mConnectionCount; }
 
+        void setReadTime(int slaveId, std::chrono::milliseconds readTime);
+        void setWriteTime(int slaveId, std::chrono::milliseconds writeTime);
+
         void removeFakeDevice() { std::remove(mDeviceName.c_str()); }
 
         void createFakeDevice();
@@ -141,10 +144,15 @@ class MockedModbusFactory : public modmqttd::IModbusFactory {
             setModbusRegisterWriteError(network, slaveId, regNum, regtype, false);
         }
 
+        void setModbusReadTime(const char* network, int slaveId, std::chrono::milliseconds readTime);
+        void setModbusWriteTime(const char* network, int slaveId, std::chrono::milliseconds writeTime);
+
+
         MockedModbusContext& getMockedModbusContext(const std::string& networkName) const {
             auto it = mModbusNetworks.find(networkName);
             return *(it->second);
         }
+
         void disconnectModbusSlave(const char* network, int slaveId);
         void connectModbusSlave(const char* network, int slaveId);
 

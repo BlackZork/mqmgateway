@@ -3,7 +3,7 @@
 #include "yaml_utils.hpp"
 
 //TODO regroup this tests
-TEST_CASE ("Common:s") {
+TEST_CASE ("Common:") {
 
 TestConfig config(R"(
 modbus:

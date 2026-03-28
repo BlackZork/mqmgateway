@@ -16,6 +16,12 @@ class Int {
         static constexpr uint16_t CD = 0xC3D4;
         static constexpr uint16_t DC = 0xD4C3;
 
+        static constexpr int16_t AB_as_int16 = -24142;
+        static constexpr int16_t BA_as_int16 = -19807;
+
+        static constexpr uint16_t AB_as_uint16 = 41394;
+        static constexpr uint16_t BA_as_uint16 = 45729;
+
         static constexpr int32_t ABCD_as_int32 = -1582119980;
         static constexpr int32_t CDAB_as_int32 = -1009475150;
         static constexpr int32_t DCBA_as_int32 = -725372255;

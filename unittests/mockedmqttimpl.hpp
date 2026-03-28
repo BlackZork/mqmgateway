@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <map>
 #include <set>
+#include <thread>
 
 #include "libmodmqttsrv/imqttimpl.hpp"
 #include "libmodmqttsrv/logging.hpp"

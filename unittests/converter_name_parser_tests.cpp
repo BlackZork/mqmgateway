@@ -132,6 +132,30 @@ TEST_CASE("Converter arguments") {
             modmqttd::ConvNameParserException
         );
     }
+
+    SECTION("should convert simple expression to string") {
+
+        args.add("strval", ConverterArgType::STRING,"");
+
+        std::string testarg = "\"a=b\"";
+
+        ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, testarg);
+        REQUIRE(values.count() == 1);
+        REQUIRE(values["strval"].as_str() == "a=b");
+    }
+
+    SECTION("should convert complex expression to string") {
+
+        args.add("strval", ConverterArgType::STRING,"");
+
+        std::string testarg = "((x + 'abc') like '*123*') or ('a123b' ilike y)";
+
+        ConverterArgValues values = modmqttd::ConverterNameParser::parseArgs(args, "\"" + testarg + "\"");
+        REQUIRE(values.count() == 1);
+        REQUIRE(values["strval"].as_str() == testarg.substr());
+    }
+
+
 }
 
 TEST_CASE("Converter params") {

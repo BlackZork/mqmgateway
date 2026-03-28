@@ -30,6 +30,8 @@ StdConvPlugin::getConverter(const std::string& name) {
          return new StringConverter();
     else if (name == "int16")
         return new Int16Converter();
+    else if (name == "uint16")
+        return new UInt16Converter();
     else if (name == "uint32")
         return new UInt32Converter();
     else if (name == "float32")

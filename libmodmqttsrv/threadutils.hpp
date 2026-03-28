@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "logging.hpp"
 #include <sstream>
+#include <thread>
 
 namespace modmqttd {
 
