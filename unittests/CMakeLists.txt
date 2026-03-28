@@ -65,6 +65,7 @@ add_executable(tests
     mqtt_unnamed_scalar_tests.cpp
     mqtt_value_tests.cpp
     real_server_tests.cpp
+    refresh_tests.cpp
     register_address_tests.cpp
     scheduler_tests.cpp
     server_config_tests.cpp

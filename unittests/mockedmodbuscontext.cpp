@@ -314,6 +314,17 @@ MockedModbusContext::getWriteCount(int slaveId) const {
     return it->second.getWriteCount();
 }
 
+void
+MockedModbusContext::setReadTime(int slaveId, std::chrono::milliseconds readTime) {
+    getSlave(slaveId).mReadTime = readTime;
+}
+
+void
+MockedModbusContext::setWriteTime(int slaveId, std::chrono::milliseconds writeTime) {
+    getSlave(slaveId).mWriteTime = writeTime;
+}
+
+
 uint16_t
 MockedModbusContext::getModbusRegisterValue(int slaveId, int regNum, modmqttd::RegisterType regtype) {
     mInternalOperation = true;
@@ -467,6 +478,18 @@ MockedModbusFactory::setModbusRegisterWriteError(const char* network, int slaveI
     std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
     MockedModbusContext::Slave& s(ctx->getSlave(slaveId));
     s.setError(regNum, regType, pFlag);
+}
+
+void
+MockedModbusFactory::setModbusReadTime(const char* network, int slaveId, std::chrono::milliseconds readTime) {
+    std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
+    ctx->setReadTime(slaveId, readTime);
+}
+
+void
+MockedModbusFactory::setModbusWriteTime(const char* network, int slaveId, std::chrono::milliseconds writeTime) {
+    std::shared_ptr<MockedModbusContext> ctx = getOrCreateContext(network);
+    ctx->setWriteTime(slaveId, writeTime);
 }
 
 void

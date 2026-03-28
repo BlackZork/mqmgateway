@@ -198,6 +198,14 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         mModbusFactory->setModbusRegisterReadError(network, slaveId, regNum, regtype);
     }
 
+    void setSlaveReadTime(const char* network, int slaveId, std::chrono::milliseconds readTime) {
+        mModbusFactory->setModbusReadTime(network, slaveId, readTime);
+    }
+
+    void setSlaveWriteTime(const char* network, int slaveId, std::chrono::milliseconds writeTime) {
+        mModbusFactory->setModbusWriteTime(network, slaveId, writeTime);
+    }
+
     void clearModbusRegisterReadError(const char* network, int slaveId, int regNum, modmqttd::RegisterType regtype) {
         mModbusFactory->clearModbusRegisterReadError(network, slaveId, regNum, regtype);
     }
