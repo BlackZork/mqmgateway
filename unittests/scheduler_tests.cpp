@@ -31,7 +31,7 @@ TEST_CASE("Modbus scheduler") {
     scheduler.setPollSpecification(source);
 
     SECTION ("should return register and delay=1sec for next poll") {
-        reg->mLastRead = now - std::chrono::milliseconds(1000);
+        reg->mLastReadStartTime = now - std::chrono::milliseconds(1000);
         RegisterSpec poll = scheduler.getRegistersToPoll(duration, now);
 
         CHECK(duration == std::chrono::milliseconds(1000));
@@ -39,7 +39,7 @@ TEST_CASE("Modbus scheduler") {
     }
 
     SECTION ("should return delay=800ms to poll register") {
-        reg->mLastRead = now - std::chrono::milliseconds(200);
+        reg->mLastReadStartTime = now - std::chrono::milliseconds(200);
         RegisterSpec poll = scheduler.getRegistersToPoll(duration, now);
 
         CHECK(duration == std::chrono::milliseconds(800));
@@ -47,7 +47,7 @@ TEST_CASE("Modbus scheduler") {
     }
 
     SECTION ("should return delay=mRefresh if register was polled now") {
-        reg->mLastRead = now;
+        reg->mLastReadStartTime = now;
         RegisterSpec poll = scheduler.getRegistersToPoll(duration, now);
 
         CHECK(duration == reg->mRefresh);

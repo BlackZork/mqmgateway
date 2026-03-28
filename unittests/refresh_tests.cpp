@@ -31,7 +31,7 @@ mqtt:
         server.setSlaveReadTime("tcptest", 1, timing::milliseconds(40));
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, false);
         server.start();
-        std::this_thread::sleep_for(timing::milliseconds(200));
+        std::this_thread::sleep_for(timing::milliseconds(180));
         server.stop();
         REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 3);
     }
