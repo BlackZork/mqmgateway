@@ -60,14 +60,13 @@ int main(int ac, char* av[]) {
             }
         }
 
-        modmqttd::Log::severity log_level = modmqttd::Log::severity::info;
-
         for(auto param: cmdl.params()) {
             if (param.first == "config" || param.first == "c") {
                 configPath = param.second;
             } else if (param.first == "loglevel" || param.first == "l") {
                 try {
-                    log_level = modmqttd::Log::parse_severity(param.second);
+                    modmqttd::Log::severity log_level = modmqttd::Log::parse_severity(param.second);
+                    logLevel = int(log_level);
                 } catch (const std::exception& ex) {
                     std::cerr << "loglevel must be between 0 and 6" << std::endl;
                     return EXIT_FAILURE;
