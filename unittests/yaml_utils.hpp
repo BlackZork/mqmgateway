@@ -13,7 +13,6 @@ class TestConfig {
             mYAML = YAML::Load(strdata);
 
             mTimeNodes.insert("refresh");
-            mTimeNodes.insert("refresh");
             mTimeNodes.insert("watch_period");
             mTimeNodes.insert("delay_before_command");
             mTimeNodes.insert("delay_before_first_command");
