@@ -18,7 +18,7 @@ timing::init(double factor) {
     if (factor == 0) {
         #ifdef NDEBUG
             sFactor = 10;
-        else
+        #else
             sFactor = 1;
         #endif
 
@@ -52,3 +52,8 @@ timing::seconds(int value) {
 }
 
 std::chrono::milliseconds timing::defaultWait = std::chrono::seconds(5);
+
+std::string
+timing::milliseconds_str(int value) {
+    return std::to_string(timing::milliseconds(value).count()) + "ms";
+}
