@@ -20,9 +20,6 @@ class timing {
         static std::chrono::milliseconds substract(std::chrono::time_point<std::chrono::steady_clock> left, std::chrono::time_point<std::chrono::steady_clock> right) {
             return std::chrono::duration_cast<std::chrono::milliseconds>(left - right);
         }
-
-        //TestConfig helpers
-        static std::string milliseconds_str(int value);
     private:
         static double sFactor;
 };

@@ -53,7 +53,3 @@ timing::seconds(int value) {
 
 std::chrono::milliseconds timing::defaultWait = std::chrono::seconds(5);
 
-std::string
-timing::milliseconds_str(int value) {
-    return std::to_string(timing::milliseconds(value).count()) + "ms";
-}

@@ -26,7 +26,7 @@ mqtt:
 )");
 
     SECTION ("should include register read time") {
-        config.mYAML["mqtt"]["refresh"] = timing::milliseconds_str(60);
+        config.mYAML["mqtt"]["refresh"] = "60ms";
         MockedModMqttServerThread server(config.toString());
         server.setSlaveReadTime("tcptest", 1, timing::milliseconds(40));
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::BIT, false);
