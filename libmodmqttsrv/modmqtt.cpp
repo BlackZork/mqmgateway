@@ -649,8 +649,12 @@ ModMqtt::parseObjectCommand(
     RegisterConfigName rname(node, default_network, default_slave);
     RegisterType rType = parseRegisterType(node);
     MqttObjectCommand::PayloadType pType = parsePayloadType(node);
+
     int count = 1;
     ConfigTools::readOptionalValue<int>(count, node, "count");
+
+    ModbusWriteMode writeMode = ModbusWriteMode::AUTO;
+    ConfigTools::readOptionalValue<ModbusWriteMode>(writeMode, node, "write_mode");
 
     MqttObjectCommand cmd(
         nextCommandId,
@@ -660,7 +664,8 @@ ModMqtt::parseObjectCommand(
         rname.mSlaveId,
         rType,
         rname.mRegisterNumber,
-        count
+        count,
+        writeMode
     );
 
     const YAML::Node& converter = node["converter"];

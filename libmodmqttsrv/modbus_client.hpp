@@ -27,7 +27,8 @@ class ModbusClient {
                 cmd.mRegisterType,
                 cmd.mRegister,
                 reg_values,
-                cmd.getCommandId()
+                cmd.getCommandId(),
+                cmd.mWriteMode
             );
             // TODO add max queue size
             // here or at mqtt level - add configurable global limit for all queues

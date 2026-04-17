@@ -458,6 +458,11 @@ A single command is defined using following settings.
 
     Number of registers to write. If set to > 1, then modbus_write_registers(3)/modbus_write_bits(3) is called.
 
+* **write_mode** (optional)
+
+    * `auto`: use 'write single register (fn06)' function if count == 1, 'write multiple registers' (fn16) otherwise.
+    * `force_multiple_registers` or `fn16`: use always use 'write multiple registers'.
+
 * **converter** (optional)
 
   The name of function that should be called to convert MQTT value to uint16_t value. Format of function name is `plugin name.function name`. See converters for details.

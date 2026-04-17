@@ -89,12 +89,14 @@ class RegisterWrite : public RegisterCommand {
         RegisterWrite(const MsgRegisterValues& msg)
             : RegisterCommand(msg.mSlaveId, msg.mRegister, msg.mRegisterType, msg.mRegisters.getCount()),
               mCreationTime(msg.getCreationTime()),
-              mValues(msg.mRegisters)
+              mValues(msg.mRegisters),
+              mWriteMode(msg.mWriteMode)
         {}
-        RegisterWrite(int pSlaveId, int pRegister, RegisterType pType, const ModbusRegisters& pValues)
+        RegisterWrite(int pSlaveId, int pRegister, RegisterType pType, const ModbusRegisters& pValues, ModbusWriteMode pWriteMode = ModbusWriteMode::AUTO)
             : RegisterCommand(pSlaveId, pRegister, pType, pValues.getCount()),
               mCreationTime(std::chrono::steady_clock::now()),
-              mValues(pValues)
+              mValues(pValues),
+              mWriteMode(pWriteMode)
         {}
 
         virtual int getRegister() const { return mRegister; };
@@ -103,6 +105,7 @@ class RegisterWrite : public RegisterCommand {
         virtual bool executedOk() const { return mLastWriteOk; };
 
         ModbusRegisters mValues;
+        ModbusWriteMode mWriteMode;
 
         bool mLastWriteOk = false;
         std::chrono::steady_clock::time_point mCreationTime;

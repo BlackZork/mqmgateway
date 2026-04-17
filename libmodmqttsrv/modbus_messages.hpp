@@ -15,11 +15,12 @@ namespace modmqttd {
 
 class MsgRegisterValues : public ModbusSlaveAddressRange {
     public:
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers, int pCommandId)
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers, int pCommandId, ModbusWriteMode pWriteMode)
             : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registers.getCount()),
               mRegisters(registers),
               mCreationTime(std::chrono::steady_clock::now()),
-              mCommandId(pCommandId)
+              mCommandId(pCommandId),
+              mWriteMode(pWriteMode)
             {}
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers)
             : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registers.size()),
@@ -32,6 +33,7 @@ class MsgRegisterValues : public ModbusSlaveAddressRange {
         bool hasCommandId() const { return mCommandId != 0; }
 
         ModbusRegisters mRegisters;
+        ModbusWriteMode mWriteMode = ModbusWriteMode::AUTO;
     private:
         std::chrono::steady_clock::time_point mCreationTime;
         int mCommandId = 0;

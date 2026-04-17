@@ -9,6 +9,7 @@
 #include "libmodmqttsrv/exceptions.hpp"
 #include "libmodmqttsrv/config.hpp"
 #include "libmodmqttsrv/strutils.hpp"
+#include "libmodmqttsrv/modbus_types.hpp"
 
 
 template<>
@@ -128,3 +129,18 @@ struct YAML::convert<std::vector<std::string>> {
     }
 };
 
+
+template<>
+struct YAML::convert<modmqttd::ModbusWriteMode> {
+    static bool decode(const YAML::Node& node, modmqttd::ModbusWriteMode& rhs) {
+        auto str = node.as<std::string>();
+        if (str == "auto") {
+            rhs = modmqttd::ModbusWriteMode::AUTO;
+        } else if (str == "force_multiple_registers") {
+            rhs = modmqttd::ModbusWriteMode::FORCE_MULTIPLE_REGISTERS;
+        } else {
+            return false;
+        }
+        return true;
+    }
+};
