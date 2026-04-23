@@ -41,6 +41,7 @@ SECTION ("holding type") {
     REQUIRE(server.mqttValue("test_switch/state") == "32");
 
     server.stop();
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedWriteCall(1,0).mWriteMode == modmqttd::ModbusWriteMode::AUTO);
 }
 
 SECTION ("coil type") {
@@ -77,6 +78,21 @@ SECTION ("with invalid coil value should not crash server") {
 
     server.stop();
 }
+
+SECTION ("with force_multiple_registers should set WriteMode to FORCE_MULTIPLE_REGISTERS") {
+    config.mYAML["mqtt"]["objects"][0]["commands"][0]["write_mode"] = "force_multiple_registers";
+    MockedModMqttServerThread server(config.toString());
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::COIL, 0);
+    server.start();
+
+    server.waitForPublish("test_switch/state");
+    server.publish("test_switch/set", "1");
+
+    server.stop();
+
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedWriteCall(1,0).mWriteMode == modmqttd::ModbusWriteMode::FORCE_MULTIPLE_REGISTERS);
+}
+
 
 } //CASE
 

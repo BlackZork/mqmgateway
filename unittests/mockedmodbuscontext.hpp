@@ -40,8 +40,12 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 void clearError(int regNum, modmqttd::RegisterType regType)
                     { setError(regNum, regType, false); }
                 bool hasError(int regNum, modmqttd::RegisterType regType, int regCount) const;
-                int getIssuedReadCallsCount() const { return mIssuedReadCalls; }
-                int getIssuedWriteCallsCount() const { return mIssuedWriteCalls; }
+
+                const modmqttd::RegisterPoll& getIssuedReadCall(int number) const;
+                const modmqttd::RegisterWrite& getIssuedWriteCall(int number) const;
+
+                int getIssuedReadCallsCount() const { return mIssuedReadCalls.size(); }
+                int getIssuedWriteCallsCount() const { return mIssuedWriteCalls.size(); }
 
                 std::map<int, RegData> mInput;
                 std::map<int, RegData> mHolding;
@@ -57,8 +61,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count, bool internalOperation);
                 uint16_t readRegister(std::map<int, RegData>& table, int num, bool internalOperation);
                 bool mDisconnected = false;
-                int mIssuedReadCalls = 0;
-                int mIssuedWriteCalls = 0;
+                std::vector<modmqttd::RegisterPoll> mIssuedReadCalls;
+                std::vector<modmqttd::RegisterWrite> mIssuedWriteCalls;
                 std::shared_ptr<std::condition_variable> mIOCondition;
         };
 
@@ -81,6 +85,10 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
         int getIssuedReadCallsCount(int slaveId) const;
         int getIssuedWriteCallsCount(int slaveId) const;
+
+        const modmqttd::RegisterPoll& getIssuedReadCall(int slaveId, int number) const;
+        const modmqttd::RegisterWrite& getIssuedWriteCall(int slaveId, int number) const;
+
         int getConnectionCount() const { return mConnectionCount; }
 
         void setReadTime(int slaveId, std::chrono::milliseconds readTime);
@@ -119,6 +127,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         int mConnectionCount = 0;
 
         std::map<int, MockedModbusContext::Slave>::iterator findOrCreateSlave(int id);
+        std::map<int, MockedModbusContext::Slave>::const_iterator findSlave(int id) const;
         int getUnreadedRegisterCount();
         int getUnreadedRegisterCount(const std::map<int, RegData>& pRegData);
 };

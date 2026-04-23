@@ -460,8 +460,8 @@ A single command is defined using following settings.
 
 * **write_mode** (optional)
 
-    * `auto`: use 'write single register (fn06)' function if count == 1, 'write multiple registers' (fn16) otherwise.
-    * `force_multiple_registers` or `fn16`: use always use 'write multiple registers'.
+  * `auto`: use 'write single coil/register (fn05 or fn06)' function if count == 1, 'write multiple coils/registers' (fn15 or fn16) otherwise.
+  * `force_multiple_registers`: always use fn15 or fn16 when writing.
 
 * **converter** (optional)
 
