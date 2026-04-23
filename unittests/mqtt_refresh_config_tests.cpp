@@ -30,7 +30,7 @@ SECTION ("no refresh should use default 5s") {
     //TODO how to slow down this test?
     std::this_thread::sleep_for(std::chrono::milliseconds(5100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 4);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("mqtt refresh should override default") {
@@ -40,7 +40,7 @@ SECTION ("mqtt refresh should override default") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 4);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("topic refresh should override default") {
@@ -50,7 +50,7 @@ SECTION ("topic refresh should override default") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 4);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("topic refresh should override_mqtt") {
@@ -62,7 +62,7 @@ SECTION ("topic refresh should override_mqtt") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 4);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("state refresh should override_topic") {
@@ -73,7 +73,7 @@ SECTION ("state refresh should override_topic") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 4);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("state refresh should override_mqtt") {
@@ -84,7 +84,7 @@ SECTION ("state refresh should override_mqtt") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 4);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("state refresh should override default") {
@@ -94,7 +94,7 @@ SECTION ("state refresh should override default") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 4);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("list item refresh should override default") {
@@ -104,7 +104,7 @@ SECTION ("list item refresh should override default") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 3);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 3);
 }
 
 SECTION ("list item refresh should override state") {
@@ -116,7 +116,7 @@ SECTION ("list item refresh should override state") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 3);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 3);
 }
 
 SECTION ("list item refresh should override topic") {
@@ -128,7 +128,7 @@ SECTION ("list item refresh should override topic") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 3);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 3);
 }
 
 
@@ -140,7 +140,7 @@ SECTION ("list item refresh should override default") {
     server.waitForPublish("test_sensor/state");
     std::this_thread::sleep_for(timing::milliseconds(100));
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 3);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 3);
 }
 
 } // TEST CASE

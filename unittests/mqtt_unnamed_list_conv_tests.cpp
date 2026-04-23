@@ -44,7 +44,7 @@ mqtt:
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     REQUIRE(server.mqttValue("test_state/state") == "65537");
     server.stop();
 }
@@ -87,7 +87,7 @@ mqtt:
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
     REQUIRE(server.mqttValue("test_state/state") == "65537");
     server.stop();
 }
@@ -135,7 +135,7 @@ mqtt:
 
         server.waitForPublish("test_state/state");
 
-        REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+        REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
         REQUIRE_JSON(server.mqttValue("test_state/state"), "[65536, 1]");
         server.stop();
     }

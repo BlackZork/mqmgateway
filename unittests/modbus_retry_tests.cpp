@@ -42,7 +42,7 @@ SECTION ("should issue many write calls if write fails") {
     server.stop();
 
     //default is 2 + original call
-    REQUIRE(server.getMockedModbusContext("tcptest").getWriteCount(1) ==  3);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedWriteCallsCount(1) ==  3);
 }
 
 SECTION ("should not issue many write calls if write_retries is zeroed") {
@@ -60,7 +60,7 @@ SECTION ("should not issue many write calls if write_retries is zeroed") {
 
     server.stop();
 
-    REQUIRE(server.getMockedModbusContext("tcptest").getWriteCount(1) == 1);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedWriteCallsCount(1) == 1);
 }
 
 
@@ -80,7 +80,7 @@ SECTION ("should issue many write calls if write_retries is set on slave level")
 
     server.stop();
 
-    REQUIRE(server.getMockedModbusContext("tcptest").getWriteCount(1) == 3);
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedWriteCallsCount(1) == 3);
 }
 
 

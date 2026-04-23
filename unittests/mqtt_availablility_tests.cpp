@@ -47,7 +47,7 @@ SECTION ("should be set after conversion from register and count") {
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "1");
     server.stop();
 }

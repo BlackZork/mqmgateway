@@ -52,7 +52,7 @@ SECTION ("should output json array") {
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[1,7]");
     server.stop();
 }
@@ -109,7 +109,7 @@ SECTION ("should output json array") {
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[1,7]");
     server.stop();
 }
@@ -170,7 +170,7 @@ SECTION ("should output json array") {
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[2,4]");
     server.stop();
 }
@@ -234,7 +234,7 @@ SECTION ("should output nested json array") {
 
     server.waitForPublish("test_state/state");
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     REQUIRE_JSON(server.mqttValue("test_state/state"), "[[1,0],[7,0]]");
     server.stop();
 }

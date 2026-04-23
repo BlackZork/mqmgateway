@@ -39,7 +39,7 @@ mqtt:
     server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"test_name\": [1,7] }");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     server.stop();
 }
 
@@ -86,7 +86,7 @@ SECTION("should output nested json map with list as value") {
     server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"parent_map\": { \"child_map\": [1,7]} }");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     server.stop();
 }
 
@@ -103,7 +103,7 @@ SECTION("should output nested json map with single element list as value") {
     server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"parent_map\": { \"child_map\": [5]} }");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
     server.stop();
 }
 
@@ -124,7 +124,7 @@ SECTION("should output converted value with for netsted list with converter") {
     server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"parent_map\": { \"child_map\": 65543 } }");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     server.stop();
 }
 
@@ -144,7 +144,7 @@ SECTION("should output converted value with for netsted single element list with
     server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"parent_map\": { \"child_map\": 5 } }");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
     server.stop();
 }
 
@@ -192,6 +192,6 @@ mqtt:
     server.waitForPublish("test_state/state");
 
     REQUIRE_JSON(server.mqttValue("test_state/state"), "{ \"parent_map\": { \"child_map\": 131073} }");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
     server.stop();
 }

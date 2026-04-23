@@ -79,7 +79,7 @@ TEST_CASE ("Topic state data should be polled as poll group") {
     REQUIRE(server.mqttValue("not_avail_state/availability") == "0");
 
 
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 2);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     server.stop();
 }
 
@@ -199,7 +199,7 @@ TEST_CASE ("Multiple poll group definitions should be merged") {
 
     server.waitForPublish("first_state/state");
     REQUIRE(server.mqttValue("first_state/state") == "[1,4]");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(1) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
 
     server.stop();
 }
@@ -244,7 +244,7 @@ TEST_CASE ("Issue 58 parse error for common poll group") {
 
     server.waitForPublish("first-meter/state");
     REQUIRE(server.mqttValue("first-meter/state") == "1");
-    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getReadCount(30) == 1);
+    REQUIRE(server.mModbusFactory->getMockedModbusContext("tcptest").getIssuedReadCallsCount(30) == 1);
 
     server.stop();
 }

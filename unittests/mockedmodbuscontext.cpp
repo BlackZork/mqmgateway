@@ -19,7 +19,7 @@ void
 MockedModbusContext::Slave::write(const modmqttd::RegisterWrite& msg, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mWriteTime);
-        mWriteCount++;
+        mIssuedWriteCalls++;
         if (mDisconnected) {
             errno = EIO;
             throw modmqttd::ModbusWriteException(std::string("write fn ") + std::to_string(msg.mRegisterType) + " failed");
@@ -69,7 +69,7 @@ std::vector<uint16_t>
 MockedModbusContext::Slave::read(const modmqttd::RegisterPoll& regData, bool internalOperation) {
     if (!internalOperation) {
         std::this_thread::sleep_for(mReadTime);
-        mReadCount++;
+        mIssuedReadCalls++;
         if (mDisconnected) {
             errno = EIO;
             throw modmqttd::ModbusReadException(std::string("read fn ") + std::to_string(regData.mRegisterType) + " failed");
@@ -303,15 +303,15 @@ MockedModbusContext::getSlave(int slaveId) {
 }
 
 int
-MockedModbusContext::getReadCount(int slaveId) const {
+MockedModbusContext::getIssuedReadCallsCount(int slaveId) const {
     std::map<int, Slave>::const_iterator it = mSlaves.find(slaveId);
-    return it->second.getReadCount();
+    return it->second.getIssuedReadCallsCount();
 }
 
 int
-MockedModbusContext::getWriteCount(int slaveId) const {
+MockedModbusContext::getIssuedWriteCallsCount(int slaveId) const {
     std::map<int, Slave>::const_iterator it = mSlaves.find(slaveId);
-    return it->second.getWriteCount();
+    return it->second.getIssuedWriteCallsCount();
 }
 
 void

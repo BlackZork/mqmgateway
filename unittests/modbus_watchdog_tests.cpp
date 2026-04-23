@@ -231,7 +231,7 @@ mqtt:
         REQUIRE(server.mqttValue("slave1/availability") == "1");
 
         server.stop();
-        REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 1);
+        REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 1);
     }
 
 

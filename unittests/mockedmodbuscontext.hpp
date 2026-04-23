@@ -40,8 +40,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 void clearError(int regNum, modmqttd::RegisterType regType)
                     { setError(regNum, regType, false); }
                 bool hasError(int regNum, modmqttd::RegisterType regType, int regCount) const;
-                int getReadCount() const { return mReadCount; }
-                int getWriteCount() const { return mWriteCount; }
+                int getIssuedReadCallsCount() const { return mIssuedReadCalls; }
+                int getIssuedWriteCallsCount() const { return mIssuedWriteCalls; }
 
                 std::map<int, RegData> mInput;
                 std::map<int, RegData> mHolding;
@@ -57,8 +57,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
                 std::vector<uint16_t> readRegisters(std::map<int, RegData>& table, int num, int count, bool internalOperation);
                 uint16_t readRegister(std::map<int, RegData>& table, int num, bool internalOperation);
                 bool mDisconnected = false;
-                int mReadCount = 0;
-                int mWriteCount = 0;
+                int mIssuedReadCalls = 0;
+                int mIssuedWriteCalls = 0;
                 std::shared_ptr<std::condition_variable> mIOCondition;
         };
 
@@ -79,8 +79,8 @@ class MockedModbusContext : public modmqttd::IModbusContext {
         virtual void waitForInitialPoll(std::chrono::milliseconds timeout = timing::defaultWait);
 
 
-        int getReadCount(int slaveId) const;
-        int getWriteCount(int slaveId) const;
+        int getIssuedReadCallsCount(int slaveId) const;
+        int getIssuedWriteCallsCount(int slaveId) const;
         int getConnectionCount() const { return mConnectionCount; }
 
         void setReadTime(int slaveId, std::chrono::milliseconds readTime);

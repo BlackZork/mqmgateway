@@ -33,6 +33,6 @@ mqtt:
         server.start();
         std::this_thread::sleep_for(timing::milliseconds(180));
         server.stop();
-        REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 3);
+        REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 3);
     }
 }

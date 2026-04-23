@@ -86,7 +86,7 @@ mqtt:
         std::this_thread::sleep_for(timing::milliseconds(50));
         server.stop();
         // both registers should be read once
-        REQUIRE(server.getMockedModbusContext("tcptest").getReadCount(1) == 2);
+        REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 2);
     }
 
     //TODO test for ONCE when publish failed or broker is disconnected
