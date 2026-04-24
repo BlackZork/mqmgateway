@@ -12,7 +12,7 @@ int main( int argc, char* argv[] ) {
 
   modmqttd::Log::severity loglevel = modmqttd::Log::severity::debug;
   if (const char* env_p = std::getenv("MQM_TEST_LOGLEVEL")) {
-      loglevel = static_cast<modmqttd::Log::severity>(std::atoi(env_p) - 1);
+      loglevel = modmqttd::Log::parse_severity(env_p);
   }
   modmqttd::Log::init_logging(loglevel);
 

@@ -47,6 +47,9 @@
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing"
                 }
+            ],
+            "environment": [
+                //{ "name": "MQM_TEST_LOGLEVEL", "value": "trace"}
             ]
         },
         {
@@ -57,6 +60,9 @@
             "args": [],
             "stopOnEntry": false,
             "cwd": "${workspaceFolder}/build/unittests/",
+            "env": {
+                //"MQM_TEST_LOGLEVEL": "trace"
+            },
             "initCommands": [
             ],
         },
