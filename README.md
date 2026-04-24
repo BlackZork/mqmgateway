@@ -99,10 +99,10 @@ Docker images for various architectures (i386, arm6, arm7, amd64) are available 
 
 # <a name="Logging"></a>Logging
 
-modqmttd has six log levels: *critical, error, warning, info, debug, trace*, numbered from 1 to 6. When debugging, you can increase the default INFO log level by passing `--loglevel <num>` to modmqttd:
+modqmttd has six log levels: *critical, error, warning, info, debug, trace*, numbered from 1 to 6. When debugging, you can increase the default *info* log level by passing `--loglevel <level>` to modmqttd:
 
 ```bash
-modmqttd --config=<path> --loglevel=5
+modmqttd --config=<path> --loglevel=trace
 ```
 
 or setting log_level in `config.yaml`
