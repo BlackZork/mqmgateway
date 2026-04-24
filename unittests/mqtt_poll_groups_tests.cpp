@@ -159,7 +159,7 @@ TEST_CASE ("Availablity should be changed for all registers in poll group") {
 }
 
 
-static const std::string slave_sets_config = R"(
+TestConfig slave_sets_config(R"(
 modmqttd:
 modbus:
   networks:
@@ -186,10 +186,10 @@ mqtt:
         registers:
         - register: tcptest.1.1
         - register: tcptest.1.4
-)";
+)");
 
 TEST_CASE ("Multiple poll group definitions should be merged") {
-    MockedModMqttServerThread server(slave_sets_config);
+    MockedModMqttServerThread server(slave_sets_config.toString());
     server.setModbusRegisterValue("tcptest", 1, 1, modmqttd::RegisterType::HOLDING, 1);
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
     server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 3);
