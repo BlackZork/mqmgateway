@@ -269,7 +269,7 @@ Modbus network configuration parameters are listed below:
 
   * **write_mode** (optional)
 
-    Override write mode for single register write operations for all registers on this slave. See [MQTT commands section](#Commands) for more info.
+    Override write mode for single register write operations for all registers on this slave. See [MQTT commands section](#a-commands-section) for more info.
 
   * **poll_groups** (optional)
 
@@ -438,7 +438,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
       if publish_mode is set to "once", then state is published only once just after initial poll.
 
-### <a name="Commands"></a>A *commands* section
+### <a name="a-commands-section"></a>A *commands* section
 
 A single command is defined using following settings.
 
