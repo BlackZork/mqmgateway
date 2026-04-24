@@ -32,6 +32,8 @@ ModbusSlaveConfig::ModbusSlaveConfig(int pAddress, const YAML::Node& data)
 
     ConfigTools::readOptionalValue<unsigned short>(mMaxWriteRetryCount, data, "write_retries");
     ConfigTools::readOptionalValue<unsigned short>(mMaxReadRetryCount, data, "read_retries");
+
+    ConfigTools::readOptionalValue<ModbusWriteMode>(mWriteMode, data, "write_mode");
 }
 
 }

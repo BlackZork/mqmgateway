@@ -135,6 +135,10 @@ ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
     if (it != mSlaves.end()) {
         setCommandDelays(*cmd, it->second.getDelayBeforeCommand(), it->second.getDelayBeforeFirstCommand());
         cmd->setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
+
+        // mqtt commad value has precedence
+        if (cmd->mWriteMode == ModbusWriteMode::AUTO)
+            cmd->mWriteMode = it->second.mWriteMode;
     }
 
     mExecutor.addWriteCommand(cmd);

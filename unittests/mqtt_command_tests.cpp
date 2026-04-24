@@ -11,6 +11,9 @@ modbus:
     - name: tcptest
       address: localhost
       port: 501
+      slaves:
+        - address: 1
+          delay_before_command: 50ms
 mqtt:
   client_id: mqtt_test
   broker:
@@ -79,7 +82,7 @@ SECTION ("with invalid coil value should not crash server") {
     server.stop();
 }
 
-SECTION ("with force_multiple_registers should set WriteMode to FORCE_MULTIPLE_REGISTERS") {
+SECTION ("with force_multiple_registers on command level should set WriteMode to FORCE_MULTIPLE_REGISTERS") {
     config.mYAML["mqtt"]["objects"][0]["commands"][0]["write_mode"] = "force_multiple_registers";
     MockedModMqttServerThread server(config.toString());
     server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::COIL, 0);
@@ -87,6 +90,23 @@ SECTION ("with force_multiple_registers should set WriteMode to FORCE_MULTIPLE_R
 
     server.waitForPublish("test_switch/state");
     server.publish("test_switch/set", "1");
+    server.waitForPublish("test_switch/state");
+
+    server.stop();
+
+    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedWriteCall(1,0).mWriteMode == modmqttd::ModbusWriteMode::FORCE_MULTIPLE_REGISTERS);
+}
+
+
+SECTION ("with force_multiple_registers on slave level should set WriteMode to FORCE_MULTIPLE_REGISTERS") {
+    config.mYAML["modbus"]["networks"][0]["slaves"][0]["write_mode"] = "force_multiple_registers";
+    MockedModMqttServerThread server(config.toString());
+    server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::COIL, 0);
+    server.start();
+
+    server.waitForPublish("test_switch/state");
+    server.publish("test_switch/set", "1");
+    server.waitForPublish("test_switch/state");
 
     server.stop();
 

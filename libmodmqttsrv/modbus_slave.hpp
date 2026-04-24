@@ -4,6 +4,7 @@
 #include <chrono>
 
 #include "logging.hpp"
+#include "modbus_types.hpp"
 
 namespace modmqttd {
 
@@ -12,6 +13,7 @@ class ModbusSlaveConfig {
         ModbusSlaveConfig(int pAddress, const YAML::Node& data);
         int mAddress;
         std::string mSlaveName;
+        ModbusWriteMode mWriteMode = ModbusWriteMode::AUTO;
 
         bool hasDelayBeforeCommand() const { return mDelayBeforeCommand != nullptr; }
         bool hasDelayBeforeFirstCommand() const { return mDelayBeforeFirstCommand != nullptr; }
