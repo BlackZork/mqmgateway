@@ -267,6 +267,10 @@ Modbus network configuration parameters are listed below:
 
     A number of retries after a modbus write command to this slave fails. Uses the global *write_retries* if not defined.
 
+  * **write_mode** (optional)
+
+    Override write mode for single register write operations for all registers on this slave. See [MQTT commands section](#Commands) for more info.
+
   * **poll_groups** (optional)
 
       An optional list of modbus register address ranges that will be polled with a single modbus_read_registers(3) call.
@@ -434,7 +438,7 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
       if publish_mode is set to "once", then state is published only once just after initial poll.
 
-### A *commands* section
+### <a name="Commands"></a>A *commands* section
 
 A single command is defined using following settings.
 
