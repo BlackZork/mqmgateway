@@ -1,0 +1,28 @@
+---
+Language: Cpp
+Standard: c++17
+
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
+ContinuationIndentWidth: 4
+IndentAccessModifiers: true
+NamespaceIndentation: None
+
+BreakBeforeBraces: Attach
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+
+PointerAlignment: Left
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: false
+SpacesInParentheses: false
+
+ColumnLimit: 0
+SortIncludes: false
+IncludeBlocks: Preserve
+FixNamespaceComments: false
+MaxEmptyLinesToKeep: 2

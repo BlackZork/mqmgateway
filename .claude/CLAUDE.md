@@ -160,3 +160,9 @@ handled in the config/parsing layer — keep it in mind when touching register-i
   on its message via `requireException<>`).
 - New unit-test `.cpp` files must be added to the `add_executable(tests ...)` list in
   `unittests/CMakeLists.txt` — there is no globbing.
+- Style and naming are enforced by `.clang-format` and `.clang-tidy` (naming-only). Local
+  targets: `format` (reformat in-place), `format-check` (dry-run), `tidy-naming` (clang-tidy
+  over all `.cpp`). CI gates the diff vs master on every PR to master — only changed lines
+  are checked, so pre-existing non-conforming code is never flagged.
+- A pre-push hook in `.githooks/pre-push` runs format and naming checks before any push to
+  master. Activate once per clone: `git config core.hooksPath .githooks`.

@@ -15,6 +15,7 @@ if (WITHOUT_TESTS)
 endif()
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -80,4 +81,46 @@ install (DIRECTORY "${PROJECT_SOURCE_DIR}/libmodmqttconv" DESTINATION include FI
 
 install(TARGETS stdconv DESTINATION lib/modmqttd)
 
-install(FILES modmqttd.service DESTINATION lib/systemd/system) 
+install(FILES modmqttd.service DESTINATION lib/systemd/system)
+
+# ---------- local linting convenience targets ----------
+set(LINT_DIRS
+    libmodmqttsrv libmodmqttconv modmqttd stdconv exprconv unittests
+)
+
+find_program(CLANG_FORMAT_BIN clang-format)
+if(CLANG_FORMAT_BIN)
+    set(FORMAT_SOURCES)
+    foreach(dir ${LINT_DIRS})
+        file(GLOB_RECURSE _srcs
+            "${CMAKE_SOURCE_DIR}/${dir}/*.cpp"
+            "${CMAKE_SOURCE_DIR}/${dir}/*.hpp"
+        )
+        list(APPEND FORMAT_SOURCES ${_srcs})
+    endforeach()
+
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT_BIN} -i ${FORMAT_SOURCES}
+        COMMENT "clang-format: formatting sources in-place"
+    )
+    add_custom_target(format-check
+        COMMAND ${CLANG_FORMAT_BIN} --dry-run --Werror ${FORMAT_SOURCES}
+        COMMENT "clang-format: checking formatting (no changes written)"
+    )
+endif()
+
+find_program(CLANG_TIDY_BIN clang-tidy)
+if(CLANG_TIDY_BIN)
+    set(TIDY_SOURCES)
+    foreach(dir ${LINT_DIRS})
+        file(GLOB_RECURSE _srcs "${CMAKE_SOURCE_DIR}/${dir}/*.cpp")
+        list(APPEND TIDY_SOURCES ${_srcs})
+    endforeach()
+
+    add_custom_target(tidy-naming
+        COMMAND ${CLANG_TIDY_BIN}
+            -p "${CMAKE_BINARY_DIR}"
+            ${TIDY_SOURCES}
+        COMMENT "clang-tidy: checking identifier naming"
+    )
+endif() 

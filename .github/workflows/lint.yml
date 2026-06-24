@@ -1,0 +1,51 @@
+name: lint
+
+on:
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  format-and-naming:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-format-18 clang-tidy-18 \
+            cmake ninja-build pkg-config \
+            libmodbus-dev libmosquitto-dev libyaml-cpp-dev \
+            rapidjson-dev libspdlog-dev libfmt-dev catch2
+
+      - name: Compute merge base
+        run: echo "BASE_SHA=$(git merge-base origin/${{ github.base_ref }} HEAD)" >> "$GITHUB_ENV"
+
+      - name: clang-format (changed lines only)
+        run: |
+          git clang-format-18 --diff --extensions cpp,hpp "$BASE_SHA" -- \
+            libmodmqttsrv libmodmqttconv modmqttd stdconv exprconv unittests \
+            | tee fmt.diff
+          if grep -qE '^[-+]' fmt.diff && ! grep -q 'no modified files' fmt.diff; then
+            echo "::error::Formatting issues found — run: cmake --build build --target format"
+            exit 1
+          fi
+
+      - name: Build compile DB
+        run: cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DWITHOUT_TESTS=ON
+
+      - name: clang-tidy naming (changed lines only)
+        run: |
+          git diff -U0 "$BASE_SHA" -- '*.cpp' '*.hpp' \
+            ':(exclude)readerwriterqueue/*' ':(exclude)argh/*' \
+            | python3 /usr/lib/llvm-18/share/clang/clang-tidy-diff.py \
+                -p1 -path build -clang-tidy-binary clang-tidy-18 -- 2>&1 \
+            | tee tidy.log
+          if grep -qE 'warning:|error:' tidy.log; then
+            echo "::error::Naming violations found — see tidy.log above"
+            exit 1
+          fi
