@@ -121,6 +121,15 @@ ModbusExecutor::addPollList(const std::map<int, std::vector<std::shared_ptr<Regi
 
 
 void
+ModbusExecutor::addReadCommand(const std::shared_ptr<RegisterPoll>& pCommand) {
+    mSlaveQueues[pCommand->mSlaveId].addPollList({pCommand});
+    if (mCurrentSlaveQueue == mSlaveQueues.end()) {
+        mCurrentSlaveQueue = mSlaveQueues.find(pCommand->mSlaveId);
+        resetCommandsCounter();
+    }
+}
+
+void
 ModbusExecutor::addWriteCommand(const std::shared_ptr<RegisterWrite>& pCommand) {
     if (mWriteCommandsQueued == 0) {
         // skip queuing for if there is no queued write commands.
@@ -167,7 +176,7 @@ ModbusExecutor::pollRegisters(RegisterPoll& reg, bool forceSend) {
             forceSend = true;
 
         if ((reg.getValues() != newValues) || forceSend || (reg.mReadErrors != 0)) {
-            MsgRegisterValues val(reg.mSlaveId, reg.mRegisterType, reg.mRegister, newValues);
+            MsgRegisterValues val(reg.mSlaveId, reg.mRegisterType, reg.mRegister, newValues, reg.getCommandId());
             sendMessage(QueueItem::create(val));
             reg.update(newValues);
             if (reg.mReadErrors != 0) {
@@ -196,10 +205,16 @@ ModbusExecutor::pollRegisters(RegisterPoll& reg, bool forceSend) {
 
 void
 ModbusExecutor::handleRegisterReadError(RegisterPoll& regPoll, const char* errorMessage) {
-    // avoid flooding logs with register read error messages - log last error every 5 minutes
     regPoll.mReadErrors++;
     regPoll.mLastReadOk = false;
 
+    if (regPoll.isRpc()) {
+        // RPC reads are one-shot; error is sent from sendCommand after retries exhausted
+        spdlog::error("Error reading register {}.{}: {}", regPoll.mSlaveId, regPoll.mRegister, errorMessage);
+        return;
+    }
+
+    // avoid flooding logs with register read error messages - log last error every 5 minutes
     if (regPoll.mReadErrors == 1 || (std::chrono::steady_clock::now() - regPoll.mFirstErrorTime > RegisterPoll::DurationBetweenLogError)) {
         spdlog::error("{} error(s) when reading register {}.{}, last error: {}",
             regPoll.mReadErrors,
@@ -245,7 +260,7 @@ ModbusExecutor::writeRegisters(RegisterWrite& cmd) {
             ex.what()
         );
         cmd.mLastWriteOk = false;
-        MsgRegisterWriteFailed msg(cmd.mSlaveId, cmd.mRegisterType, cmd.mRegister, cmd.getCount());
+        MsgRegisterWriteFailed msg(cmd.mSlaveId, cmd.mRegisterType, cmd.mRegister, cmd.getCount(), cmd.getCommandId());
         sendMessage(QueueItem::create(msg));
     }
     mLastCommandTime = std::chrono::steady_clock::now();
@@ -343,6 +358,9 @@ ModbusExecutor::sendCommand() {
             if (mReadRetryCount != 0) {
                 retry = true;
                 mReadRetryCount--;
+            } else if (pollcmd.isRpc()) {
+                MsgRegisterReadFailed msg(pollcmd.mSlaveId, pollcmd.mRegisterType, pollcmd.mRegister, pollcmd.getCount(), pollcmd.getCommandId());
+                sendMessage(QueueItem::create(msg));
             }
         } else {
             mReadRetryCount = mMaxReadRetryCount;

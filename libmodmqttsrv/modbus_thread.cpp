@@ -122,6 +122,26 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
 }
 
 void
+ModbusThread::applySlaveConfig(RegisterCommand& cmd, int slaveId) {
+    setCommandDelays(cmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
+    cmd.setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
+    std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(slaveId);
+    if (it != mSlaves.end()) {
+        setCommandDelays(cmd, it->second.getDelayBeforeCommand(), it->second.getDelayBeforeFirstCommand());
+        cmd.setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
+    }
+}
+
+void
+ModbusThread::processReadRequest(const std::shared_ptr<MsgRegisterReadRequest>& msg) {
+    std::shared_ptr<RegisterPoll> reg(new RegisterPoll(
+        msg->mSlaveId, msg->mRegister, msg->mRegisterType, msg->mCount,
+        std::chrono::milliseconds(0), PublishMode::ONCE, msg->getCommandId()));
+    applySlaveConfig(*reg, msg->mSlaveId);
+    mExecutor.addReadCommand(reg);
+}
+
+void
 ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
     auto cmd = std::shared_ptr<RegisterWrite>(new RegisterWrite(*msg));
 
@@ -129,14 +149,11 @@ ModbusThread::processWrite(const std::shared_ptr<MsgRegisterValues>& msg) {
 
     cmd->mReturnMessage = msg;
 
-    setCommandDelays(*cmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
-    cmd->setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
+    applySlaveConfig(*cmd, msg->mSlaveId);
+
     std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(msg->mSlaveId);
     if (it != mSlaves.end()) {
-        setCommandDelays(*cmd, it->second.getDelayBeforeCommand(), it->second.getDelayBeforeFirstCommand());
-        cmd->setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
-
-        // mqtt commad value has precedence
+        // mqtt command value has precedence
         if (cmd->mWriteMode == ModbusWriteMode::AUTO)
             cmd->mWriteMode = it->second.mWriteMode;
     }
@@ -159,6 +176,8 @@ ModbusThread::dispatchMessages(const QueueItem& read) {
             mShouldRun = false;
         } else if (item.isSameAs(typeid(MsgRegisterValues))) {
             processWrite(item.getData<MsgRegisterValues>());
+        } else if (item.isSameAs(typeid(MsgRegisterReadRequest))) {
+            processReadRequest(item.getData<MsgRegisterReadRequest>());
         } else if (item.isSameAs(typeid(MsgMqttNetworkState))) {
             std::unique_ptr<MsgMqttNetworkState> netstate(item.getData<MsgMqttNetworkState>());
             mMqttConnected = netstate->mIsUp;
@@ -261,7 +280,17 @@ ModbusThread::run() {
                         } else {
                             idleWaitDuration = mExecutor.executeNext();
                             if (idleWaitDuration == std::chrono::steady_clock::duration::zero()) {
-                                mWatchdog.inspectCommand(*mExecutor.getLastCommand());
+                                const std::shared_ptr<RegisterCommand>& cmd = mExecutor.getLastCommand();
+                                mWatchdog.inspectCommand(*cmd);
+                                // a successful one-shot RPC read can stand in for a scheduled
+                                // poll of the same (or a narrower) range - defer that poll so
+                                // we do not read the same registers twice within a refresh cycle
+                                if (cmd->isRpc() && cmd->executedOk()) {
+                                    // process read calls only
+                                    if (const RegisterPoll* rpcRead = dynamic_cast<const RegisterPoll*>(cmd.get())) {
+                                        mScheduler.notifyRpcRead(*rpcRead);
+                                    }
+                                }
                             }
                         }
                     } else {

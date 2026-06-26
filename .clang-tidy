@@ -1,6 +1,6 @@
 ---
-Checks: '-*,readability-identifier-naming'
-WarningsAsErrors: 'readability-identifier-naming'
+Checks: '-*,readability-identifier-naming,readability-braces-around-statements'
+WarningsAsErrors: 'readability-identifier-naming,readability-braces-around-statements'
 HeaderFilterRegex: '.*'
 CheckOptions:
   readability-identifier-naming.ClassCase:              CamelCase

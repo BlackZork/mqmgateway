@@ -7,7 +7,7 @@
 
 namespace modmqttd {
 
-class MqttObjectCommand : public ModbusRequestBase {
+class MqttObjectCommand : public ModbusMessageBase {
     public:
         enum PayloadType {
             STRING = 1
@@ -21,7 +21,7 @@ class MqttObjectCommand : public ModbusRequestBase {
             RegisterType pRegisterType,
             int pRegisterNumber,
             int pRegisterCount,
-            ModbusWriteMode pWriteMode) : ModbusRequestBase(pSlaveId, pRegisterNumber, pRegisterType, pRegisterCount, pCommandId),
+            ModbusWriteMode pWriteMode) : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegisterType, pRegisterCount, pCommandId),
                                           mTopic(pTopic),
                                           mPayloadType(pPayloadType),
                                           mModbusNetworkName(pModbusNetworkName),

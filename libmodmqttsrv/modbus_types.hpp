@@ -27,6 +27,8 @@ class ModbusAddressRange {
         bool overlaps(const ModbusAddressRange& poll) const;
         bool isConsecutiveOf(const ModbusAddressRange& other) const;
         bool isSameAs(const ModbusAddressRange& other) const;
+        // true if this range fully covers pOther (same type, pOther within bounds)
+        bool contains(const ModbusAddressRange& pOther) const;
         int firstRegister() const { return mRegister; }
         int lastRegister() const { return (mRegister + mCount) - 1; }
 
@@ -36,9 +38,9 @@ class ModbusAddressRange {
 };
 
 
-class ModbusRequestBase : public ModbusAddressRange {
+class ModbusMessageBase : public ModbusAddressRange {
     public:
-        ModbusRequestBase(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount, int pCommandId = 0)
+        ModbusMessageBase(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount, int pCommandId = 0)
             : ModbusAddressRange(pRegisterNumber, pType, pCount),
               mSlaveId(pSlaveId),
               mCommandId(pCommandId) {}

@@ -45,7 +45,7 @@ MqttObjectDataNode::updateRegisterValues(const std::string& pNetworkName, const 
 
 
 bool
-MqttObjectDataNode::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusRequestBase& pSlaveData) {
+MqttObjectDataNode::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusMessageBase& pSlaveData) {
     bool ret = false;
     if (!isScalar()) {
         for (MqttObjectDataNode& node: mNodes) {
@@ -127,7 +127,7 @@ MqttObjectDataNode::setScalarNode(const MqttObjectRegisterIdent& ident) {
 
 
 bool
-MqttObjectDataNode::hasRegisterIn(const std::string& pNetworkName, const ModbusRequestBase& pRange) const {
+MqttObjectDataNode::hasRegisterIn(const std::string& pNetworkName, const ModbusMessageBase& pRange) const {
     if (isScalar()) {
         assert(mIdent != nullptr);
         if (mIdent->mSlaveId != pRange.mSlaveId)
@@ -195,7 +195,7 @@ MqttObjectDataNode::addChildDataNode(const MqttObjectDataNode& pNode, bool force
 
 
 bool
-MqttObjectState::hasRegisterIn(const std::string& pNetworkName, const ModbusRequestBase& pRange) const {
+MqttObjectState::hasRegisterIn(const std::string& pNetworkName, const ModbusMessageBase& pRange) const {
     for (std::vector<MqttObjectDataNode>::const_iterator it = mNodes.begin(); it != mNodes.end(); it++) {
         if (it->hasRegisterIn(pNetworkName, pRange))
             return true;
@@ -216,7 +216,7 @@ MqttObjectState::updateRegisterValues(const std::string& pNetworkName, const Msg
 
 
 bool
-MqttObjectState::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusRequestBase& pSlaveData) {
+MqttObjectState::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusMessageBase& pSlaveData) {
     bool ret = false;
     for (std::vector<MqttObjectDataNode>::iterator it = mNodes.begin(); it != mNodes.end(); it++) {
         if (it->updateRegistersReadFailed(pNetworkName, pSlaveData))
@@ -272,7 +272,7 @@ MqttObject::MqttObject(const std::string& pTopic)
 
 
 bool
-MqttObject::hasRegisterIn(const std::string& pNetworkName, const ModbusRequestBase& pRange) const {
+MqttObject::hasRegisterIn(const std::string& pNetworkName, const ModbusMessageBase& pRange) const {
     return mState.hasRegisterIn(pNetworkName, pRange) || mAvailability.hasRegisterIn(pNetworkName, pRange);
 }
 
@@ -288,7 +288,7 @@ MqttObject::updateRegisterValues(const std::string& pNetworkName, const MsgRegis
 
 
 void
-MqttObject::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusRequestBase& pSlaveData) {
+MqttObject::updateRegistersReadFailed(const std::string& pNetworkName, const ModbusMessageBase& pSlaveData) {
     bool stateChanged = mState.updateRegistersReadFailed(pNetworkName, pSlaveData);
     bool availChanged = mAvailability.updateRegistersReadFailed(pNetworkName, pSlaveData);
     if (stateChanged || availChanged) {

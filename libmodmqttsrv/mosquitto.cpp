@@ -1,6 +1,9 @@
 #include <cstring>
 
 #include "mosquitto.hpp"
+
+#include <mosquitto/libcommon_properties.h>
+#include <mosquitto/mqtt_protocol.h>
 #include "exceptions.hpp"
 #include "mqttclient.hpp"
 #include "threadutils.hpp"
@@ -43,6 +46,12 @@ static void on_message_wrapper(struct mosquitto *mosq, void *userdata, const str
 {
 	class Mosquitto *m = (class Mosquitto *)userdata;
 	m->on_message(message);
+}
+
+static void on_message_v5_wrapper(struct mosquitto *mosq, void *userdata, const struct mosquitto_message *message, const mosquitto_property *props)
+{
+	class Mosquitto *m = (class Mosquitto *)userdata;
+	m->on_message_v5(message, props);
 }
 
 /*
@@ -102,8 +111,14 @@ Mosquitto::Mosquitto() {
 void
 Mosquitto::connect(const MqttBrokerConfig& config) {
     spdlog::info("Connecting to {}:{}", config.mHost, config.mPort);
+    mProtocolV5 = config.mProtocolV5;
 
     int rc = 0;
+    if (config.mProtocolV5) {
+        rc = mosquitto_int_option(mMosq, MOSQ_OPT_PROTOCOL_VERSION, MQTT_PROTOCOL_V5);
+        throwOnCriticalError(rc);
+    }
+
     if (!config.mUsername.empty()) {
         rc = mosquitto_username_pw_set(mMosq, config.mUsername.c_str(), config.mPassword.c_str());
         throwOnCriticalError(rc);
@@ -137,7 +152,10 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
         mosquitto_connect_with_flags_callback_set(mMosq, on_connect_with_flags_wrapper);
         mosquitto_disconnect_callback_set(mMosq, on_disconnect_wrapper);
         mosquitto_publish_callback_set(mMosq, on_publish_wrapper);
-        mosquitto_message_callback_set(mMosq, on_message_wrapper);
+        if (config.mProtocolV5)
+            mosquitto_message_v5_callback_set(mMosq, on_message_v5_wrapper);
+        else
+            mosquitto_message_callback_set(mMosq, on_message_wrapper);
         //mosquitto_subscribe_callback_set(mMosq, on_subscribe_wrapper);
         //mosquitto_unsubscribe_callback_set(mMosq, on_unsubscribe_wrapper);
         mosquitto_log_callback_set(mMosq, on_log_wrapper);
@@ -228,6 +246,41 @@ Mosquitto::on_log(int level, const char* message) {
 void
 Mosquitto::on_message(const struct mosquitto_message *message) {
     mOwner->onMessage(message->topic, message->payload, message->payloadlen);
+}
+
+void
+Mosquitto::on_message_v5(const struct mosquitto_message *message, const mosquitto_property *props) {
+    char* rawRespTopic = nullptr;
+    void* rawCorr = nullptr;
+    uint16_t corrLen = 0;
+    mosquitto_property_read_string(props, MQTT_PROP_RESPONSE_TOPIC, &rawRespTopic, false);
+    mosquitto_property_read_binary(props, MQTT_PROP_CORRELATION_DATA, &rawCorr, &corrLen, false);
+    std::shared_ptr<char> respTopic(rawRespTopic, free);
+    std::shared_ptr<void> corr(rawCorr, free);
+    mOwner->onMessage(message->topic, message->payload, message->payloadlen,
+        respTopic.get(), corr, corrLen);
+}
+
+int
+Mosquitto::publishResponse(const char* topic, int len, const void* data,
+    const void* correlationData, int correlationLen,
+    const std::vector<std::pair<std::string, std::string>>& userProperties)
+{
+    int msgId;
+    mosquitto_property *rawProps = nullptr;
+    if (correlationData != nullptr && correlationLen > 0) {
+        mosquitto_property_add_binary(&rawProps, MQTT_PROP_CORRELATION_DATA, correlationData, static_cast<uint16_t>(correlationLen));
+    }
+    for (const auto& kv : userProperties) {
+        mosquitto_property_add_string_pair(&rawProps, MQTT_PROP_USER_PROPERTY,
+            kv.first.c_str(), kv.second.c_str());
+    }
+    std::shared_ptr<mosquitto_property> props(rawProps, [](mosquitto_property* p) {
+        mosquitto_property_free_all(&p);
+    });
+    int rc = mosquitto_publish_v5(mMosq, &msgId, topic, len, data, 0, false, props.get());
+    throwOnCriticalError(rc);
+    return msgId;
 }
 
 const char*

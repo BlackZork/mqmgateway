@@ -25,6 +25,7 @@ class ModbusExecutor {
 
         void addPollList(const std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>& pRegisters, bool mInitialPoll = false);
         void addWriteCommand(const std::shared_ptr<RegisterWrite>& pCommand);
+        void addReadCommand(const std::shared_ptr<RegisterPoll>& pCommand);
         /**
          *  Get next request R to send from modbus queues
          *  If R needs delay then return how much time we should wait before

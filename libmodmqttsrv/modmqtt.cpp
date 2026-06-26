@@ -346,11 +346,29 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     std::string clientId = ConfigTools::readRequiredString(mqtt, "client_id");
     mMqtt->setClientId(clientId);
 
+    RpcMode rpcMode = RpcMode::Disabled;
+    if (mqtt["rpc"].IsDefined()) {
+        const YAML::Node& rpc = mqtt["rpc"];
+        std::string modeStr = "disabled";
+        ConfigTools::readOptionalValue<std::string>(modeStr, rpc, "mode");
+        if (modeStr == "disabled") {
+            rpcMode = RpcMode::Disabled;
+        } else if (modeStr == "read") {
+            rpcMode = RpcMode::Read;
+        } else if (modeStr == "readwrite") {
+            rpcMode = RpcMode::ReadWrite;
+        } else {
+            throw ConfigurationException(rpc["mode"].Mark(), "Unknown rpc mode: " + modeStr);
+        }
+    }
+    mMqtt->setRpcMode(rpcMode);
+
     const YAML::Node& broker = mqtt["broker"];
     if (!broker.IsDefined())
         throw ConfigurationException(config.Mark(), "no broker configuration in mqtt section");
 
     MqttBrokerConfig brokerConfig(broker);
+    brokerConfig.mProtocolV5 = (rpcMode != RpcMode::Disabled);
 
     mMqtt->setBrokerConfig(brokerConfig);
     spdlog::debug("Broker configuration initialized");
@@ -965,10 +983,16 @@ ModMqtt::processModbusMessages() {
                 mMqtt->processRegisterValues((*client)->mNetworkName, *val);
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
-                mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
+                if (val->isRpc())
+                    mMqtt->publishRpcError((*client)->mNetworkName, *val);
+                else
+                    mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
             } else if (item.isSameAs(typeid(MsgRegisterWriteFailed))) {
                 std::unique_ptr<MsgRegisterWriteFailed> val(item.getData<MsgRegisterWriteFailed>());
-                mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
+                if (val->isRpc())
+                    mMqtt->publishRpcError((*client)->mNetworkName, *val);
+                else
+                    mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);

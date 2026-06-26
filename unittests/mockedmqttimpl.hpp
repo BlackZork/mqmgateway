@@ -61,6 +61,9 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         virtual void subscribe(const char* topic);
         virtual int publish(const char* topic, int len, const void* data, bool retain);
+        virtual int publishResponse(const char* topic, int len, const void* data,
+            const void* correlationData, int correlationLen,
+            const std::vector<std::pair<std::string, std::string>>& userProperties = {}) override;
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);
@@ -77,11 +80,26 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         bool mqttNullValue(const char* topic);
         //returns current value on timeout
         std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout);
+
+        // RPC test tools (for publishResponse captures)
+        bool waitForRpcResponse(int corrId, std::chrono::milliseconds timeout);
+        std::string rpcValue(int corrId);
+        std::string rpcUserProperty(int corrId, const std::string& key);
+
+        // RPC inject: simulate a client sending an MQTT5 request with Response Topic + int Correlation Data
+        void injectRpcRequest(const char* requestTopic, const void* payload, int len,
+            const char* responseTopic, int corrId = 0);
+
         //clear all topics and simulate broker disconnection
         void resetBroker();
 
         virtual ~MockedMqttImpl();
     private:
+        struct RpcResponse {
+            std::string payload;
+            std::map<std::string, std::string> userProperties;
+        };
+
         modmqttd::MqttClient* mOwner;
         int mNextMessageId = 0;
 
@@ -89,6 +107,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         std::map<std::string, MqttValue> mTopics;
         std::set<std::string> mSubscriptions;
+        std::map<int, RpcResponse> mRpcResponses;
 
         //contains all topics published before waitForPublish/waitForFirstPublish
         //call. Map value contains mqtt publish count

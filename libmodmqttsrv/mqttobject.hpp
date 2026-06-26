@@ -40,7 +40,7 @@ class MqttObjectRegisterIdent {
                                   mRegisterNumber(registerNumber),
                                   mRegisterType(regType) {}
 
-        MqttObjectRegisterIdent(const std::string& network, const ModbusRequestBase& slaveData)
+        MqttObjectRegisterIdent(const std::string& network, const ModbusMessageBase& slaveData)
             : mNetworkName(network),
               mSlaveId(slaveData.mSlaveId),
               mRegisterNumber(slaveData.mRegister),
@@ -98,10 +98,10 @@ class MqttObjectDataNodeList : public std::vector<MqttObjectDataNode> {
 class MqttObjectDataNode {
     public:
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
-        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusRequestBase& pSlaveData);
+        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusMessageBase& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
 
-        bool hasRegisterIn(const std::string& pNetworkName, const ModbusRequestBase& pRange) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const ModbusMessageBase& pRange) const;
         bool hasAllValues() const;
         bool isPolling() const;
 
@@ -153,10 +153,10 @@ class MqttObjectDataNode {
 class MqttObjectState {
     public:
         // void addRegister(const std::string& name, const MqttObjectRegisterIdent& regIdent, const std::shared_ptr<DataConverter>& conv);
-        bool hasRegisterIn(const std::string& pNetworkName, const ModbusRequestBase& pRange) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const ModbusMessageBase& pRange) const;
         bool usesModbusNetwork(const std::string& networkName) const;
         bool updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
-        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusRequestBase& pSlaveData);
+        bool updateRegistersReadFailed(const std::string& pNetworkName, const ModbusMessageBase& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
         bool hasAllValues() const;
         bool isPolling() const;
@@ -184,9 +184,9 @@ class MqttObject {
         const std::string& getTopic() const { return mTopic; };
         const std::string& getStateTopic() const { return mStateTopic; };
         const std::string& getAvailabilityTopic() const { return mAvailabilityTopic; }
-        bool hasRegisterIn(const std::string& pNetworkName, const ModbusRequestBase& pRange) const;
+        bool hasRegisterIn(const std::string& pNetworkName, const ModbusMessageBase& pRange) const;
         void updateRegisterValues(const std::string& pNetworkName, const MsgRegisterValues& pSlaveData);
-        void updateRegistersReadFailed(const std::string& pNetworkName, const ModbusRequestBase& pSlaveData);
+        void updateRegistersReadFailed(const std::string& pNetworkName, const ModbusMessageBase& pSlaveData);
         bool setModbusNetworkState(const std::string& networkName, bool isUp);
 
         void addAvailabilityDataNode(const MqttObjectDataNode& pNode) { mAvailability.addDataNode(pNode); }
