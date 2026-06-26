@@ -18,7 +18,7 @@ MqttClient::MqttClient(ModMqtt& modmqttd) : mOwner(modmqttd) {
 void
 MqttClient::setBrokerConfig(const MqttBrokerConfig& config) {
     if (!mBrokerConfig.isSameAs(config)) {
-		//TODO reconnect
+        // TODO reconnect
         mBrokerConfig = config;
     }
 };
@@ -33,10 +33,10 @@ MqttClient::setClientId(const std::string& clientId) {
 void
 MqttClient::start() /*throw(MosquittoException)*/ {
     // protect from re-entry in ModMqtt main loop
-	switch(mConnectionState) {
-		case State::CONNECTED:
-			return;
-	}
+    switch (mConnectionState) {
+    case State::CONNECTED:
+        return;
+    }
     mIsStarted = true;
     mConnectionState = State::CONNECTING;
     mMqttImpl->connect(mBrokerConfig);
@@ -44,60 +44,60 @@ MqttClient::start() /*throw(MosquittoException)*/ {
 
 void
 MqttClient::shutdown() {
-    //do not add any messages to modbus queues - modbus clients
-    //are already stopped
+    // do not add any messages to modbus queues - modbus clients
+    // are already stopped
     mModbusClients.clear();
 
-    switch(mConnectionState) {
-        case State::CONNECTED:
-            spdlog::info("Disconnecting from mqtt broker");
-            mConnectionState = State::DISCONNECTING;
-            mMqttImpl->disconnect();
+    switch (mConnectionState) {
+    case State::CONNECTED:
+        spdlog::info("Disconnecting from mqtt broker");
+        mConnectionState = State::DISCONNECTING;
+        mMqttImpl->disconnect();
         break;
-        case State::CONNECTING:
-            //we do not send disconnect mqtt request if not connected
-            spdlog::info("Cancelling connection request");
-            mIsStarted = false;
-            break;
-        case State::DISCONNECTING:
-            spdlog::info("Shutdown already in progress, waiting for clean disconnect");
-            break;
-        default:
-            mIsStarted = false;
-            mConnectionState = State::DISCONNECTED;
+    case State::CONNECTING:
+        // we do not send disconnect mqtt request if not connected
+        spdlog::info("Cancelling connection request");
+        mIsStarted = false;
+        break;
+    case State::DISCONNECTING:
+        spdlog::info("Shutdown already in progress, waiting for clean disconnect");
+        break;
+    default:
+        mIsStarted = false;
+        mConnectionState = State::DISCONNECTED;
     }
 }
 
 void
 MqttClient::onDisconnect() {
-    for(std::vector<std::shared_ptr<ModbusClient>>::iterator it = mModbusClients.begin(); it != mModbusClients.end(); it++) {
+    for (std::vector<std::shared_ptr<ModbusClient>>::iterator it = mModbusClients.begin(); it != mModbusClients.end(); it++) {
         (*it)->sendMqttNetworkIsUp(false);
     }
-    switch(mConnectionState) {
-        case State::CONNECTED:
-        case State::CONNECTING:
-            spdlog::info("Reconnecting to mqtt broker");
-            mMqttImpl->reconnect();
-            break;
-        case State::DISCONNECTING:
-            spdlog::info("Stopping mosquitto message loop");
-            mConnectionState = State::DISCONNECTED;
+    switch (mConnectionState) {
+    case State::CONNECTED:
+    case State::CONNECTING:
+        spdlog::info("Reconnecting to mqtt broker");
+        mMqttImpl->reconnect();
+        break;
+    case State::DISCONNECTING:
+        spdlog::info("Stopping mosquitto message loop");
+        mConnectionState = State::DISCONNECTED;
 // https://github.com/BlackZork/mqmgateway/issues/33
 #ifndef __MUSL__
-            mMqttImpl->stop();
+        mMqttImpl->stop();
 #endif
-            mIsStarted = false;
-            // signal modmqttd that is waiting on queues mutex
-            // for us to disconnect
-            modmqttd::notifyQueues();
+        mIsStarted = false;
+        // signal modmqttd that is waiting on queues mutex
+        // for us to disconnect
+        modmqttd::notifyQueues();
     };
 }
 
 void
 MqttClient::onConnect() {
-	spdlog::info("Connected, sending subscriptions…");
+    spdlog::info("Connected, sending subscriptions…");
 
-    for(auto cmd: mCommands) {
+    for (auto cmd: mCommands) {
         mMqttImpl->subscribe(cmd.second.mTopic.c_str());
     }
 
@@ -110,11 +110,11 @@ MqttClient::onConnect() {
     // all subscribed clients
     publishAll();
 
-    for(std::vector<std::shared_ptr<ModbusClient>>::iterator it = mModbusClients.begin(); it != mModbusClients.end(); it++) {
+    for (std::vector<std::shared_ptr<ModbusClient>>::iterator it = mModbusClients.begin(); it != mModbusClients.end(); it++) {
         (*it)->sendMqttNetworkIsUp(true);
     }
 
-	spdlog::info("Ready to process MQTT messages");
+    spdlog::info("Ready to process MQTT messages");
 }
 
 void
@@ -123,7 +123,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
         // we drop changes when there is no connection
         // retain flag is set so
         // broker will send last known value for us.
-    	spdlog::trace("Mqtt broker not connected, dropping MsgRegisterValues data");
+        spdlog::trace("Mqtt broker not connected, dropping MsgRegisterValues data");
         return;
     }
 
@@ -143,7 +143,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
     // possible if write command registers do not overlap with
     // any MqttObject
     if (affectedObjects == nullptr) {
-    	spdlog::trace("No affected objects for received register values");
+        spdlog::trace("No affected objects for received register values");
         return;
     }
 
@@ -201,7 +201,7 @@ MqttClient::publishState(const std::shared_ptr<MqttObject>& obj, bool force) {
 }
 
 void
-MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkName, const ModbusSlaveAddressRange& pSlaveData) {
+MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkName, const ModbusRequestBase& pSlaveData) {
     MqttObjectRegisterIdent ident(pModbusNetworkName, pSlaveData);
     MqttPollObjMap::iterator it = mObjects.find(ident);
 
@@ -229,8 +229,7 @@ MqttClient::processModbusNetworkState(const std::string& pNetworkName, bool pIsU
     if (pIsUp)
         return;
 
-    for(MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
-    {
+    for (MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++) {
         if (it->first.mNetworkName != pNetworkName)
             continue;
 
@@ -266,8 +265,7 @@ void
 MqttClient::publishAll() {
     std::set<std::shared_ptr<MqttObject>> published;
 
-    for(MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++)
-    {
+    for (MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++) {
         for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
             const std::shared_ptr<MqttObject>& optr = *oit;
 
@@ -285,12 +283,12 @@ MqttValue
 createMqttValue(const MqttObjectCommand& command, const void* data, int datalen) {
     MqttValue ret;
 
-    switch(command.mPayloadType) {
-        case MqttObjectCommand::PayloadType::STRING:
-            ret = MqttValue::fromBinary(data, datalen);
+    switch (command.mPayloadType) {
+    case MqttObjectCommand::PayloadType::STRING:
+        ret = MqttValue::fromBinary(data, datalen);
         break;
-        default:
-          throw MqttPayloadConversionException("Conversion failed, unknown payload type" + std::to_string(command.mPayloadType));
+    default:
+        throw MqttPayloadConversionException("Conversion failed, unknown payload type" + std::to_string(command.mPayloadType));
     }
 
     return ret;
@@ -302,11 +300,10 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen) {
         const MqttObjectCommand& command = findCommand(topic);
         const std::string& network = command.mModbusNetworkName;
 
-        //TODO is is thread safe to iterate on modbus clients from mosquitto callback?
+        // TODO is is thread safe to iterate on modbus clients from mosquitto callback?
         std::vector<std::shared_ptr<ModbusClient>>::const_iterator it = std::find_if(
             mModbusClients.begin(), mModbusClients.end(),
-            [&network](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mNetworkName == network; }
-        );
+            [&network](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mNetworkName == network; });
         if (it == mModbusClients.end()) {
             spdlog::error("Modbus network {} not found for command {}, dropping message", network, topic);
         } else {

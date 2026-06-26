@@ -27,7 +27,7 @@ class MqttClient {
         void setClientId(const std::string& clientId);
         void setBrokerConfig(const MqttBrokerConfig& config);
         void setModbusClients(const std::vector<std::shared_ptr<ModbusClient>>& clients) { mModbusClients = clients; }
-        void start() ;//TODO throw(MosquittoException) - deprecated?;
+        void start(); // TODO throw(MosquittoException) - deprecated?;
         bool isStarted() { return mIsStarted; }
         void shutdown();
         bool isConnected() const { return mConnectionState == State::CONNECTED; }
@@ -39,21 +39,22 @@ class MqttClient {
         const std::map<std::string, MqttObjectCommand>& getCommands() const { return mCommands; }
 
         void processRegisterValues(const std::string& modbusNetworkName, const MsgRegisterValues& values);
-        void processRegistersOperationFailed(const std::string& modbusNetworkName, const ModbusSlaveAddressRange& values);
+        void processRegistersOperationFailed(const std::string& modbusNetworkName, const ModbusRequestBase& values);
         void processModbusNetworkState(const std::string& modbusNetworkName, bool isUp);
 
-        //mqtt communication callbacks
+        // mqtt communication callbacks
         void onDisconnect();
         void onConnect();
         void onMessage(const char* topic, const void* payload, int payload_len);
         void onPublish(int messageId) {}
 
-        //for unit tests
+        // for unit tests
         void setMqttImplementation(const std::shared_ptr<IMqttImpl>& impl) { mMqttImpl = impl; }
+
     private:
-        //publish all data after broker is reconnected
+        // publish all data after broker is reconnected
         void publishAll();
-        void publishState(const std::shared_ptr<MqttObject>&, bool force=false);
+        void publishState(const std::shared_ptr<MqttObject>&, bool force = false);
         void publishAvailabilityChange(const MqttObject& obj);
 
 
@@ -78,13 +79,13 @@ class MqttClient {
          * per poll group ident. This way for each MsgRegisterValues we can update
          * objects from single list only.
          * MqttObject can be a member of multiple lists on this map
-        */
+         */
         MqttPollObjMap mObjects;
 
         /**
          * Direct relation between command and objects that poll the
          * same registers
-        */
+         */
         MqttCmdObjMap mCommandObjects;
 
         std::map<std::string, MqttObjectCommand> mCommands;

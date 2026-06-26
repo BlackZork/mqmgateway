@@ -13,53 +13,51 @@
 
 namespace modmqttd {
 
-class MsgRegisterValues : public ModbusSlaveAddressRange {
+class MsgRegisterValues : public ModbusRequestBase {
     public:
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers, int pCommandId, ModbusWriteMode pWriteMode)
-            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registers.getCount()),
+            : ModbusRequestBase(slaveId, registerNumber, regType, registers.getCount(), pCommandId),
               mRegisters(registers),
               mCreationTime(std::chrono::steady_clock::now()),
-              mCommandId(pCommandId),
-              mWriteMode(pWriteMode)
-            {}
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers)
-            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registers.size()),
+              mWriteMode(pWriteMode) {}
+        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers, int pCommandId = 0)
+            : ModbusRequestBase(slaveId, registerNumber, regType, registers.size(), pCommandId),
               mRegisters(registers),
-              mCreationTime(std::chrono::steady_clock::now())
-            {}
+              mCreationTime(std::chrono::steady_clock::now()) {}
 
         const std::chrono::steady_clock::time_point& getCreationTime() const { return mCreationTime; }
-        int getCommandId() const { return mCommandId; }
-        bool hasCommandId() const { return mCommandId != 0; }
 
         ModbusRegisters mRegisters;
         ModbusWriteMode mWriteMode = ModbusWriteMode::AUTO;
+
     private:
         std::chrono::steady_clock::time_point mCreationTime;
-        int mCommandId = 0;
 };
 
-class MsgRegisterReadFailed : public ModbusSlaveAddressRange {
+class MsgRegisterReadFailed : public ModbusRequestBase {
     public:
-        MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
-            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registerCount)
-        {}
+        MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount, int pCommandId = 0)
+            : ModbusRequestBase(slaveId, registerNumber, regType, registerCount, pCommandId) {}
 };
 
-class MsgRegisterWriteFailed : public ModbusSlaveAddressRange {
+class MsgRegisterWriteFailed : public ModbusRequestBase {
     public:
-        MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount)
-            : ModbusSlaveAddressRange(slaveId, registerNumber, regType, registerCount)
-        {}
+        MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount, int pCommandId = 0)
+            : ModbusRequestBase(slaveId, registerNumber, regType, registerCount, pCommandId) {}
+};
+
+class MsgRegisterReadRequest : public ModbusRequestBase {
+    public:
+        MsgRegisterReadRequest(int slaveId, RegisterType regType, int registerNumber, int registerCount, int pCommandId)
+            : ModbusRequestBase(slaveId, registerNumber, regType, registerCount, pCommandId) {}
 };
 
 
-class MsgRegisterPoll : public ModbusSlaveAddressRange {
+class MsgRegisterPoll : public ModbusRequestBase {
     public:
         static constexpr std::chrono::milliseconds INVALID_REFRESH = std::chrono::milliseconds(-1);
-        MsgRegisterPoll(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount=1)
-            : ModbusSlaveAddressRange(pSlaveId, pRegisterNumber, pType, pCount)
-        {
+        MsgRegisterPoll(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount = 1)
+            : ModbusRequestBase(pSlaveId, pRegisterNumber, pType, pCount) {
 #ifndef NDEBUG
             if (mRegister < 0)
                 throw DebugException("Invalid register number");
@@ -89,7 +87,7 @@ class MsgRegisterPollSpecification {
         void group();
 
         void merge(const std::vector<MsgRegisterPoll>& lst) {
-            for(auto& poll: lst)
+            for (auto& poll: lst)
                 merge(poll);
         }
 
@@ -108,8 +106,7 @@ class MsgRegisterPollSpecification {
 class MsgModbusNetworkState {
     public:
         MsgModbusNetworkState(const std::string& networkName, bool isUp)
-            : mNetworkName(networkName), mIsUp(isUp)
-        {}
+            : mNetworkName(networkName), mIsUp(isUp) {}
         bool mIsUp;
         std::string mNetworkName;
 };
@@ -117,13 +114,12 @@ class MsgModbusNetworkState {
 class MsgMqttNetworkState {
     public:
         MsgMqttNetworkState(bool isUp)
-            : mIsUp(isUp)
-        {}
+            : mIsUp(isUp) {}
         bool mIsUp;
 };
 
 class EndWorkMessage {
-    // no fields here, thread will check type of message and exit
+        // no fields here, thread will check type of message and exit
 };
 
 }

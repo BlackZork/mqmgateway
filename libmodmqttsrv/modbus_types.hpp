@@ -21,8 +21,7 @@ enum ModbusWriteMode {
 class ModbusAddressRange {
     public:
         ModbusAddressRange(int pRegister, RegisterType pRegisterType, int pCount)
-            : mRegister(pRegister), mRegisterType(pRegisterType), mCount(pCount)
-        {}
+            : mRegister(pRegister), mRegisterType(pRegisterType), mCount(pCount) {}
 
         void merge(const ModbusAddressRange& other);
         bool overlaps(const ModbusAddressRange& poll) const;
@@ -37,16 +36,19 @@ class ModbusAddressRange {
 };
 
 
-class ModbusSlaveAddressRange : public ModbusAddressRange {
+class ModbusRequestBase : public ModbusAddressRange {
     public:
-        ModbusSlaveAddressRange(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount)
+        ModbusRequestBase(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount, int pCommandId = 0)
             : ModbusAddressRange(pRegisterNumber, pType, pCount),
-              mSlaveId(pSlaveId)
-        {}
+              mSlaveId(pSlaveId),
+              mCommandId(pCommandId) {}
+
+        int getCommandId() const { return mCommandId; }
+        bool hasCommandId() const { return mCommandId != 0; }
+        bool isRpc() const { return mCommandId < 0; }
 
         int mSlaveId;
+        int mCommandId;
 };
 
 }
-
-
