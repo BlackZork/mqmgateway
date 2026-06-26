@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
+# To enable pre-push format/naming checks before any push to master, run once per clone:
+#   git config core.hooksPath .githooks
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(CheckSymbolExists)
