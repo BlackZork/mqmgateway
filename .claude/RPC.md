@@ -690,7 +690,7 @@ safe from the Mosquitto callback thread.
 ### `handleRpcRequest` Phase 3 additions
 
 - `"converter"` field now accepted. Parse the spec string.
-- Map: absent → default to `"std.debug"`, `"none"` / `""` → nullptr (raw mode), else
+- Map: absent or `"none"` / `""` → nullptr (raw mode, Phase 2 shape); else
   `mOwner.createConverterFromString(spec)`. Catch `ConvException`/`MqttObjectException` → `publishRpcError`.
 - Store `converter` in `PendingRpcRequest`.
 - Write with a converter: encode `"value"` field via `converter->toModbus(mqttVal, count)`;
@@ -708,9 +708,9 @@ When `req.converter == nullptr` (raw mode, `"none"`) → Phase 2 shape unchanged
 
 ### Phase 3 test additions (in `rpc_modbus_tests.cpp`)
 
-- Default read (no `converter`) → `"value"` key present, contains `"int32"`, `"float32"`, `"string"` (std.debug output).
+- Default read (no `converter` or `"none"`) → raw shape (Phase 2: `raw`/`hex` arrays, no `"value"` key).
+- `"converter":"std.debug"` → `"value"` contains `"int32"`, `"float32"`, `"string"` etc.
 - `"converter":"std.float32(low_first=true)"` → `"value"` is a scalar number.
-- `"converter":"none"` → raw shape (Phase 2, no `"value"` key).
 - Converter-encoded write round-trip: write via converter, read back, confirm register value.
 
 ---
@@ -734,12 +734,12 @@ When `req.converter == nullptr` (raw mode, `"none"`) → Phase 2 shape unchanged
 - `register`: string, same convention as `config.yaml` — decimal = 1-based, hex = 0-based (`"0x0009"` and `"40010"` refer to the same register).
 - `register_type`: `coil` | `bit` | `holding` | `input` (default `holding`). Writes rejected on `bit`/`input`.
 - `count`: default 1; clamped to per-type libmodbus limits (125 holding/input, 2000 coil/bit).
-- `converter`: Phase 3 only; omit → `std.debug`; `"none"`/`""` → raw.
-- `value`: write only; array of uint16 (Phase 2 raw) or a scalar/JSON value for the named converter (Phase 3).
+- `converter`: Phase 3 only; omit or `"none"`/`""` → raw (`raw`/`hex` arrays); named converter → output under `"value"`.
+- `value`: write only; array of uint16 (raw) or a scalar/JSON value for the named converter (Phase 3).
 
 ### Response (daemon → client's Response Topic, Correlation Data echoed)
 
-**Raw read (Phase 2 / `converter:"none"`):**
+**Default read (Phase 2 and Phase 3, no `converter` or `converter:"none"`):**
 ```json
 {
   "status": "ok",
@@ -750,7 +750,7 @@ When `req.converter == nullptr` (raw mode, `"none"`) → Phase 2 shape unchanged
 }
 ```
 
-**Read with std.debug default (Phase 3):**
+**Read with `converter:"std.debug"` (Phase 3):**
 ```json
 {
   "status": "ok",
@@ -766,7 +766,7 @@ When `req.converter == nullptr` (raw mode, `"none"`) → Phase 2 shape unchanged
 }
 ```
 
-**Read with specific converter (Phase 3):**
+**Read with other converter, e.g. `converter:"std.float32(low_first=true)"` (Phase 3):**
 ```json
 { "status": "ok", ..., "value": 48.566 }
 ```
