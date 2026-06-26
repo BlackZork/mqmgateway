@@ -821,6 +821,68 @@ modmqttd contains *std* library with basic converters ready to use:
     converter: std.map('1:-1,6:9,8:"42"')
   ```
 
+* **debug(pretty_print=false)**
+
+  Usage: state
+
+  Publishes all numeric and string interpretations of the register data as a JSON object.
+  Useful for commissioning — attach it to a state topic to discover the correct converter
+  and arguments for a device register without restarting the daemon.
+
+  The JSON keys are converter call strings that can be copy-pasted directly into `config.yaml`
+  once the correct interpretation is identified.
+
+  For a **single register** the output contains `raw`, `hex`, `int16`, `uint16`, and `string` sections:
+
+  ```json
+  {
+    "raw": [41394],
+    "hex": ["0xA1B2"],
+    "int16": { "std.int16": -24142, "std.int16(swap_bytes=true)": -19807 },
+    "uint16": { "std.uint16": 41394, "std.uint16(swap_bytes=true)": 45729 },
+    "string": "¡²"
+  }
+  ```
+
+  For **two registers** the output contains `raw`, `hex`, `int32`, `uint32`, `float32`, and `string` sections.
+  All four word-order/byte-swap combinations are shown for 32-bit types:
+
+  ```json
+  {
+    "raw": [41394, 50132],
+    "hex": ["0xA1B2", "0xC3D4"],
+    "int32": {
+      "std.int32": -1582119980,
+      "std.int32(low_first=true)": -1009475150,
+      "std.int32(swap_bytes=true)": -1298017085,
+      "std.int32(low_first=true,swap_bytes=true)": -725372255
+    },
+    "uint32": { "std.uint32": 2712847316, "...": "..." },
+    "float32": {
+      "std.float32": -1.234567,
+      "std.float32(low_first=true)": "nan",
+      "...": "..."
+    },
+    "string": "¡²ÃÔ"
+  }
+  ```
+
+  Special float values are encoded as strings: `"nan"`, `"inf"`, `"-inf"`.
+
+  For **more than two registers** only `raw`, `hex`, and `string` sections are emitted — no
+  32-bit interpretation is attempted. Use `count: 2` on a dedicated debug state entry to
+  inspect a specific pair of registers.
+
+  Set `pretty_print=true` to emit indented JSON (useful when inspecting payloads in a terminal).
+
+  ```yaml
+  state:
+    register: device1.slave1.100
+    register_type: holding
+    count: 2
+    converter: std.debug(pretty_print=true)
+  ```
+
 ### Converter usage examples
 
 Converter can be added to modbus register in state and command section.

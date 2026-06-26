@@ -23,7 +23,7 @@ class DebugConverter : public DataConverter {
 
             if (pData.getCount() == 1) {
                 addInt16Section(doc, alloc, pData.getValue(0));
-            } else {
+            } else if (pData.getCount() == 2) {
                 addInt32Section(doc, alloc, pData);
                 addUInt32Section(doc, alloc, pData);
                 addFloat32Section(doc, alloc, pData);
