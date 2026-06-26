@@ -51,6 +51,14 @@ class Float {
         static const float CDAB_as_float;
         static const float DCBA_as_float;
         static const float BADC_as_float;
+
+        // special values: two-register (high, low) pairs
+        static constexpr uint16_t NAN_HIGH     = 0x7FC0;
+        static constexpr uint16_t NAN_LOW      = 0x0000;
+        static constexpr uint16_t POS_INF_HIGH = 0x7F80;
+        static constexpr uint16_t POS_INF_LOW  = 0x0000;
+        static constexpr uint16_t NEG_INF_HIGH = 0xFF80;
+        static constexpr uint16_t NEG_INF_LOW  = 0x0000;
 };
 
 } //namespace

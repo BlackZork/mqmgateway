@@ -2,6 +2,7 @@
 #include "plugin.hpp"
 
 #include "bits.hpp"
+#include "debug.hpp"
 #include "float32.hpp"
 #include "int16.hpp"
 #include "int32.hpp"
@@ -42,5 +43,7 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new UInt8Converter();
     else if (name == "map")
         return new MapConverter();
+    else if (name == "debug")
+        return new DebugConverter();
     return nullptr;
 }
