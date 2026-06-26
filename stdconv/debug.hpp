@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
@@ -31,8 +32,13 @@ class DebugConverter : public DataConverter {
             addStringSection(doc, alloc, pData);
 
             rapidjson::StringBuffer sb;
-            rapidjson::Writer<rapidjson::StringBuffer> w(sb);
-            doc.Accept(w);
+            if (mPrettyPrint) {
+                rapidjson::PrettyWriter<rapidjson::StringBuffer> w(sb);
+                doc.Accept(w);
+            } else {
+                rapidjson::Writer<rapidjson::StringBuffer> w(sb);
+                doc.Accept(w);
+            }
 
             return MqttValue::fromBinary(sb.GetString(), sb.GetSize());
         }
@@ -41,7 +47,19 @@ class DebugConverter : public DataConverter {
             throw ConvException("std.debug is read-only");
         }
 
+        virtual ConverterArgs getArgs() const {
+            ConverterArgs ret;
+            ret.add("pretty_print", ConverterArgType::BOOL, false);
+            return ret;
+        }
+
+        virtual void setArgValues(const ConverterArgValues& pArgs) {
+            mPrettyPrint = pArgs["pretty_print"].as_bool();
+        }
+
     private:
+        bool mPrettyPrint = false;
+
         static void addRawArrays(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,
                                  const ModbusRegisters& pData) {
             rapidjson::Value rawArr(rapidjson::kArrayType);

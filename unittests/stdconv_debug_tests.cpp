@@ -148,8 +148,7 @@ TEST_CASE("std.debug for special float32") {
 }
 
 TEST_CASE("std.debug on object state topic") {
-    SECTION("should publish valid JSON with raw and int16 sections") {
-        TestConfig config(R"(
+    TestConfig config(R"(
 modmqttd:
   converter_search_path:
     - build/stdconv
@@ -170,26 +169,55 @@ mqtt:
       state:
         register: tcptest.1.2
         register_type: input
-        converter: std.debug()
+        count: 2
 )");
 
+    SECTION("should publish compact single-line JSON by default") {
+        config.mYAML["mqtt"]["objects"][0]["state"]["converter"] = "std.debug()";
         MockedModMqttServerThread server(config.toString());
-        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT,
-                                      TestNumbers::Int::AB);
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, TestNumbers::Int::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, TestNumbers::Int::CD);
         server.start();
         server.waitForPublish("test_sensor/state");
 
         std::string payload = server.mqttValue("test_sensor/state");
 
-        spdlog::info("debug converter output:\n{}", payload);
-
+        REQUIRE(payload.find('\n') == std::string::npos);
         rapidjson::Document doc;
         REQUIRE_FALSE(doc.Parse(payload.c_str()).HasParseError());
-        REQUIRE(doc.HasMember("raw"));
-        REQUIRE(doc.HasMember("hex"));
-        REQUIRE(doc.HasMember("int16"));
-        REQUIRE(doc.HasMember("uint16"));
         REQUIRE(doc["raw"][0].GetUint() == TestNumbers::Int::AB);
+        REQUIRE(doc["raw"][1].GetUint() == TestNumbers::Int::CD);
+        REQUIRE(doc.HasMember("hex"));
+        REQUIRE(doc.HasMember("int32"));
+        REQUIRE(doc.HasMember("uint32"));
+        REQUIRE(doc.HasMember("float32"));
+        REQUIRE(doc["int32"]["std.int32"].GetInt() == TestNumbers::Int::ABCD_as_int32);
+        REQUIRE(doc["uint32"]["std.uint32"].GetUint() == TestNumbers::Int::ABCD_as_uint32);
+
+        server.stop();
+    }
+
+    SECTION("should publish indented multi-line JSON with pretty_print=true") {
+        config.mYAML["mqtt"]["objects"][0]["state"]["converter"] = "std.debug(pretty_print=true)";
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, TestNumbers::Int::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, TestNumbers::Int::CD);
+        server.start();
+        server.waitForPublish("test_sensor/state");
+
+        std::string payload = server.mqttValue("test_sensor/state");
+
+        REQUIRE(payload.find('\n') != std::string::npos);
+        rapidjson::Document doc;
+        REQUIRE_FALSE(doc.Parse(payload.c_str()).HasParseError());
+        REQUIRE(doc["raw"][0].GetUint() == TestNumbers::Int::AB);
+        REQUIRE(doc["raw"][1].GetUint() == TestNumbers::Int::CD);
+        REQUIRE(doc.HasMember("hex"));
+        REQUIRE(doc.HasMember("int32"));
+        REQUIRE(doc.HasMember("uint32"));
+        REQUIRE(doc.HasMember("float32"));
+        REQUIRE(doc["int32"]["std.int32"].GetInt() == TestNumbers::Int::ABCD_as_int32);
+        REQUIRE(doc["uint32"]["std.uint32"].GetUint() == TestNumbers::Int::ABCD_as_uint32);
 
         server.stop();
     }
