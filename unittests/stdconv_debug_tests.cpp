@@ -102,6 +102,34 @@ TEST_CASE("std.debug for two registers") {
     }
 }
 
+TEST_CASE("std.debug for more than two registers") {
+    PluginLoader loader("../stdconv/stdconv.so");
+    std::shared_ptr<DataConverter> conv(loader.getConverter("debug"));
+
+    const ModbusRegisters input({TestNumbers::Int::AB, TestNumbers::Int::CD, TestNumbers::Int::AB});
+
+    SECTION("should output raw, hex and string sections") {
+        auto doc = parseOutput(*conv, input);
+        REQUIRE(doc.HasMember("raw"));
+        REQUIRE(doc.HasMember("hex"));
+        REQUIRE(doc.HasMember("string"));
+        REQUIRE(doc["raw"].Size() == 3);
+    }
+
+    SECTION("should not output int32, uint32 or float32 sections") {
+        auto doc = parseOutput(*conv, input);
+        REQUIRE_FALSE(doc.HasMember("int32"));
+        REQUIRE_FALSE(doc.HasMember("uint32"));
+        REQUIRE_FALSE(doc.HasMember("float32"));
+    }
+
+    SECTION("should not output int16 or uint16 sections") {
+        auto doc = parseOutput(*conv, input);
+        REQUIRE_FALSE(doc.HasMember("int16"));
+        REQUIRE_FALSE(doc.HasMember("uint16"));
+    }
+}
+
 TEST_CASE("std.debug for float32") {
     PluginLoader loader("../stdconv/stdconv.so");
     std::shared_ptr<DataConverter> conv(loader.getConverter("debug"));

@@ -166,3 +166,24 @@ handled in the config/parsing layer — keep it in mind when touching register-i
   are checked, so pre-existing non-conforming code is never flagged.
 - A pre-push hook in `.githooks/pre-push` runs format and naming checks before any push to
   master. Activate once per clone: `git config core.hooksPath .githooks`.
+- **Always run `cmake --build build --target format-check tidy-naming` before running tests.**
+  Lint errors will also be caught by the pre-push hook, but catching them early avoids a
+  wasted test cycle.
+
+### TestConfig pattern
+
+Integration-style tests build on `MockedModMqttServerThread`, configured via `TestConfig`
+(defined in `unittests/yaml_utils.hpp`). Key rules:
+
+- Define `TestConfig config(R"(...)")` **at TEST_CASE scope**, not inside a SECTION. Catch2
+  re-runs the TEST_CASE body from the top for each SECTION, so each section gets a fresh
+  `config` object with `mEmitted = false`. Defining it inside a SECTION causes a compile-time
+  logic error if `toString()` is ever called twice on the same object.
+- To vary a single field across sections, mutate `config.mYAML` before calling `toString()`:
+  ```cpp
+  config.mYAML["mqtt"]["objects"][0]["state"]["converter"] = "std.float32()";
+  MockedModMqttServerThread server(config.toString());
+  ```
+  Use YAML node path matching the config structure (0-based sequence indices).
+- `toString()` is one-shot — calling it twice on the same object throws. It also applies
+  timing scaling (`MQM_TEST_TIMING_FACTOR`) before emitting.
