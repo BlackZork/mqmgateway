@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include "mockedserver.hpp"
 #include "yaml_utils.hpp"
+#include "testnumbers.hpp"
 #include <thread>
 
 TEST_CASE("RPC mode subscription") {
@@ -314,6 +315,11 @@ mqtt:
 TEST_CASE("RPC error handling") {
 
     TestConfig config(R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+  converter_plugins:
+    - stdconv.so
 modbus:
   networks:
     - name: tcptest
@@ -381,12 +387,46 @@ mqtt:
         server.stop();
     }
 
-    SECTION("converter field should return error property") {
+    SECTION("unknown converter should return error property") {
         MockedModMqttServerThread server(config.toString());
         server.start();
         server.waitForSubscription("mqtt_test/rpc/modbus_request");
 
-        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","converter":"std.float32()"})json";
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","converter":"std.nope()"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(!server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
+    SECTION("malformed converter spec should return error property") {
+        MockedModMqttServerThread server(config.toString());
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","converter":"not a spec"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(!server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
+    SECTION("non-string converter field should return error property") {
+        MockedModMqttServerThread server(config.toString());
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","converter":42})json";
         server.mMqtt->injectRpcRequest(
             "mqtt_test/rpc/modbus_request",
             req.c_str(), static_cast<int>(req.size()),
@@ -559,6 +599,246 @@ mqtt:
         server.waitForRpcResponse(2);
         REQUIRE(server.mMqtt->rpcValue(1) == "11");
         REQUIRE(server.mMqtt->rpcValue(2) == "22");
+        server.stop();
+    }
+}
+
+
+TEST_CASE("RPC read with converter") {
+
+    // TestNumbers::Float::{AB,CD} are the two registers of -1.234567 in ABCD order
+    // (the same fixture stdconv_float_tests uses for std.float32).
+
+    TestConfig config(R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+  converter_plugins:
+    - stdconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 1
+          delay_before_command: 50ms
+mqtt:
+  client_id: mqtt_test
+  rpc:
+    mode: read
+  broker:
+    host: localhost
+  objects: []
+)");
+
+    SECTION("encodes the reply as the converter's scalar value") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::CD);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1) == "-1.234567");
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
+    SECTION("applies converter arguments") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::CD);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32(precision=2)"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1) == "-1.23");
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
+    SECTION("converter \"none\" falls back to the raw value array") {
+        const std::string expected =
+            "[" + std::to_string(TestNumbers::Float::AB) + "," + std::to_string(TestNumbers::Float::CD) + "]";
+
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::CD);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"none"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1) == expected);
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
+    SECTION("empty converter falls back to the raw value array") {
+        const std::string expected =
+            "[" + std::to_string(TestNumbers::Float::AB) + "," + std::to_string(TestNumbers::Float::CD) + "]";
+
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::CD);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":""})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1) == expected);
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
+    SECTION("converter that needs two registers fails on a single-register read") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::AB);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","converter":"std.float32()"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(!server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+}
+
+
+TEST_CASE("RPC write with converter") {
+
+    // -1.234567 encodes to TestNumbers::Float::{AB,CD} in std.float32's default ABCD order.
+
+    TestConfig config(R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+  converter_plugins:
+    - stdconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+      slaves:
+        - address: 1
+          delay_before_command: 50ms
+mqtt:
+  client_id: mqtt_test
+  rpc:
+    mode: readwrite
+  broker:
+    host: localhost
+  objects: []
+)");
+
+    SECTION("decodes the value into the converter's registers") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()","value":"-1.234567"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.waitForModbusValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::AB);
+        server.waitForModbusValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::CD);
+        server.stop();
+    }
+
+    SECTION("round-trips a converter write back through a converter read") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string writeReq = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()","value":"-1.234567"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            writeReq.c_str(), static_cast<int>(writeReq.size()),
+            "test/response", 1);
+        server.waitForRpcResponse(1);
+
+        const std::string readReq = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            readReq.c_str(), static_cast<int>(readReq.size()),
+            "test/response", 2);
+        server.waitForRpcResponse(2);
+
+        REQUIRE(server.mMqtt->rpcValue(2) == "-1.234567");
+        REQUIRE(server.mMqtt->rpcUserProperty(2, "error").empty());
+        server.stop();
+    }
+
+    SECTION("array value with a converter should return error property") {
+        MockedModMqttServerThread server(config.toString());
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()","value":[1,2]})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(!server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
+    SECTION("converter that needs two registers fails on a single-register write") {
+        MockedModMqttServerThread server(config.toString());
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":1,"converter":"std.float32()","value":"-1.234567"})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(!server.mMqtt->rpcUserProperty(1, "error").empty());
         server.stop();
     }
 }

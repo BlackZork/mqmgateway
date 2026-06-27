@@ -696,28 +696,30 @@ ModMqtt::parseObjectCommand(
 
 
 std::shared_ptr<DataConverter>
+ModMqtt::createConverterFromString(const std::string& pSpec) const {
+    ConverterSpecification parsed(ConverterNameParser::parse(pSpec));
+
+    std::shared_ptr<DataConverter> conv = createConverterInstance(parsed.plugin, parsed.converter);
+    if (conv == nullptr) {
+        throw ConvNameParserException("Converter " + parsed.plugin + "." + parsed.converter + " not found");
+    }
+
+    if (parsed.arguments != "()") {
+        ConverterArgValues values = ConverterNameParser::parseArgs(conv->getArgs(), parsed.arguments);
+        conv->setArgValues(values);
+    }
+    return conv;
+}
+
+std::shared_ptr<DataConverter>
 ModMqtt::createConverter(const YAML::Node& node) const {
     if (!node.IsScalar())
         throw ConfigurationException(node.Mark(), "converter must be a string");
     std::string line = ConfigTools::readRequiredValue<std::string>(node);
 
     try {
-        ConverterSpecification spec(ConverterNameParser::parse(line));
-
-        std::shared_ptr<DataConverter> conv = createConverterInstance(spec.plugin, spec.converter);
-        if (conv == nullptr)
-            throw ConfigurationException(node.Mark(), "Converter " + spec.plugin + "." + spec.converter + " not found");
-
-        try {
-            if (spec.arguments != "()") {
-                ConverterArgValues values = ConverterNameParser::parseArgs(conv->getArgs(), spec.arguments);
-                conv->setArgValues(values);
-            }
-            return conv;
-        } catch (const std::exception& ex) {
-            throw ConfigurationException(node.Mark(), ex.what());
-        }
-    } catch (const ConvNameParserException& ex) {
+        return createConverterFromString(line);
+    } catch (const std::exception& ex) {
         throw ConfigurationException(node.Mark(), ex.what());
     }
 }

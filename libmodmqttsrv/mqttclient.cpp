@@ -319,6 +319,36 @@ createMqttValue(const MqttObjectCommand& command, const void* data, int datalen)
     return ret;
 }
 
+// Build an MqttValue from an RPC write's JSON "value" field for converter encoding.
+// Mirrors how a configured command feeds its payload to converter->toModbus().
+static MqttValue
+rpcWriteValueFromJson(const rapidjson::Value& pValue) {
+    if (pValue.IsString()) {
+        return MqttValue::fromString(pValue.GetString());
+    }
+    if (pValue.IsDouble()) {
+        return MqttValue::fromDouble(pValue.GetDouble());
+    }
+    if (pValue.IsInt()) {
+        return MqttValue::fromInt(pValue.GetInt());
+    }
+    if (pValue.IsInt64()) {
+        return MqttValue::fromInt64(pValue.GetInt64());
+    }
+    if (pValue.IsUint()) {
+        return MqttValue::fromInt64(pValue.GetUint());
+    }
+    if (pValue.IsUint64()) {
+        // TODO MqttValue has no unsigned 64-bit holder; reject values that do not fit int64
+        const uint64_t u = pValue.GetUint64();
+        if (u > static_cast<uint64_t>(INT64_MAX)) {
+            throw std::invalid_argument("value out of range");
+        }
+        return MqttValue::fromInt64(static_cast<int64_t>(u));
+    }
+    throw std::invalid_argument("converter write requires a scalar value (number or string)");
+}
+
 void
 MqttClient::onMessage(const char* pTopic, const void* pAyload, int pAyloadlen,
                       const char* pResponseTopic,
@@ -444,8 +474,15 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
             }
         }
 
+        std::shared_ptr<DataConverter> converter; // null => raw register value(s)
         if (doc.HasMember("converter")) {
-            throw std::invalid_argument("converter field not supported");
+            if (!doc["converter"].IsString()) {
+                throw std::invalid_argument("invalid field: converter");
+            }
+            const std::string converterSpec(doc["converter"].GetString());
+            if (!converterSpec.empty() && converterSpec != "none") {
+                converter = mOwner.createConverterFromString(converterSpec);
+            }
         }
 
         std::vector<std::shared_ptr<ModbusClient>>::iterator netIt = std::find_if(
@@ -468,7 +505,8 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
 
         int count = 1;
         std::vector<uint16_t> writeValues;
-        if (isWrite) {
+        if (isWrite && converter == nullptr) {
+            // raw write: register count is derived from the value
             const rapidjson::Value& val = doc["value"];
             if (val.IsUint() && val.GetUint() <= UINT16_MAX) {
                 writeValues.push_back(static_cast<uint16_t>(val.GetUint()));
@@ -485,6 +523,8 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
             }
             count = static_cast<int>(writeValues.size());
         } else {
+            // read, or converter-encoded write: honour the optional "count" field
+            // (a converter needs the register count as an explicit input)
             if (doc.HasMember("count")) {
                 if (!doc["count"].IsInt()) {
                     throw std::invalid_argument("invalid field: count");
@@ -494,6 +534,14 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
                     throw std::invalid_argument(
                         std::string("count out of range [1, ") + std::to_string(maxCount) + "]");
                 }
+            }
+            if (isWrite) {
+                ModbusRegisters regs = converter->toModbus(rpcWriteValueFromJson(doc["value"]), count);
+                if (regs.getCount() != count) {
+                    throw std::invalid_argument(
+                        std::string("converter produced ") + std::to_string(regs.getCount()) + " register(s), expected " + std::to_string(count));
+                }
+                writeValues = regs.values();
             }
         }
 
@@ -512,6 +560,7 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
         pending.mRegisterType = regType;
         pending.mCount = count;
         pending.mIsWrite = isWrite;
+        pending.mConverter = converter;
         mPendingRpc[id] = std::move(pending);
 
         if (isWrite) {
@@ -538,9 +587,12 @@ MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegiste
     std::string payload;
     try {
         if (!pending.mIsWrite) {
-            // bare value: scalar string for count==1, JSON array for count>1
-            // (same shape as MqttPayload::generate for a plain poll with no converter)
-            if (pValues.mRegisters.getCount() == 1) {
+            if (pending.mConverter != nullptr) {
+                // converter output is the payload, exactly as a poll would publish it
+                payload = pending.mConverter->toMqtt(pValues.mRegisters).getString();
+            } else if (pValues.mRegisters.getCount() == 1) {
+                // bare value: scalar string for count==1, JSON array for count>1
+                // (same shape as MqttPayload::generate for a plain poll with no converter)
                 payload = std::to_string(pValues.mRegisters.getValue(0));
             } else {
                 rapidjson::StringBuffer buf;

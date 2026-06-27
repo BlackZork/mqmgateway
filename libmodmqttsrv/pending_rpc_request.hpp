@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "libmodmqttconv/converter.hpp"
 #include "modbus_types.hpp"
 
 namespace modmqttd {
@@ -30,6 +31,8 @@ struct PendingRpcRequest {
         RegisterType mRegisterType = RegisterType::HOLDING;
         int mCount = 1;
         bool mIsWrite = false;
+        // optional converter for a read reply; null ⇒ raw register value(s)
+        std::shared_ptr<DataConverter> mConverter;
 };
 
 }

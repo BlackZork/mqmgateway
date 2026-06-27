@@ -1146,6 +1146,136 @@ mqtt:
 
 For more examples see libstdconv source code.
 
+## MQTT5 RPC interface
+
+The RPC interface lets an operator read or write **arbitrary** modbus registers on a
+running `modmqttd` without changing the configuration file. It is intended for commissioning
+and debugging — not for steady-state data flow, which is handled by the polled
+`state`/`commands` topics described above.
+
+A request is an MQTT5 request/response exchange: the client publishes a JSON request to
+`<client_id>/rpc/modbus_request` and `modmqttd` replies once to the MQTT5 *Response Topic*
+set on that request.
+
+### Enabling RPC
+
+RPC is disabled by default. Enable it in the `mqtt` section:
+
+```yaml
+mqtt:
+  client_id: myclient
+  rpc:
+    mode: readwrite
+  broker:
+    host: localhost
+```
+
+`mode` is one of:
+
+* `disabled` (default) — no RPC. The broker connection stays MQTT 3.1.1 and nothing changes.
+* `read` — register reads are allowed; writes are rejected.
+* `readwrite` — register reads and writes are allowed.
+
+Enabling RPC (`read` or `readwrite`) switches the **whole broker connection to MQTT 5**,
+because the request/response exchange relies on MQTT5 properties (Response Topic,
+Correlation Data, User Properties). The protocol version is per-connection and backward
+compatible, so ordinary MQTT 3.1.1 subscribers of your `state`/`command` topics are
+unaffected.
+
+The request topic is always `<client_id>/rpc/modbus_request`, where `<client_id>` is the
+`mqtt.client_id` value.
+
+### Request format
+
+The request payload is a JSON object with the following fields:
+
+* **network** (string, required)
+
+  Modbus network name, as defined in `modbus.networks[].name`.
+
+* **slave** (integer, required)
+
+  Modbus slave address.
+
+* **register** (string, required)
+
+  Register number. As elsewhere in the config, a decimal number is 1-based (first register
+  is `1`) and a hexadecimal number (`0x...`) is 0-based (first register is `0`).
+
+* **register_type** (string, optional)
+
+  One of `holding` (default), `input`, `coil` or `bit`.
+
+* **count** (integer, optional)
+
+  Number of registers to read, or — for a converter write — the number of registers the
+  value occupies. Default `1`. Range `1..125` for `holding`/`input`, `1..2000` for
+  `coil`/`bit`.
+
+* **value** (scalar or array, optional)
+
+  Presence makes the request a write; without it the request is a read.
+
+* **converter** (string, optional)
+
+  Converter to apply, e.g. `std.float32()`. Omitted, `""` or `"none"` means raw register
+  values.
+
+Writes require `mode: readwrite`, and writes to the read-only `input` and `bit` register
+types are rejected.
+
+### Reading registers
+
+A read reply payload is exactly the value a poll of the same register(s) would publish:
+
+* **Raw** (no converter): a single register is a scalar string; several registers
+  (`count > 1`) are a JSON array of unsigned 16-bit values.
+* **With a converter**: the converter's output string, identical to what the polled `state`
+  topic would publish with that converter (see [Data conversion](#data-conversion)).
+
+Read holding registers `10` and `11` of slave `1` on network `tcp1` as a 32-bit float:
+
+```json
+{"network": "tcp1", "slave": 1, "register": "10", "count": 2, "converter": "std.float32()"}
+```
+
+Using `mosquitto_rr` (which sets a Response Topic for you):
+
+```bash
+mosquitto_rr -t myclient/rpc/modbus_request -e myclient/rpc/reply \
+  -m '{"network":"tcp1","slave":1,"register":"10","count":2,"converter":"std.float32()"}'
+```
+
+### Writing registers
+
+A write needs `mode: readwrite`. The reply payload is empty on success.
+
+* **Raw** (no converter): `value` is a single unsigned 16-bit integer, or a JSON array of
+  unsigned 16-bit integers (one per register).
+* **With a converter**: `value` is a single scalar (number or string) and `count` must be
+  the number of registers the converter produces. The converter encodes the value exactly
+  as a `command` topic with that converter would (see [Data conversion](#data-conversion)).
+  For example `std.float32()` always writes two registers, so a converter write with it
+  requires `"count": 2`.
+
+Write `-1.5` as a 32-bit float to holding registers `10` and `11`:
+
+```json
+{"network": "tcp1", "slave": 1, "register": "10", "count": 2, "converter": "std.float32()", "value": "-1.5"}
+```
+
+### Response and errors
+
+`modmqttd` always replies once, to the request's MQTT5 Response Topic, echoing the request's
+Correlation Data (if any). Replies are never retained. A request without a Response Topic
+cannot be answered and is logged and dropped.
+
+Errors are reported out-of-band: the reply has an empty payload and an `error` MQTT5 User
+Property carrying the message. A successful reply has no `error` property (a read carries the
+value, a write is empty). Typical errors include an unknown network, a read-only register
+type for a write, a write attempted in `read` mode, an unknown or invalid converter, or a
+modbus read/write failure.
+
 ## Multi-device definitions
 
 Multi-device definitions allows setting slave properties or create a single topic for multiple modbus devices of the same type. This greatly reduces the number of configuration sections that differ only by slave address or modbus network name.
