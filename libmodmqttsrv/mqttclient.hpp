@@ -52,7 +52,7 @@ class MqttClient {
         // mqtt communication callbacks
         void onDisconnect();
         void onConnect();
-        void onMessage(const char* pTopic, const void* pAyload, int pAyloadLen,
+        void onMessage(const char* pTopic, const void* pPayload, int pPayloadLen,
                        const char* pResponseTopic = nullptr,
                        const std::shared_ptr<void>& pCorrelationData = nullptr, int pCorrelationLen = 0);
         void onPublish(int messageId) {}
@@ -66,7 +66,7 @@ class MqttClient {
         void publishState(const std::shared_ptr<MqttObject>&, bool pForce = false);
         void publishAvailabilityChange(const MqttObject& obj);
 
-        void handleRpcRequest(const void* pAyload, int pAyloadlen,
+        void handleRpcRequest(const void* pPayload, int pPayloadlen,
                               const char* pResponseTopic,
                               const std::shared_ptr<void>& pCorrelationData, int pCorrelationLen);
         void publishRpcResponse(const std::string& pNetworkName, const MsgRegisterValues& pValues);

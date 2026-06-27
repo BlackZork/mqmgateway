@@ -350,13 +350,13 @@ rpcWriteValueFromJson(const rapidjson::Value& pValue) {
 }
 
 void
-MqttClient::onMessage(const char* pTopic, const void* pAyload, int pAyloadlen,
+MqttClient::onMessage(const char* pTopic, const void* pPayload, int pPayloadlen,
                       const char* pResponseTopic,
                       const std::shared_ptr<void>& pCorrelationData, int pCorrelationLen) {
     auto cmd = findCommand(pTopic);
     if (cmd == mCommands.end()) {
         if (mRpcMode != RpcMode::DISABLED && mRpcRequestTopic == pTopic) {
-            handleRpcRequest(pAyload, pAyloadlen, pResponseTopic, pCorrelationData, pCorrelationLen);
+            handleRpcRequest(pPayload, pPayloadlen, pResponseTopic, pCorrelationData, pCorrelationLen);
         } else {
             spdlog::error("No command for topic {}, dropping message", pTopic);
         }
@@ -373,7 +373,7 @@ MqttClient::onMessage(const char* pTopic, const void* pAyload, int pAyloadlen,
         if (it == mModbusClients.end()) {
             spdlog::error("Modbus network {} not found for command {}, dropping message", network, pTopic);
         } else {
-            MqttValue tmpval(createMqttValue(command, pAyload, pAyloadlen));
+            MqttValue tmpval(createMqttValue(command, pPayload, pPayloadlen));
 
             ModbusRegisters reg_values;
 
@@ -408,21 +408,22 @@ MqttClient::findCommand(const char* topic) const {
 }
 
 void
-MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
+MqttClient::handleRpcRequest(const void* pPayload, int pPayloadlen,
                              const char* pResponseTopic,
                              const std::shared_ptr<void>& pCorrelationData, int pCorrelationLen) {
     if (pResponseTopic == nullptr || pResponseTopic[0] == '\0') {
-        spdlog::warn("RPC request without response topic, dropping");
+        spdlog::error("RPC request without response topic, dropping");
         return;
     }
 
     const std::string respTopic(pResponseTopic);
     const CorrelationData corrData(pCorrelationData, pCorrelationLen);
+    spdlog::trace("RPC request received: responseTopic={}, payloadLen={}", respTopic, pPayloadlen);
 
     try {
         rapidjson::Document doc;
-        const char* src = static_cast<const char*>(pAyload);
-        doc.Parse(src, pAyloadlen);
+        const char* src = static_cast<const char*>(pPayload);
+        doc.Parse(src, pPayloadlen);
         if (doc.HasParseError()) {
             size_t off = doc.GetErrorOffset();
             int line = 1, col = 1;
@@ -474,12 +475,13 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
             }
         }
 
+        std::string converterSpec;
         std::shared_ptr<DataConverter> converter; // null => raw register value(s)
         if (doc.HasMember("converter")) {
             if (!doc["converter"].IsString()) {
                 throw std::invalid_argument("invalid field: converter");
             }
-            const std::string converterSpec(doc["converter"].GetString());
+            converterSpec = doc["converter"].GetString();
             if (!converterSpec.empty() && converterSpec != "none") {
                 converter = mOwner.createConverterFromString(converterSpec);
             }
@@ -545,6 +547,13 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
             }
         }
 
+        // clang-format off
+        spdlog::trace("RPC request parsed: {} network={} slave={} register={} type={} count={} converter={}",
+            isWrite ? "write" : "read", networkName, slaveId, regStr,
+            regType == RegisterType::COIL ? "coil" : regType == RegisterType::INPUT ? "input" : regType == RegisterType::BIT ? "bit" : "holding",
+            count, converter != nullptr ? converterSpec : "none");
+        // clang-format on
+
         if (mNextRpcId == INT_MIN) {
             mNextRpcId = 0;
         }
@@ -569,7 +578,9 @@ MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
         } else {
             (*netIt)->sendReadRequest(MsgRegisterReadRequest(slaveId, regType, regNum, count, id));
         }
+        spdlog::trace("RPC request enqueued: commandId={} ({})", id, isWrite ? "write" : "read");
     } catch (const std::exception& ex) {
+        spdlog::error("RPC request failed: {}", ex.what());
         publishRpcError(respTopic, corrData, ex.what());
     }
 }
@@ -578,11 +589,14 @@ void
 MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegisterValues& pValues) {
     MqttRpcPendingMap::iterator it = mPendingRpc.find(pValues.getCommandId());
     if (it == mPendingRpc.end()) {
-        spdlog::warn("RPC response for unknown commandId {}", pValues.getCommandId());
+        spdlog::error("RPC response for unknown commandId {}", pValues.getCommandId());
         return;
     }
     PendingRpcRequest pending = std::move(it->second);
     mPendingRpc.erase(it);
+    spdlog::trace("Got modbus data for RPC response, commandId={} ({} {}.{})",
+                  pValues.getCommandId(), pending.mIsWrite ? "write" : "read",
+                  pending.mSlaveId, pending.mDisplayAddress);
 
     std::string payload;
     try {
@@ -615,9 +629,19 @@ MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegiste
     try {
         mMqttImpl->publishResponse(
             pending.mResponseTopic.c_str(),
-            static_cast<int>(payload.size()), payload.empty() ? nullptr : payload.c_str(),
+            static_cast<int>(payload.size()),
+            payload.empty() ? nullptr : payload.c_str(),
             pending.mCorrelationData.data(),
             pending.mCorrelationData.size());
+        spdlog::debug(
+            "RPC {} {}.{} ok: count={}, responseTopic={}, payloadLen={}, payload={}",
+            pending.mIsWrite ? "write" : "read",
+            pending.mSlaveId,
+            pending.mDisplayAddress,
+            pending.mCount,
+            pending.mResponseTopic,
+            payload.size(),
+            payload);
     } catch (const std::exception& ex) {
         spdlog::error("Failed to publish RPC response: {}", ex.what());
     }
@@ -626,6 +650,7 @@ MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegiste
 void
 MqttClient::publishRpcError(const std::string& pResponseTopic,
                             const CorrelationData& pCorrelationData, const std::string& pErrorMsg) {
+    spdlog::trace("Publishing RPC error to {}: {}", pResponseTopic, pErrorMsg);
     try {
         // empty payload + single "error" user property (MQTT5 User Property channel)
         mMqttImpl->publishResponse(
@@ -643,12 +668,15 @@ void
 MqttClient::publishRpcError(const std::string& pModbusNetworkName, const ModbusMessageBase& pSlaveData) {
     MqttRpcPendingMap::iterator it = mPendingRpc.find(pSlaveData.getCommandId());
     if (it == mPendingRpc.end()) {
-        spdlog::warn("RPC error for unknown commandId {}", pSlaveData.getCommandId());
+        spdlog::error("RPC error for unknown commandId {}", pSlaveData.getCommandId());
         return;
     }
     PendingRpcRequest pending = std::move(it->second);
     mPendingRpc.erase(it);
     const std::string errorMsg = pending.mIsWrite ? "modbus write failed" : "modbus read failed";
+    spdlog::trace("RPC modbus {} failed: commandId={}, slave={}.{}",
+                  pending.mIsWrite ? "write" : "read", pSlaveData.getCommandId(),
+                  pending.mSlaveId, pending.mDisplayAddress);
     publishRpcError(pending.mResponseTopic, pending.mCorrelationData, errorMsg);
 }
 }
