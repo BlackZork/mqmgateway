@@ -2,8 +2,6 @@
 
 #include "mosquitto.hpp"
 
-#include <mosquitto/libcommon_properties.h>
-#include <mosquitto/mqtt_protocol.h>
 #include "exceptions.hpp"
 #include "mqttclient.hpp"
 #include "threadutils.hpp"
