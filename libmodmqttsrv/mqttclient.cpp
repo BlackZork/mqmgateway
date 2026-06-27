@@ -107,8 +107,9 @@ MqttClient::onConnect() {
     for (auto cmd: mCommands) {
         mMqttImpl->subscribe(cmd.second.mTopic.c_str());
     }
-    if (mRpcMode != RpcMode::Disabled)
+    if (mRpcMode != RpcMode::DISABLED) {
         mMqttImpl->subscribe(mRpcRequestTopic.c_str());
+    }
 
     mConnectionState = State::CONNECTED;
 
@@ -319,15 +320,15 @@ createMqttValue(const MqttObjectCommand& command, const void* data, int datalen)
 }
 
 void
-MqttClient::onMessage(const char* topic, const void* payload, int payloadlen,
-                      const char* responseTopic,
-                      const std::shared_ptr<void>& correlationData, int correlationLen) {
-    auto cmd = findCommand(topic);
+MqttClient::onMessage(const char* pTopic, const void* pAyload, int pAyloadlen,
+                      const char* pResponseTopic,
+                      const std::shared_ptr<void>& pCorrelationData, int pCorrelationLen) {
+    auto cmd = findCommand(pTopic);
     if (cmd == mCommands.end()) {
-        if (mRpcMode != RpcMode::Disabled && mRpcRequestTopic == topic) {
-            handleRpcRequest(payload, payloadlen, responseTopic, correlationData, correlationLen);
+        if (mRpcMode != RpcMode::DISABLED && mRpcRequestTopic == pTopic) {
+            handleRpcRequest(pAyload, pAyloadlen, pResponseTopic, pCorrelationData, pCorrelationLen);
         } else {
-            spdlog::error("No command for topic {}, dropping message", topic);
+            spdlog::error("No command for topic {}, dropping message", pTopic);
         }
         return;
     }
@@ -338,11 +339,11 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen,
         // TODO is is thread safe to iterate on modbus clients from mosquitto callback?
         std::vector<std::shared_ptr<ModbusClient>>::const_iterator it = std::find_if(
             mModbusClients.begin(), mModbusClients.end(),
-            [&network](const std::shared_ptr<ModbusClient>& client) -> bool { return client->mNetworkName == network; });
+            [&network](const std::shared_ptr<ModbusClient>& pClient) -> bool { return pClient->mNetworkName == network; });
         if (it == mModbusClients.end()) {
-            spdlog::error("Modbus network {} not found for command {}, dropping message", network, topic);
+            spdlog::error("Modbus network {} not found for command {}, dropping message", network, pTopic);
         } else {
-            MqttValue tmpval(createMqttValue(command, payload, payloadlen));
+            MqttValue tmpval(createMqttValue(command, pAyload, pAyloadlen));
 
             ModbusRegisters reg_values;
 
@@ -359,9 +360,9 @@ MqttClient::onMessage(const char* topic, const void* payload, int payloadlen,
             (*it)->sendCommand(command, reg_values);
         }
     } catch (const ConvException& ex) {
-        spdlog::error("Converter error for {}: {}", topic, ex.what());
+        spdlog::error("Converter error for {}: {}", pTopic, ex.what());
     } catch (const MqttPayloadConversionException& ex) {
-        spdlog::error("Value error for {}: {}", topic, ex.what());
+        spdlog::error("Value error for {}: {}", pTopic, ex.what());
     }
 }
 
@@ -377,21 +378,21 @@ MqttClient::findCommand(const char* topic) const {
 }
 
 void
-MqttClient::handleRpcRequest(const void* payload, int payloadlen,
-                             const char* responseTopic,
-                             const std::shared_ptr<void>& correlationData, int correlationLen) {
-    if (responseTopic == nullptr || responseTopic[0] == '\0') {
+MqttClient::handleRpcRequest(const void* pAyload, int pAyloadlen,
+                             const char* pResponseTopic,
+                             const std::shared_ptr<void>& pCorrelationData, int pCorrelationLen) {
+    if (pResponseTopic == nullptr || pResponseTopic[0] == '\0') {
         spdlog::warn("RPC request without response topic, dropping");
         return;
     }
 
-    const std::string respTopic(responseTopic);
-    const CorrelationData corrData(correlationData, correlationLen);
+    const std::string respTopic(pResponseTopic);
+    const CorrelationData corrData(pCorrelationData, pCorrelationLen);
 
     try {
         rapidjson::Document doc;
-        const char* src = static_cast<const char*>(payload);
-        doc.Parse(src, payloadlen);
+        const char* src = static_cast<const char*>(pAyload);
+        doc.Parse(src, pAyloadlen);
         if (doc.HasParseError()) {
             size_t off = doc.GetErrorOffset();
             int line = 1, col = 1;
@@ -449,13 +450,13 @@ MqttClient::handleRpcRequest(const void* payload, int payloadlen,
 
         std::vector<std::shared_ptr<ModbusClient>>::iterator netIt = std::find_if(
             mModbusClients.begin(), mModbusClients.end(),
-            [&networkName](const std::shared_ptr<ModbusClient>& c) { return c->mNetworkName == networkName; });
+            [&networkName](const std::shared_ptr<ModbusClient>& pC) { return pC->mNetworkName == networkName; });
         if (netIt == mModbusClients.end()) {
             throw std::invalid_argument("network not found: " + networkName);
         }
 
         const bool isWrite = doc.HasMember("value");
-        if (isWrite && mRpcMode != RpcMode::ReadWrite) {
+        if (isWrite && mRpcMode != RpcMode::READ_WRITE) {
             throw std::invalid_argument("writes are disabled (mode: read)");
         }
         if (isWrite && (regType == RegisterType::BIT || regType == RegisterType::INPUT)) {
@@ -496,8 +497,9 @@ MqttClient::handleRpcRequest(const void* payload, int payloadlen,
             }
         }
 
-        if (mNextRpcId == INT_MIN)
+        if (mNextRpcId == INT_MIN) {
             mNextRpcId = 0;
+        }
         const int id = --mNextRpcId;
 
         PendingRpcRequest pending;

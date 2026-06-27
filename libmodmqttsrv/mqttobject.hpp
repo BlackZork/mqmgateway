@@ -22,29 +22,29 @@ enum AvailableFlag {
 class MqttObjectRegisterIdent {
     public:
         struct Compare {
-                bool operator()(const MqttObjectRegisterIdent& left, const MqttObjectRegisterIdent& right) const {
-                    return std::tie(left.mNetworkName, left.mSlaveId, left.mRegisterNumber, left.mRegisterType) < std::tie(right.mNetworkName, right.mSlaveId, right.mRegisterNumber, right.mRegisterType);
+                bool operator()(const MqttObjectRegisterIdent& pLeft, const MqttObjectRegisterIdent& pRight) const {
+                    return std::tie(pLeft.mNetworkName, pLeft.mSlaveId, pLeft.mRegisterNumber, pLeft.mRegisterType) < std::tie(pRight.mNetworkName, pRight.mSlaveId, pRight.mRegisterNumber, pRight.mRegisterType);
                 }
         };
         struct Equal {
-                bool operator()(const MqttObjectRegisterIdent& left, const MqttObjectRegisterIdent& right) const {
-                    return left.mSlaveId == right.mSlaveId && left.mRegisterNumber == right.mRegisterNumber && left.mRegisterType == right.mRegisterType && left.mNetworkName == right.mNetworkName;
+                bool operator()(const MqttObjectRegisterIdent& pLeft, const MqttObjectRegisterIdent& pRight) const {
+                    return pLeft.mSlaveId == pRight.mSlaveId && pLeft.mRegisterNumber == pRight.mRegisterNumber && pLeft.mRegisterType == pRight.mRegisterType && pLeft.mNetworkName == pRight.mNetworkName;
                 }
         };
         MqttObjectRegisterIdent(
             const std::string& network,
             int slaveId,
             RegisterType regType,
-            int registerNumber) : mNetworkName(network),
-                                  mSlaveId(slaveId),
-                                  mRegisterNumber(registerNumber),
-                                  mRegisterType(regType) {}
+            int pRegisterNumber) : mNetworkName(network),
+                                   mSlaveId(slaveId),
+                                   mRegisterNumber(pRegisterNumber),
+                                   mRegisterType(regType) {}
 
-        MqttObjectRegisterIdent(const std::string& network, const ModbusMessageBase& slaveData)
-            : mNetworkName(network),
-              mSlaveId(slaveData.mSlaveId),
-              mRegisterNumber(slaveData.mRegister),
-              mRegisterType(slaveData.mRegisterType) {}
+        MqttObjectRegisterIdent(const std::string& pNetwork, const ModbusMessageBase& pSlaveData)
+            : mNetworkName(pNetwork),
+              mSlaveId(pSlaveData.mSlaveId),
+              mRegisterNumber(pSlaveData.mRegister),
+              mRegisterType(pSlaveData.mRegisterType) {}
 
         bool operator==(const MqttObjectRegisterIdent& other) {
             return Equal()(*this, other);

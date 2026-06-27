@@ -94,6 +94,73 @@ shared state outside this queue+condvar mechanism.
 - **Command (write) path**: Mosquitto delivers a message → `MqttClient::onMessage()` finds the
   `MqttObjectCommand`, runs the command converter (MQTT payload → register values) → enqueues
   `MsgRegisterValues` to the network's `ModbusThread` → `ModbusExecutor` performs the write.
+- **RPC (ad-hoc read/write) path**: an MQTT5 request on `<client_id>/rpc/modbus_request` →
+  `handleRpcRequest()` → enqueues a one-shot `MsgRegisterReadRequest` (read) or `MsgRegisterValues`
+  (write) → the result is published to the client's Response Topic. See **MQTT5 RPC interface**.
+
+### Publish modes (on_change / every_poll / once)
+
+Each `MqttObject` has a `PublishMode` (`common.hpp`: `ON_CHANGE`, `EVERY_POLL`, `ONCE`), set from
+config via `setPublishMode(mode, everyPollRefresh)`. The whole decision of *whether* a poll result
+gets published lives in two places — `MqttObject::needStateRepublish()` and
+`MqttClient::publishState()` (`mqttclient.cpp`) — and it is **not** obvious from the data flow:
+
+- **`on_change`** (default): `needStateRepublish()` returns `false`. Publication happens *only*
+  inside `publishState()`, which compares the freshly generated payload against
+  `getLastPublishedPayload()` and skips the MQTT publish when they're equal — genuine value changes
+  publish, unchanged re-reads are suppressed (no rate limit needed). Note `refresh` here sets the
+  *polling* cadence, i.e. the **worst-case** latency between a register changing and the change being
+  published: a change is published *at least* once per `refresh` period. It can be published **more
+  frequently** when the register is read for another reason — an RPC read, or a second object polling
+  the same register with a shorter `refresh` — because `on_change` publishes as soon as *any* read
+  observes a new value.
+- **`every_poll`**: `needStateRepublish()` returns `true` once `mEveryPollPeriod` has elapsed since
+  the last publish (the period is the object's min register refresh). This republishes even when the
+  value is unchanged, but rate-limited to that period. The period gate also lets composite/multi-part
+  topics accumulate all their register pieces before emitting (a single poll round can deliver an
+  object's registers in several `MsgRegisterValues`).
+- **`once`**: published exactly once — `publishState()` early-returns if `getLastPublishTime()` is
+  already set.
+
+The `force` argument to `publishState()` bypasses the change-comparison; it's used on
+availability transitions (a newly-available object must publish its current state even if the
+payload string happens to match the last one). Publication is also gated on availability:
+`publishState()` returns early unless the object's `AvailableFlag` is `True`.
+
+### MQTT5 RPC interface
+
+An operator (or AI helper) can read/write **arbitrary** Modbus registers on a running daemon
+without editing config, via an MQTT5 request/response exchange. Design reference:
+`.claude/plans/quiet-churning-snail.md`.
+
+- **Gate + transport are one switch**: `mqtt.rpc.mode` = `disabled` | `read` | `readwrite`
+  (`RpcMode` in `config.hpp`). `disabled` (default) → the connection stays MQTT **3.1.1**, no RPC
+  subscription, zero behavioural change. `read`/`readwrite` → the whole broker connection becomes
+  **MQTT5** (`MqttBrokerConfig::mProtocolV5`) and the daemon subscribes to
+  `<client_id>/rpc/modbus_request`. Protocol version is per-connection, so v3 state/command
+  subscribers downstream are unaffected (the broker strips v5-only properties for them).
+- **Request/response is MQTT5-native**: the client sets a `Response Topic` and optional
+  `Correlation Data` on its PUBLISH; the daemon replies once (never retained) to that Response Topic,
+  echoing the Correlation Data. A request with **no Response Topic** can only be logged and dropped.
+- **Reply shape is the bare value, not an envelope**: a read reply payload is exactly what a poll
+  would publish (scalar for `count==1`, JSON array for `count>1`); a write reply is an empty payload.
+  Errors are carried out-of-band in an MQTT5 **`error` User Property** (empty payload). Success ⇒ no
+  `error` property; failure ⇒ `error=<message>`.
+- **`mCommandId` is the daemon↔modbus correlation tag** — one `int` on `ModbusMessageBase`
+  (`modbus_types.hpp`), three-way partitioned: `== 0` scheduled poll (keyed into `mObjects`), `> 0`
+  configured write command (keyed into `mCommandObjects`), `< 0` RPC request (keyed into
+  `mPendingRpc`, minted by `--mNextRpcId` on the main thread). `hasCommandId()` is `!= 0`,
+  `isRpc()` is `< 0`. This is what lets multiple RPC requests be in flight at once.
+- **Hot-path safety**: steady-state polls (`mCommandId == 0`) take no RPC branch. `isRpc()` is only
+  ever tested *inside* the `hasCommandId()` branch and in the executor/`processModbusMessages` error
+  paths, so an arbitrary RPC register that exists in no `MqttObject` never reaches the
+  `assert(it != mObjects.end())` on the poll-success path (`mqttclient.cpp`).
+- **Poll coordination**: an RPC read becomes a one-shot `RegisterPoll` (refresh `0`,
+  `PublishMode::ONCE`) added to the slave's poll queue via `ModbusExecutor::addReadCommand`, electing
+  the slave queue if the executor is idle — so it honours `delay_before_command`/retries/watchdog
+  like any poll. The RPC read *also* updates the matching polled `MqttObject` if one exists, so
+  state-topic subscribers keep seeing values; the object's own publish-mode logic prevents a burst of
+  RPC reads from flooding the state topic.
 
 ### Modbus thread internals (`libmodmqttsrv/`)
 
@@ -160,12 +227,21 @@ handled in the config/parsing layer — keep it in mind when touching register-i
   on its message via `requireException<>`).
 - New unit-test `.cpp` files must be added to the `add_executable(tests ...)` list in
   `unittests/CMakeLists.txt` — there is no globbing.
-- Style and naming are enforced by `.clang-format` and `.clang-tidy` (naming-only). Local
-  targets: `format` (reformat in-place), `format-check` (dry-run), `tidy-naming` (clang-tidy
-  over all `.cpp`). CI gates the diff vs master on every PR to master — only changed lines
-  are checked, so pre-existing non-conforming code is never flagged.
-- A pre-push hook in `.githooks/pre-push` runs format and naming checks before any push to
-  master. Activate once per clone: `git config core.hooksPath .githooks`.
+- Style and naming are enforced by `.clang-format` and `.clang-tidy` (naming-only). CI gates
+  the diff vs master on every PR to master — **only the lines changed vs the merge-base are
+  checked**, so pre-existing non-conforming code is never flagged.
+- The local targets `format` / `format-check` / `tidy-naming` are **diff-scoped to match CI**:
+  they format/check only the lines changed vs `origin/master` (via `git clang-format <merge-base>`
+  and `clang-tidy-diff.py`), never the whole tree. All three are thin wrappers over the single
+  source of truth `scripts/clang-lint.sh`, which the pre-push hook also calls. So `format` will
+  **not** reformat unrelated files, and `tidy-naming` will not flag pre-existing violations dragged
+  in by a whole-tree reformat. (Do **not** reintroduce a whole-tree `clang-format -i` — it churns
+  ~130 long-committed files and pollutes the branch diff, which then makes the diff-based checks
+  fail on pre-existing converter-header violations.) `tidy-naming` ignores
+  `clang-diagnostic-error: '…' file not found` notes — those come from clang-tidy parsing a header
+  standalone (no compile command → no `-I`), not from a style violation.
+- A pre-push hook in `.githooks/pre-push` runs the same two checks before any push to master.
+  Activate once per clone: `git config core.hooksPath .githooks`. It needs `build/compile_commands.json`.
 - **Always run `cmake --build build --target format-check tidy-naming` before running tests.**
   Lint errors will also be caught by the pre-push hook, but catching them early avoids a
   wasted test cycle.
@@ -187,3 +263,30 @@ Integration-style tests build on `MockedModMqttServerThread`, configured via `Te
   Use YAML node path matching the config structure (0-based sequence indices).
 - `toString()` is one-shot — calling it twice on the same object throws. It also applies
   timing scaling (`MQM_TEST_TIMING_FACTOR`) before emitting.
+
+### Test timing & synchronization
+
+Time-dependent tests are **not** written with raw sleeps and fixed durations — everything goes
+through the `timing` helper (`unittests/timing.{hpp,cpp}`) and condition-variable wait helpers, so
+the suite runs correctly whether the machine is fast or a slow ARM CI box.
+
+- **Always express durations via `timing::milliseconds(n)` / `timing::seconds(n)`**, never a raw
+  `std::chrono::milliseconds(n)`. Each call multiplies `n` by the global `sFactor`
+  (`MQM_TEST_TIMING_FACTOR`; default `10` in `NDEBUG`/release, `1` in debug). A test that hardcodes a
+  raw literal for a wait or a configured `refresh` will pass at factor 1 and flake at factor 10.
+  `timing::defaultWait` (5s × factor) and `timing::maxTestTime` (10s × factor) are the standard
+  timeout constants. `TestConfig::toString()` rewrites the YAML's time values by the same factor, so
+  config durations and test-side waits scale together.
+- **Don't sleep-then-assert; wait on the event.** The mocks expose blocking helpers that wake on a
+  condition variable as soon as the awaited thing happens (or time out): `MockedMqttImpl` —
+  `waitForPublish`, `waitForMqttValue`, `waitForSubscription`, `waitForFirstPublish`,
+  `waitForRpcResponse`; `MockedModbusContext`/`MockedModbusFactory` — `waitForModbusValue`,
+  `waitForInitialPoll`. These are the synchronization primitive; polling with sleeps is both slower
+  and flakier.
+- **The mocked Modbus context simulates command duration.** Each slave has `mReadTime`/`mWriteTime`
+  (`sDefaultSlaveReadTime`/`WriteTime`, overridable per-slave via
+  `MockedModbusFactory::setModbusReadTime`/`setModbusWriteTime`) so reads/writes take wall-clock time
+  and the scheduler/executor timing logic (delays, batching, watchdog, poll cadence) is exercised
+  realistically — not instantaneously. It also records issued read/write calls
+  (`getIssuedReadCallsCount`, `getIssuedReadCall`, …) and can inject read/write errors and
+  slave/serial disconnects for failure-path tests.

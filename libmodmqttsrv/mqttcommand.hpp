@@ -39,5 +39,4 @@ class MqttObjectCommand : public ModbusMessageBase {
     private:
         std::shared_ptr<DataConverter> mConverter;
 };
-
 }

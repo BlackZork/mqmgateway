@@ -14,21 +14,22 @@ class CorrelationData {
             : mData(pData), mLen(pLen) {}
         const void* data() const { return mData.get(); }
         int size() const { return mLen; }
+
     private:
         std::shared_ptr<void> mData;
         int mLen = 0;
 };
 
 struct PendingRpcRequest {
-    std::string mNetworkName;
-    std::string mResponseTopic;
-    CorrelationData mCorrelationData;
-    int mSlaveId = 0;
-    int mRegisterNumber = 0;
-    std::string mDisplayAddress;
-    RegisterType mRegisterType = RegisterType::HOLDING;
-    int mCount = 1;
-    bool mIsWrite = false;
+        std::string mNetworkName;
+        std::string mResponseTopic;
+        CorrelationData mCorrelationData;
+        int mSlaveId = 0;
+        int mRegisterNumber = 0;
+        std::string mDisplayAddress;
+        RegisterType mRegisterType = RegisterType::HOLDING;
+        int mCount = 1;
+        bool mIsWrite = false;
 };
 
 }

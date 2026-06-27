@@ -36,12 +36,12 @@ class ModbusClient {
             mToModbusQueue.enqueue(QueueItem::create(val));
         }
 
-        void sendReadRequest(const MsgRegisterReadRequest& req) {
-            mToModbusQueue.enqueue(QueueItem::create(req));
+        void sendReadRequest(const MsgRegisterReadRequest& pReq) {
+            mToModbusQueue.enqueue(QueueItem::create(pReq));
         }
 
-        void sendWriteRequest(const MsgRegisterValues& msg) {
-            mToModbusQueue.enqueue(QueueItem::create(msg));
+        void sendWriteRequest(const MsgRegisterValues& pMsg) {
+            mToModbusQueue.enqueue(QueueItem::create(pMsg));
         }
 
         void sendMqttNetworkIsUp(bool up) {

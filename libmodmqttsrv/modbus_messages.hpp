@@ -20,9 +20,9 @@ class MsgRegisterValues : public ModbusMessageBase {
               mRegisters(registers),
               mCreationTime(std::chrono::steady_clock::now()),
               mWriteMode(pWriteMode) {}
-        MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const std::vector<uint16_t>& registers, int pCommandId = 0)
-            : ModbusMessageBase(slaveId, registerNumber, regType, registers.size(), pCommandId),
-              mRegisters(registers),
+        MsgRegisterValues(int pSlaveId, RegisterType pRegType, int pRegisterNumber, const std::vector<uint16_t>& pRegisters, int pCommandId = 0)
+            : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegType, pRegisters.size(), pCommandId),
+              mRegisters(pRegisters),
               mCreationTime(std::chrono::steady_clock::now()) {}
 
         const std::chrono::steady_clock::time_point& getCreationTime() const { return mCreationTime; }
@@ -36,20 +36,20 @@ class MsgRegisterValues : public ModbusMessageBase {
 
 class MsgRegisterReadFailed : public ModbusMessageBase {
     public:
-        MsgRegisterReadFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount, int pCommandId = 0)
-            : ModbusMessageBase(slaveId, registerNumber, regType, registerCount, pCommandId) {}
+        MsgRegisterReadFailed(int pSlaveId, RegisterType pRegType, int pRegisterNumber, int pRegisterCount, int pCommandId = 0)
+            : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegType, pRegisterCount, pCommandId) {}
 };
 
 class MsgRegisterWriteFailed : public ModbusMessageBase {
     public:
-        MsgRegisterWriteFailed(int slaveId, RegisterType regType, int registerNumber, int registerCount, int pCommandId = 0)
-            : ModbusMessageBase(slaveId, registerNumber, regType, registerCount, pCommandId) {}
+        MsgRegisterWriteFailed(int pSlaveId, RegisterType pRegType, int pRegisterNumber, int pRegisterCount, int pCommandId = 0)
+            : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegType, pRegisterCount, pCommandId) {}
 };
 
 class MsgRegisterReadRequest : public ModbusMessageBase {
     public:
-        MsgRegisterReadRequest(int slaveId, RegisterType regType, int registerNumber, int registerCount, int pCommandId)
-            : ModbusMessageBase(slaveId, registerNumber, regType, registerCount, pCommandId) {}
+        MsgRegisterReadRequest(int pSlaveId, RegisterType pRegType, int pRegisterNumber, int pRegisterCount, int pCommandId)
+            : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegType, pRegisterCount, pCommandId) {}
 };
 
 
@@ -87,8 +87,11 @@ class MsgRegisterPollSpecification {
         void group();
 
         void merge(const std::vector<MsgRegisterPoll>& lst) {
-            for (auto& poll: lst)
-                merge(poll);
+            for (auto& poll: lst) {
+                {
+                    merge(poll);
+                }
+            }
         }
 
         /*!

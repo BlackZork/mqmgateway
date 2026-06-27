@@ -16,8 +16,7 @@ RegisterPoll::RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int
     : RegisterCommand(pSlaveId, pRegNum, pRegType, pRegCount, pCommandId),
       mPublishMode(pPublishMode),
       mLastReadFinishTime(std::chrono::steady_clock::now() - std::chrono::hours(24)),
-      mLastValues(pRegCount)
-{
+      mLastValues(pRegCount) {
     mRefresh = pRefreshMsec;
     mReadErrors = 0;
     mFirstErrorTime = std::chrono::steady_clock::now();

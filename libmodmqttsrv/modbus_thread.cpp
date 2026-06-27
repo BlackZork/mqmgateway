@@ -122,22 +122,22 @@ ModbusThread::setPollSpecification(const MsgRegisterPollSpecification& spec) {
 }
 
 void
-ModbusThread::applySlaveConfig(RegisterCommand& cmd, int slaveId) {
-    setCommandDelays(cmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
-    cmd.setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
-    std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(slaveId);
+ModbusThread::applySlaveConfig(RegisterCommand& pCmd, int pSlaveId) {
+    setCommandDelays(pCmd, mDelayBeforeCommand, mDelayBeforeFirstCommand);
+    pCmd.setMaxRetryCounts(mMaxReadRetryCount, mMaxWriteRetryCount, true);
+    std::map<int, ModbusSlaveConfig>::const_iterator it = mSlaves.find(pSlaveId);
     if (it != mSlaves.end()) {
-        setCommandDelays(cmd, it->second.getDelayBeforeCommand(), it->second.getDelayBeforeFirstCommand());
-        cmd.setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
+        setCommandDelays(pCmd, it->second.getDelayBeforeCommand(), it->second.getDelayBeforeFirstCommand());
+        pCmd.setMaxRetryCounts(it->second.mMaxReadRetryCount, it->second.mMaxWriteRetryCount);
     }
 }
 
 void
-ModbusThread::processReadRequest(const std::shared_ptr<MsgRegisterReadRequest>& msg) {
+ModbusThread::processReadRequest(const std::shared_ptr<MsgRegisterReadRequest>& pMsg) {
     std::shared_ptr<RegisterPoll> reg(new RegisterPoll(
-        msg->mSlaveId, msg->mRegister, msg->mRegisterType, msg->mCount,
-        std::chrono::milliseconds(0), PublishMode::ONCE, msg->getCommandId()));
-    applySlaveConfig(*reg, msg->mSlaveId);
+        pMsg->mSlaveId, pMsg->mRegister, pMsg->mRegisterType, pMsg->mCount,
+        std::chrono::milliseconds(0), PublishMode::ONCE, pMsg->getCommandId()));
+    applySlaveConfig(*reg, pMsg->mSlaveId);
     mExecutor.addReadCommand(reg);
 }
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Checks clang-format and clang-tidy naming on lines changed vs origin/master.
+# Delegates to scripts/clang-lint.sh (the same implementation the CMake
+# format-check/tidy-naming targets use) so local checks and the gate agree.
 # Skip with: git push --no-verify
 set -euo pipefail
 
@@ -11,46 +13,12 @@ done
 
 ROOT="$(git rev-parse --show-toplevel)"
 BUILD="$ROOT/build"
+LINT="$ROOT/scripts/clang-lint.sh"
 
-if [[ ! -f "$BUILD/compile_commands.json" ]]; then
-    echo "pre-push: no build/compile_commands.json — configure first:"
-    echo "  cmake -S . -B build -G Ninja"
-    exit 1
-fi
-
-BASE_SHA="$(git merge-base origin/master HEAD)"
-
-# --- clang-format: changed lines only ---
 echo "pre-push: format-check (diff vs origin/master)..."
-FMT_DIFF="$(git clang-format --diff --extensions cpp,hpp "$BASE_SHA" -- \
-    libmodmqttsrv libmodmqttconv modmqttd stdconv exprconv unittests)"
-if echo "$FMT_DIFF" | grep -qE '^[-+]' && ! echo "$FMT_DIFF" | grep -q 'no modified files'; then
-    echo "pre-push: formatting issues found. Fix with:"
-    echo "  cmake --build build --target format"
-    echo "$FMT_DIFF"
-    exit 1
-fi
+"$LINT" format-check "$BUILD"
 
-# --- locate clang-tidy-diff.py (path varies by distro/version) ---
-TIDY_DIFF_PY=
-for search_dir in /usr/share/clang /usr/lib/llvm-*/share/clang; do
-    [[ -d "$search_dir" ]] || continue
-    [[ -f "$search_dir/clang-tidy-diff.py" ]] && { TIDY_DIFF_PY="$search_dir/clang-tidy-diff.py"; break; }
-done
-if [[ -z "$TIDY_DIFF_PY" ]]; then
-    echo "pre-push: clang-tidy-diff.py not found — skipping naming check"
-    exit 0
-fi
-
-# --- clang-tidy naming: changed lines only ---
 echo "pre-push: tidy-naming (diff vs origin/master)..."
-TIDY_LOG="$(git diff -U0 "$BASE_SHA" -- '*.cpp' '*.hpp' \
-    ':(exclude)readerwriterqueue/*' ':(exclude)argh/*' \
-    | python3 "$TIDY_DIFF_PY" -p1 -path "$BUILD" -- 2>&1)"
-if echo "$TIDY_LOG" | grep -qE 'warning:|error:'; then
-    echo "pre-push: naming violations found:"
-    echo "$TIDY_LOG"
-    exit 1
-fi
+"$LINT" tidy-naming "$BUILD"
 
 echo "pre-push: all checks passed."

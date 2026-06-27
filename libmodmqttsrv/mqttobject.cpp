@@ -92,10 +92,11 @@ MqttObjectDataNode::isPolling() const {
     if (isScalar())
         return mValue.isPolling();
     else {
-        for (auto it = mNodes.begin(); it != mNodes.end(); it++)
+        for (auto it = mNodes.begin(); it != mNodes.end(); it++) {
             if (!it->isPolling()) {
                 return false;
             }
+        }
     }
     return true;
 }

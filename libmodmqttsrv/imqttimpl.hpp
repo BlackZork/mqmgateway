@@ -22,9 +22,9 @@ class IMqttImpl {
 
         virtual void subscribe(const char* topic) = 0;
         virtual int publish(const char* topic, int len, const void* data, bool retain) = 0;
-        virtual int publishResponse(const char* topic, int len, const void* data,
-            const void* correlationData, int correlationLen,
-            const std::vector<std::pair<std::string, std::string>>& userProperties = {}) = 0;
+        virtual int publishResponse(const char* pTopic, int pLen, const void* pData,
+                                    const void* pCorrelationData, int pCorrelationLen,
+                                    const std::vector<std::pair<std::string, std::string>>& pUserProperties = {}) = 0;
 
         virtual void on_disconnect(int rc) = 0;
         virtual void on_connect(int rc)= 0;
