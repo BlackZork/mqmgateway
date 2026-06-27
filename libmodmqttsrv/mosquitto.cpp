@@ -2,6 +2,13 @@
 
 #include "mosquitto.hpp"
 
+// Distros that put mosquitto headers in the mosquitto/ subdirectory (Arch, Alpine)
+// have mosquitto.h transitively include mqtt_protocol.h. On distros that don't
+// (Debian/Ubuntu), MQTT_PROP_* constants require an explicit include.
+#if !__has_include(<mosquitto/mqtt_protocol.h>)
+#include <mqtt_protocol.h>
+#endif
+
 #include "exceptions.hpp"
 #include "mqttclient.hpp"
 #include "threadutils.hpp"
