@@ -961,11 +961,10 @@ Register values are defined as `R0..Rn` variables.
   Custom functions for 16-bit numbers `[A,B]`:
   * `int16(R0)`: Cast uint16 value from `R0` == `AB` to int16
   * `int16bs(R0)`: Cast uint16 value from `R0` == `BA` to int16
-  * `uint16(R0)`: Read uint16 value from `R0` == `AB`
   * `uint16bs(R0)`: Read uint16 value from `R0` == `BA`
 
   All of the above functions can be used as `write_as` helper to store an expression value in modbus registers during writing. 
-  Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`BA`.
+  Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`AB`.
 
 #### Examples
 
