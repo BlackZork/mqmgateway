@@ -355,8 +355,10 @@ void ModMqtt::initBroker(const YAML::Node& config) {
             rpcMode = RpcMode::DISABLED;
         } else if (modeStr == "read") {
             rpcMode = RpcMode::READ;
+            spdlog::info("Enabling RPC interface in read-only mode");
         } else if (modeStr == "readwrite") {
             rpcMode = RpcMode::READ_WRITE;
+            spdlog::info("Enabling RPC interface in read-write mode");
         } else {
             throw ConfigurationException(rpc["mode"].Mark(), "Unknown rpc mode: " + modeStr);
         }
