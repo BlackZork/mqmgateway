@@ -234,6 +234,25 @@ mqtt:
         REQUIRE(server.getPublishCount("test_state/state") >= 4);
         REQUIRE(server.getPublishCount("test_state/state") <= 12);
     }
+
+    SECTION("returns zero when the polled register value is zero") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+        server.start();
+        server.waitForInitialPoll("tcptest");
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"({"network":"tcptest","slave":1,"register":"2"})";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1) == "0");
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
 }
 
 

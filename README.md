@@ -1276,6 +1276,57 @@ value, a write is empty). Typical errors include an unknown network, a read-only
 type for a write, a write attempted in `read` mode, an unknown or invalid converter, or a
 modbus read/write failure.
 
+### Troubleshooting RPC
+
+**No response from `mosquitto_rr`**
+
+If `mosquitto_rr` hangs or times out, the request never reached `modmqttd` or `modmqttd`
+did not send a reply. Use `-W <seconds>` to set a client-side deadline:
+
+```bash
+mosquitto_rr -h <host> -t myclient/rpc/modbus_request -e myclient/rpc/reply -W 10 \
+  -m '{"network":"net1","slave":1,"register":"1"}'
+```
+
+Check that:
+- The startup log contains `Enabling RPC interface` — if absent, `rpc.mode` is `disabled`.
+- The topic prefix matches `mqtt.client_id` in the config exactly.
+- `modmqttd` is connected to the same broker as the test client.
+
+**Empty `(null)` response — reading the error message**
+
+`mosquitto_rr` does not display MQTT5 User Properties, so an error reply looks identical to
+a successful write (both have empty payloads). To see the `error` property, subscribe as an
+MQTT5 client (`-x 0` sets the session-expiry-interval MQTT5 property, which forces an MQTT5
+connection) with JSON output format in one terminal:
+
+```bash
+mosquitto_sub -h <host> -t myclient/rpc/reply -x 0 -C 1 -W 10 -F '%j'
+```
+
+Then publish the request with an explicit Response Topic in another terminal:
+
+```bash
+mosquitto_pub -h <host> -t myclient/rpc/modbus_request \
+  --property PUBLISH response-topic myclient/rpc/reply \
+  -m '{"network":"net1","slave":1,"register":"1"}'
+```
+
+A failed request produces output like:
+
+```json
+{"topic":"myclient/rpc/reply","payloadlen":0,"properties":{"user-properties":[{"error":"modbus read failed"}]},"payload":null}
+```
+
+Common `error` values:
+
+- `network not found: <name>` — the `network` field does not match any network in the config.
+- `unknown register_type: <value>` — the `register_type` field is not `holding`, `input`, `coil`, or `bit`.
+- `writes are disabled (mode: read)` — a write was attempted but `rpc.mode` is `read`.
+- `register_type is read-only` — a write was attempted on `bit` or `input` register type.
+- `count out of range [1, 125]` — too many registers requested (limit is 2000 for `coil`/`bit`).
+- `modbus read failed` / `modbus write failed` — the Modbus device did not respond or returned an error; check the `modmqttd` log for the libmodbus error detail.
+
 ## Multi-device definitions
 
 Multi-device definitions allows setting slave properties or create a single topic for multiple modbus devices of the same type. This greatly reduces the number of configuration sections that differ only by slave address or modbus network name.

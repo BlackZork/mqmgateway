@@ -47,7 +47,9 @@ Environment variables that affect tests:
 - `MQM_TEST_TIMING_FACTOR` — scales all time-dependent waits/timeouts (see `unittests/timing.cpp`).
   Defaults to `10` in release/`NDEBUG` builds (for slow ARM CI), `1` in debug builds. Raise it
   when debugging timing-sensitive tests (the VS Code launch config uses `100`). The CI Docker
-  build passes `MQM_TEST_TIMING_FACTOR=10`.
+  build passes `MQM_TEST_TIMING_FACTOR=10`. If a test fails in the full suite but passes in
+  isolation, first suspect timing: try increasing the factor up to `10` (the CI ceiling for
+  development machines). If failures persist above `10`, the cause is elsewhere.
 - `MQM_TEST_LOGLEVEL` — log verbosity during tests (`trace`..`critical`).
 
 CI builds and runs the suite inside `Dockerfile` (Alpine, multi-arch via QEMU). There is no

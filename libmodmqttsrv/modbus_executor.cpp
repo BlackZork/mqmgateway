@@ -353,7 +353,7 @@ ModbusExecutor::sendCommand() {
 
     if (typeid(*mWaitingCommand) == typeid(RegisterPoll)) {
         RegisterPoll& pollcmd(static_cast<RegisterPoll&>(*mWaitingCommand));
-        pollRegisters(pollcmd, mInitialPoll);
+        pollRegisters(pollcmd, mInitialPoll || pollcmd.isRpc());
         if (!pollcmd.mLastReadOk) {
             if (mReadRetryCount != 0) {
                 retry = true;
