@@ -479,7 +479,7 @@ mqtt:
   objects: []
 )");
 
-    SECTION("in readwrite mode should succeed") {
+    SECTION("in readwrite mode should return scalar value written") {
         MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
         server.start();
@@ -492,9 +492,30 @@ mqtt:
             "test/response", 1);
 
         server.waitForRpcResponse(1);
-        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(server.mMqtt->rpcValue(1) == "77");
         REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
         server.waitForModbusValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 77);
+        server.stop();
+    }
+
+    SECTION("multiple registers should return JSON array of values written") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"({"network":"tcptest","slave":1,"register":"2","value":[10,20]})";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1) == "[10,20]");
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.waitForModbusValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 10);
+        server.waitForModbusValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 20);
         server.stop();
     }
 
@@ -780,7 +801,7 @@ mqtt:
   objects: []
 )");
 
-    SECTION("decodes the value into the converter's registers") {
+    SECTION("decodes the value into the converter's registers and echoes them raw") {
         MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
         server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 0);
@@ -794,7 +815,10 @@ mqtt:
             "test/response", 1);
 
         server.waitForRpcResponse(1);
-        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        // write reply is always raw register values (no converter re-applied on reply path)
+        const std::string expected =
+            "[" + std::to_string(TestNumbers::Float::AB) + "," + std::to_string(TestNumbers::Float::CD) + "]";
+        REQUIRE(server.mMqtt->rpcValue(1) == expected);
         REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
         server.waitForModbusValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::AB);
         server.waitForModbusValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::CD);

@@ -145,9 +145,11 @@ without editing config, via an MQTT5 request/response exchange. Design reference
   `Correlation Data` on its PUBLISH; the daemon replies once (never retained) to that Response Topic,
   echoing the Correlation Data. A request with **no Response Topic** can only be logged and dropped.
 - **Reply shape is the bare value, not an envelope**: a read reply payload is exactly what a poll
-  would publish (scalar for `count==1`, JSON array for `count>1`); a write reply is an empty payload.
-  Errors are carried out-of-band in an MQTT5 **`error` User Property** (empty payload). Success ⇒ no
-  `error` property; failure ⇒ `error=<message>`.
+  would publish (scalar for `count==1`, JSON array for `count>1`); a write reply echoes the written
+  register values in the same scalar/JSON-array shape, always as **raw uint16** values (no converter
+  re-applied on the reply path), optimistically without a device re-read. Errors are carried
+  out-of-band in an MQTT5 **`error` User Property** (empty payload). Success ⇒ no `error` property;
+  failure ⇒ `error=<message>`.
 - **`mCommandId` is the daemon↔modbus correlation tag** — one `int` on `ModbusMessageBase`
   (`modbus_types.hpp`), three-way partitioned: `== 0` scheduled poll (keyed into `mObjects`), `> 0`
   configured write command (keyed into `mCommandObjects`), `< 0` RPC request (keyed into

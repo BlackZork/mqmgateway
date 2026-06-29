@@ -600,24 +600,24 @@ MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegiste
 
     std::string payload;
     try {
-        if (!pending.mIsWrite) {
-            if (pending.mConverter != nullptr) {
-                // converter output is the payload, exactly as a poll would publish it
-                payload = pending.mConverter->toMqtt(pValues.mRegisters).getString();
-            } else if (pValues.mRegisters.getCount() == 1) {
-                // bare value: scalar string for count==1, JSON array for count>1
-                // (same shape as MqttPayload::generate for a plain poll with no converter)
-                payload = std::to_string(pValues.mRegisters.getValue(0));
-            } else {
-                rapidjson::StringBuffer buf;
-                rapidjson::Writer<rapidjson::StringBuffer> writer(buf);
-                writer.StartArray();
-                for (int i = 0; i < pValues.mRegisters.getCount(); i++) {
-                    writer.Uint(pValues.mRegisters.getValue(i));
-                }
-                writer.EndArray();
-                payload = buf.GetString();
+        if (!pending.mIsWrite && pending.mConverter != nullptr) {
+            // read with a converter: converter output is the payload, exactly as a poll would publish it
+            payload = pending.mConverter->toMqtt(pValues.mRegisters).getString();
+        } else if (pValues.mRegisters.getCount() == 1) {
+            // bare raw value: scalar string for count==1, JSON array for count>1
+            // (same shape as MqttPayload::generate for a plain poll with no converter)
+            // Used by reads without a converter and by all write replies — the optimistic
+            // echo of the registers just written (no converter re-applied, no device re-read).
+            payload = std::to_string(pValues.mRegisters.getValue(0));
+        } else {
+            rapidjson::StringBuffer buf;
+            rapidjson::Writer<rapidjson::StringBuffer> writer(buf);
+            writer.StartArray();
+            for (int i = 0; i < pValues.mRegisters.getCount(); i++) {
+                writer.Uint(pValues.mRegisters.getValue(i));
             }
+            writer.EndArray();
+            payload = buf.GetString();
         }
     } catch (const std::exception& ex) {
         spdlog::error("RPC response serialization failed: {}", ex.what());
@@ -625,7 +625,7 @@ MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegiste
         return;
     }
 
-    // write success: empty payload, no user properties
+    // success: scalar or JSON-array payload for reads/writes, empty only on error
     try {
         mMqttImpl->publishResponse(
             pending.mResponseTopic.c_str(),
