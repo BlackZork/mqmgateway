@@ -1275,7 +1275,7 @@ cannot be answered and is logged and dropped.
 On success the payload carries the register value(s):
 - **Read** — same scalar/array format as a polled state topic: a bare number string for a
   single register (`"42"`), a JSON array for multiple (`"[10,20]"`). If a converter was
-  specified, the converter's text output is returned instead.
+  specified, the converter's string value is returned instead.
 - **Write** — the raw uint16 value(s) that were written, in the same scalar/array format
   (`"77"` for one register, `"[10,20]"` for multiple). The converter is not re-applied on the
   reply; what you get back are the actual register words that were sent to the device. 
@@ -1305,11 +1305,10 @@ Check that:
 
 `mosquitto_rr` does not display MQTT5 User Properties, so an error reply (empty payload +
 `error` property) looks like an empty response with no explanation. To see the `error`
-property, subscribe as an MQTT5 client (`-x 0` sets the session-expiry-interval MQTT5
-property, which forces an MQTT5 connection) with JSON output format in one terminal:
+property, subscribe as an MQTT5 client with JSON output format in one terminal:
 
 ```bash
-mosquitto_sub -h <host> -t myclient/rpc/reply -x 0 -C 1 -W 10 -F '%j'
+mosquitto_sub -h <host> -V mqttv5 -t myclient/rpc/reply -C 1 -W 10 -F '%j'
 ```
 
 Then publish the request with an explicit Response Topic in another terminal:
