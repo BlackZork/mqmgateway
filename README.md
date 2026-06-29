@@ -1266,15 +1266,24 @@ Write `-1.5` as a 32-bit float to holding registers `10` and `11`:
 
 ### Response and errors
 
-`modmqttd` always replies once, to the request's MQTT5 Response Topic, echoing the request's
+`modmqttd` always replies once to the request's MQTT5 Response Topic, echoing the request's
 Correlation Data (if any). Replies are never retained. A request without a Response Topic
 cannot be answered and is logged and dropped.
 
-Errors are reported out-of-band: the reply has an empty payload and an `error` MQTT5 User
-Property carrying the message. A successful reply has no `error` property (a read carries the
-value, a write is empty). Typical errors include an unknown network, a read-only register
-type for a write, a write attempted in `read` mode, an unknown or invalid converter, or a
-modbus read/write failure.
+**Non-empty payload means success; empty payload means error.**
+
+On success the payload carries the register value(s):
+- **Read** — same scalar/array format as a polled state topic: a bare number string for a
+  single register (`"42"`), a JSON array for multiple (`"[10,20]"`). If a converter was
+  specified, the converter's text output is returned instead.
+- **Write** — the raw uint16 value(s) that were written, in the same scalar/array format
+  (`"77"` for one register, `"[10,20]"` for multiple). The converter is not re-applied on the
+  reply; what you get back are the actual register words that were sent to the device. The
+  write is optimistic — no re-read is performed to confirm the device accepted the value.
+
+On error the payload is empty and an `error` MQTT5 User Property carries the message. Typical
+errors include an unknown network, a read-only register type for a write, a write attempted in
+`read` mode, an unknown or invalid converter, or a modbus read/write failure.
 
 ### Troubleshooting RPC
 
@@ -1295,10 +1304,10 @@ Check that:
 
 **Empty `(null)` response — reading the error message**
 
-`mosquitto_rr` does not display MQTT5 User Properties, so an error reply looks identical to
-a successful write (both have empty payloads). To see the `error` property, subscribe as an
-MQTT5 client (`-x 0` sets the session-expiry-interval MQTT5 property, which forces an MQTT5
-connection) with JSON output format in one terminal:
+`mosquitto_rr` does not display MQTT5 User Properties, so an error reply (empty payload +
+`error` property) looks like an empty response with no explanation. To see the `error`
+property, subscribe as an MQTT5 client (`-x 0` sets the session-expiry-interval MQTT5
+property, which forces an MQTT5 connection) with JSON output format in one terminal:
 
 ```bash
 mosquitto_sub -h <host> -t myclient/rpc/reply -x 0 -C 1 -W 10 -F '%j'
