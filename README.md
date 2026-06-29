@@ -1278,8 +1278,7 @@ On success the payload carries the register value(s):
   specified, the converter's text output is returned instead.
 - **Write** — the raw uint16 value(s) that were written, in the same scalar/array format
   (`"77"` for one register, `"[10,20]"` for multiple). The converter is not re-applied on the
-  reply; what you get back are the actual register words that were sent to the device. The
-  write is optimistic — no re-read is performed to confirm the device accepted the value.
+  reply; what you get back are the actual register words that were sent to the device. 
 
 On error the payload is empty and an `error` MQTT5 User Property carries the message. Typical
 errors include an unknown network, a read-only register type for a write, a write attempted in
