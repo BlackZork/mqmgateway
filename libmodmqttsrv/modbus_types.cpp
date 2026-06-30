@@ -40,4 +40,12 @@ ModbusAddressRange::isSameAs(const ModbusAddressRange& other) const {
     return mRegister == other.mRegister && mCount == other.mCount;
 }
 
+bool
+ModbusAddressRange::contains(const ModbusAddressRange& pOther) const {
+    if (mRegisterType != pOther.mRegisterType) {
+        return false;
+    }
+
+    return firstRegister() <= pOther.firstRegister() && pOther.lastRegister() <= lastRegister();
+}
 }

@@ -61,6 +61,9 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         virtual void subscribe(const char* topic);
         virtual int publish(const char* topic, int len, const void* data, bool retain);
+        virtual int publishResponse(const char* pTopic, int pLen, const void* pData,
+                                    const void* pCorrelationData, int pCorrelationLen,
+                                    const std::vector<std::pair<std::string, std::string>>& pUserProperties = {}) override;
 
         virtual void on_disconnect(int rc);
         virtual void on_connect(int rc);
@@ -77,11 +80,26 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
         bool mqttNullValue(const char* topic);
         //returns current value on timeout
         std::string waitForMqttValue(const char* topic, const char* expected, std::chrono::milliseconds timeout);
+
+        // RPC test tools (for publishResponse captures)
+        bool waitForRpcResponse(int pCorrId, std::chrono::milliseconds pTimeout);
+        std::string rpcValue(int pCorrId);
+        std::string rpcUserProperty(int pCorrId, const std::string& pKey);
+
+        // RPC inject: simulate a client sending an MQTT5 request with Response Topic + int Correlation Data
+        void injectRpcRequest(const char* pRequestTopic, const void* pAyload, int pLen,
+                              const char* pResponseTopic, int pCorrId = 0);
+
         //clear all topics and simulate broker disconnection
         void resetBroker();
 
         virtual ~MockedMqttImpl();
     private:
+        struct RpcResponse {
+                std::string mPayload;
+                std::map<std::string, std::string> mUserProperties;
+        };
+
         modmqttd::MqttClient* mOwner;
         int mNextMessageId = 0;
 
@@ -89,6 +107,7 @@ class MockedMqttImpl : public modmqttd::IMqttImpl {
 
         std::map<std::string, MqttValue> mTopics;
         std::set<std::string> mSubscriptions;
+        std::map<int, RpcResponse> mRpcResponses;
 
         //contains all topics published before waitForPublish/waitForFirstPublish
         //call. Map value contains mqtt publish count

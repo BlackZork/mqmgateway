@@ -36,6 +36,14 @@ class ModbusClient {
             mToModbusQueue.enqueue(QueueItem::create(val));
         }
 
+        void sendReadRequest(const MsgRegisterReadRequest& pReq) {
+            mToModbusQueue.enqueue(QueueItem::create(pReq));
+        }
+
+        void sendWriteRequest(const MsgRegisterValues& pMsg) {
+            mToModbusQueue.enqueue(QueueItem::create(pMsg));
+        }
+
         void sendMqttNetworkIsUp(bool up) {
             // TODO send all control messages at the front of queue, add time period
             // after receiving shutdown request to empty write queues

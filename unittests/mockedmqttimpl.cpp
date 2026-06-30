@@ -108,6 +108,101 @@ MockedMqttImpl::publish(const char* topic, int len, const void* data, bool retai
     return mNextMessageId;
 }
 
+int
+MockedMqttImpl::publishResponse(const char* pTopic, int pLen, const void* pData,
+                                const void* pCorrelationData, int pCorrelationLen,
+                                const std::vector<std::pair<std::string, std::string>>& pUserProperties) {
+    std::unique_lock<std::mutex> lck(mMutex);
+
+    int corrId = 0;
+    if (pCorrelationData != nullptr && pCorrelationLen == static_cast<int>(sizeof(int))) {
+        memcpy(&corrId, pCorrelationData, sizeof(int));
+    }
+
+    RpcResponse resp;
+    if (pData != nullptr && pLen > 0) {
+        resp.mPayload.assign(static_cast<const char*>(pData), static_cast<size_t>(pLen));
+    }
+    for (const auto& kv: pUserProperties) {
+        resp.mUserProperties[kv.first] = kv.second;
+    }
+
+    spdlog::info("TEST: publishResponse {} corrId={}: <{}>", pTopic, corrId,
+                 resp.mPayload.empty() ? "(empty)" : resp.mPayload);
+    mRpcResponses[corrId] = std::move(resp);
+    mPublishedTopics.insert(std::make_pair(pTopic, mPublishedTopics.size() + 1));
+    mCondition.notify_all();
+    return ++mNextMessageId;
+}
+
+bool
+MockedMqttImpl::waitForRpcResponse(int pCorrId, std::chrono::milliseconds pTimeout) {
+    spdlog::info("TEST: Waiting {} ms for RPC response corrId={}", pTimeout, pCorrId);
+    std::unique_lock<std::mutex> lck(mMutex);
+    bool found = mRpcResponses.find(pCorrId) != mRpcResponses.end();
+    if (!found) {
+        auto start = std::chrono::steady_clock::now();
+        int dur;
+        do {
+            if (mCondition.wait_for(lck, pTimeout) == std::cv_status::timeout) {
+                break;
+            }
+            found = mRpcResponses.find(pCorrId) != mRpcResponses.end();
+            if (found) {
+                break;
+            }
+            auto end = std::chrono::steady_clock::now();
+            dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        } while (dur < pTimeout.count());
+    }
+    return found;
+}
+
+std::string
+MockedMqttImpl::rpcValue(int pCorrId) {
+    std::unique_lock<std::mutex> lck(mMutex);
+    auto it = mRpcResponses.find(pCorrId);
+    if (it == mRpcResponses.end()) {
+        throw MockedMqttException("corrId " + std::to_string(pCorrId) + " not found in RPC responses");
+    }
+    return it->second.mPayload;
+}
+
+std::string
+MockedMqttImpl::rpcUserProperty(int pCorrId, const std::string& pKey) {
+    std::unique_lock<std::mutex> lck(mMutex);
+    auto it = mRpcResponses.find(pCorrId);
+    if (it == mRpcResponses.end()) {
+        throw MockedMqttException("corrId " + std::to_string(pCorrId) + " not found in RPC responses");
+    }
+    auto pit = it->second.mUserProperties.find(pKey);
+    if (pit == it->second.mUserProperties.end()) {
+        return {};
+    }
+    return pit->second;
+}
+
+void
+MockedMqttImpl::injectRpcRequest(const char* pRequestTopic, const void* pAyload, int pLen,
+                                 const char* pResponseTopic, int pCorrId) {
+    // Mirror on_message_v5: wrap malloc'd copies in shared_ptr with free-deleter
+    std::shared_ptr<char> respTopicPtr;
+    if (pResponseTopic != nullptr) {
+        respTopicPtr.reset(strdup(pResponseTopic), free);
+    }
+
+    std::shared_ptr<void> corrPtr;
+    int corrLen = 0;
+    if (pCorrId != 0) {
+        void* copy = malloc(sizeof(int));
+        memcpy(copy, &pCorrId, sizeof(int));
+        corrPtr.reset(copy, free);
+        corrLen = sizeof(int);
+    }
+    mOwner->onMessage(pRequestTopic, pAyload, pLen,
+                      respTopicPtr ? respTopicPtr.get() : nullptr, corrPtr, corrLen);
+}
+
 void
 MockedMqttImpl::on_disconnect(int rc) {}
 

@@ -209,7 +209,8 @@ ConverterArgParser::parse(const std::string& argStr) {
 
 ConverterSpecification
 ConverterNameParser::parse(const std::string& spec) {
-    std::regex re(RE_CONV);
+    // compiled once for all callers (config parsing and RPC); read-only afterwards
+    static const std::regex re(RE_CONV);
 
     std::string val(spec);
     StrUtils::trim(val);

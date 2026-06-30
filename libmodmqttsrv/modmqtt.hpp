@@ -46,6 +46,11 @@ class ModMqtt {
 
         // currently for unit tests only
         const ModbusClient& getModbusClient(const std::string& networkName) const;
+
+        // Build a converter from a "plugin.name(args)" spec string (e.g. for RPC requests).
+        // Throws ConvNameParserException/ConvException on a bad spec; both derive from std::exception.
+        std::shared_ptr<DataConverter> createConverterFromString(const std::string& pSpec) const;
+
     private:
         struct ModbusInitData {
             std::vector<MsgRegisterPollSpecification> mPollSpecification;

@@ -11,12 +11,10 @@
 
 namespace modmqttd {
 
-class RegisterCommand : public ModbusAddressRange {
+class RegisterCommand : public ModbusMessageBase {
     public:
-        RegisterCommand(int pSlaveId, int pRegister, RegisterType pRegisterType, int pCount)
-            : ModbusAddressRange(pRegister, pRegisterType, pCount),
-              mSlaveId(pSlaveId)
-        {}
+        RegisterCommand(int pSlaveId, int pRegister, RegisterType pRegisterType, int pCount, int pCommandId = 0)
+            : ModbusMessageBase(pSlaveId, pRegister, pRegisterType, pCount, pCommandId) {}
 
         virtual int getRegister() const = 0;
         const bool hasDelay() const {
@@ -41,8 +39,6 @@ class RegisterCommand : public ModbusAddressRange {
 
         void setMaxRetryCounts(short pMaxRead, short pMaxWrite, bool pForce = false);
 
-        int mSlaveId;
-
         short mMaxReadRetryCount;
         short mMaxWriteRetryCount;
     protected:
@@ -57,7 +53,7 @@ class RegisterPoll : public RegisterCommand {
         // if we cannot read register in this time MsgRegisterReadFailed is sent
         static constexpr int DefaultReadErrorCount = 3;
 
-        RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int pRegCount, std::chrono::milliseconds pRrefreshMsec, PublishMode pPublishMode);
+        RegisterPoll(int pSlaveId, int pRegNum, RegisterType pRegType, int pRegCount, std::chrono::milliseconds pRrefreshMsec, PublishMode pPublishMode, int pCommandId = 0);
 
         virtual int getRegister() const { return mRegister; };
         virtual int getCount() const { return mLastValues.size(); }
@@ -87,11 +83,10 @@ class RegisterPoll : public RegisterCommand {
 class RegisterWrite : public RegisterCommand {
     public:
         RegisterWrite(const MsgRegisterValues& msg)
-            : RegisterCommand(msg.mSlaveId, msg.mRegister, msg.mRegisterType, msg.mRegisters.getCount()),
+            : RegisterCommand(msg.mSlaveId, msg.mRegister, msg.mRegisterType, msg.mRegisters.getCount(), msg.getCommandId()),
               mCreationTime(msg.getCreationTime()),
               mValues(msg.mRegisters),
-              mWriteMode(msg.mWriteMode)
-        {}
+              mWriteMode(msg.mWriteMode) {}
         RegisterWrite(int pSlaveId, int pRegister, RegisterType pType, const ModbusRegisters& pValues, ModbusWriteMode pWriteMode = ModbusWriteMode::AUTO)
             : RegisterCommand(pSlaveId, pRegister, pType, pValues.getCount()),
               mCreationTime(std::chrono::steady_clock::now()),

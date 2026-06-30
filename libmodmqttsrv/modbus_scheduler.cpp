@@ -86,5 +86,29 @@ ModbusScheduler::remove(int pSlaveId, int pRegisterNumber, RegisterType pRegiste
     }
 }
 
+void
+ModbusScheduler::notifyRpcRead(const RegisterPoll& pCompleted) {
+    std::map<int, std::vector<std::shared_ptr<RegisterPoll>>>::iterator sit = mRegisterMap.find(pCompleted.mSlaveId);
+    if (sit == mRegisterMap.end()) {
+        return;
+    }
 
+    // Defer every scheduled poll whose range is fully covered by the RPC read.
+    // A wider RPC read silences narrower polls; a poll wider than the RPC read
+    // is left untouched - its uncovered registers still need to be polled.
+    //
+    // TODO this is a linear scan over all registers of the slave. If the per-slave
+    // register list was kept sorted by start address we could binary-search to the
+    // first candidate and break out once poll->firstRegister() passes the RPC range.
+    for (const std::shared_ptr<RegisterPoll>& poll: sit->second) {
+        if (!pCompleted.contains(*poll)) {
+            continue;
+        }
+        poll->mLastReadStartTime = pCompleted.mLastReadStartTime;
+        poll->mLastReadFinishTime = pCompleted.mLastReadFinishTime;
+        spdlog::trace("RPC read of {}.{} (count {}) deferred scheduled poll of register {} (count {})",
+                      pCompleted.mSlaveId, pCompleted.mRegister, pCompleted.mCount,
+                      poll->mRegister, poll->mCount);
+    }
+}
 }

@@ -7,7 +7,7 @@
 
 namespace modmqttd {
 
-class MqttObjectCommand : public ModbusSlaveAddressRange {
+class MqttObjectCommand : public ModbusMessageBase {
     public:
         enum PayloadType {
             STRING = 1
@@ -21,16 +21,11 @@ class MqttObjectCommand : public ModbusSlaveAddressRange {
             RegisterType pRegisterType,
             int pRegisterNumber,
             int pRegisterCount,
-            ModbusWriteMode pWriteMode
-        ) : ModbusSlaveAddressRange (
-                pSlaveId, pRegisterNumber, pRegisterType, pRegisterCount
-            ),
-            mTopic(pTopic),
-            mPayloadType(pPayloadType),
-            mModbusNetworkName(pModbusNetworkName),
-            mCommandId(pCommandId),
-            mWriteMode(pWriteMode)
-        {};
+            ModbusWriteMode pWriteMode) : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegisterType, pRegisterCount, pCommandId),
+                                          mTopic(pTopic),
+                                          mPayloadType(pPayloadType),
+                                          mModbusNetworkName(pModbusNetworkName),
+                                          mWriteMode(pWriteMode) {}
 
         std::string mTopic;
         PayloadType mPayloadType;
@@ -40,10 +35,8 @@ class MqttObjectCommand : public ModbusSlaveAddressRange {
         void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         bool hasConverter() const { return mConverter != nullptr; }
         const DataConverter& getConverter() const { return *mConverter; }
-        int getCommandId() const { return mCommandId; }
+
     private:
-        int mCommandId;
         std::shared_ptr<DataConverter> mConverter;
 };
-
 }

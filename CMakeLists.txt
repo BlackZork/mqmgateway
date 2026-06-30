@@ -86,43 +86,33 @@ install(TARGETS stdconv DESTINATION lib/modmqttd)
 install(FILES modmqttd.service DESTINATION lib/systemd/system)
 
 # ---------- local linting convenience targets ----------
-set(LINT_DIRS
-    libmodmqttsrv libmodmqttconv modmqttd stdconv exprconv unittests
-)
+# These are diff-scoped: they format/check only the lines changed vs the
+# merge-base with origin/master, which is exactly what CI and the pre-push hook
+# enforce. The shared implementation is scripts/clang-lint.sh, so all three
+# targets, the hook, and CI stay consistent and pre-existing non-conforming code
+# elsewhere is never reformatted or flagged.
+set(LINT_SCRIPT "${CMAKE_SOURCE_DIR}/scripts/clang-lint.sh")
 
 find_program(CLANG_FORMAT_BIN clang-format)
-if(CLANG_FORMAT_BIN)
-    set(FORMAT_SOURCES)
-    foreach(dir ${LINT_DIRS})
-        file(GLOB_RECURSE _srcs
-            "${CMAKE_SOURCE_DIR}/${dir}/*.cpp"
-            "${CMAKE_SOURCE_DIR}/${dir}/*.hpp"
-        )
-        list(APPEND FORMAT_SOURCES ${_srcs})
-    endforeach()
-
+find_program(GIT_CLANG_FORMAT_BIN git-clang-format)
+if(CLANG_FORMAT_BIN AND GIT_CLANG_FORMAT_BIN)
     add_custom_target(format
-        COMMAND ${CLANG_FORMAT_BIN} -i ${FORMAT_SOURCES}
-        COMMENT "clang-format: formatting sources in-place"
+        COMMAND ${LINT_SCRIPT} format "${CMAKE_BINARY_DIR}"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "clang-format: formatting changed lines (vs origin/master) in-place"
     )
     add_custom_target(format-check
-        COMMAND ${CLANG_FORMAT_BIN} --dry-run --Werror ${FORMAT_SOURCES}
-        COMMENT "clang-format: checking formatting (no changes written)"
+        COMMAND ${LINT_SCRIPT} format-check "${CMAKE_BINARY_DIR}"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "clang-format: checking changed lines (vs origin/master)"
     )
 endif()
 
 find_program(CLANG_TIDY_BIN clang-tidy)
 if(CLANG_TIDY_BIN)
-    set(TIDY_SOURCES)
-    foreach(dir ${LINT_DIRS})
-        file(GLOB_RECURSE _srcs "${CMAKE_SOURCE_DIR}/${dir}/*.cpp")
-        list(APPEND TIDY_SOURCES ${_srcs})
-    endforeach()
-
     add_custom_target(tidy-naming
-        COMMAND ${CLANG_TIDY_BIN}
-            -p "${CMAKE_BINARY_DIR}"
-            ${TIDY_SOURCES}
-        COMMENT "clang-tidy: checking identifier naming"
+        COMMAND ${LINT_SCRIPT} tidy-naming "${CMAKE_BINARY_DIR}"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "clang-tidy: checking naming on changed lines (vs origin/master)"
     )
-endif() 
+endif()

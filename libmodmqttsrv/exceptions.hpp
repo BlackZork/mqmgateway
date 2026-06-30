@@ -25,13 +25,6 @@ class MosquittoException : public ModMqttException {
         MosquittoException(const std::string& what) : ModMqttException(what) {}
 };
 
-class ObjectCommandNotFoundException : public ModMqttException {
-    public:
-        ObjectCommandNotFoundException(const char* topic) {
-            mWhat = std::string("Command for topic ") + topic + " not found";
-        }
-};
-
 class MqttPayloadConversionException : public ModMqttException {
     public:
         MqttPayloadConversionException(const std::string& what) : ModMqttException(what) {}

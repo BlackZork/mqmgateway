@@ -67,6 +67,7 @@ add_executable(tests
     real_server_tests.cpp
     refresh_tests.cpp
     register_address_tests.cpp
+    rpc_tests.cpp
     scheduler_tests.cpp
     server_config_tests.cpp
     single_register_noavail_tests.cpp

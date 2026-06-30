@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <chrono>
 #include <regex>
+#include <stdexcept>
+#include <string>
 
 #include <yaml-cpp/yaml.h>
 
@@ -9,6 +11,12 @@
 #include "logging.hpp"
 
 namespace modmqttd {
+
+enum class RpcMode {
+    DISABLED,
+    READ,
+    READ_WRITE
+};
 
 class ConfigurationException : public ModMqttException {
     public:
@@ -66,6 +74,32 @@ class ConfigTools {
         template <typename T>
         static bool readOptionalValue(T& pDest, const YAML::Node& parent, const char* nodeName) {
             return setOptionalValueFromNode(pDest, parent, nodeName).IsDefined();
+        }
+
+        // decimal 1-based → 0-based; hex passthrough (0-based); throws on decimal 0
+        static int registerNumberFromString(const std::string& pRegStr) {
+            if (pRegStr.empty()) {
+                {
+                    throw std::invalid_argument("Empty register number");
+                }
+            }
+            size_t pos;
+            int val = std::stoi(pRegStr, &pos, 0);
+            if (pos != pRegStr.size()) {
+                {
+                    throw std::invalid_argument("Invalid register number: " + pRegStr);
+                }
+            }
+            bool isHex = pRegStr.size() > 1 && (pRegStr[1] == 'x' || pRegStr[1] == 'X');
+            if (!isHex) {
+                if (val == 0) {
+                    {
+                        throw std::invalid_argument("Use hex address for 0-based register number");
+                    }
+                }
+                return val - 1;
+            }
+            return val;
         }
 };
 
@@ -161,10 +195,10 @@ class MqttBrokerConfig {
         std::string mUsername;
         std::string mPassword;
 
-        std::string mClientId;
-
         bool mTLS = false;
         std::string mCafile;
+
+        bool mProtocolV5 = false;
 };
 
 }

@@ -58,6 +58,8 @@ class ModbusThread {
         void sendMessage(const QueueItem& item);
 
         void processWrite(const std::shared_ptr<MsgRegisterValues>& msg);
+        void processReadRequest(const std::shared_ptr<MsgRegisterReadRequest>& pMsg);
+        void applySlaveConfig(RegisterCommand& pCmd, int pSlaveId);
 
         void processCommands();
 };

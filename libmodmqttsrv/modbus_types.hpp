@@ -21,13 +21,14 @@ enum ModbusWriteMode {
 class ModbusAddressRange {
     public:
         ModbusAddressRange(int pRegister, RegisterType pRegisterType, int pCount)
-            : mRegister(pRegister), mRegisterType(pRegisterType), mCount(pCount)
-        {}
+            : mRegister(pRegister), mRegisterType(pRegisterType), mCount(pCount) {}
 
         void merge(const ModbusAddressRange& other);
         bool overlaps(const ModbusAddressRange& poll) const;
         bool isConsecutiveOf(const ModbusAddressRange& other) const;
         bool isSameAs(const ModbusAddressRange& other) const;
+        // true if this range fully covers pOther (same type, pOther within bounds)
+        bool contains(const ModbusAddressRange& pOther) const;
         int firstRegister() const { return mRegister; }
         int lastRegister() const { return (mRegister + mCount) - 1; }
 
@@ -37,16 +38,19 @@ class ModbusAddressRange {
 };
 
 
-class ModbusSlaveAddressRange : public ModbusAddressRange {
+class ModbusMessageBase : public ModbusAddressRange {
     public:
-        ModbusSlaveAddressRange(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount)
+        ModbusMessageBase(int pSlaveId, int pRegisterNumber, RegisterType pType, int pCount, int pCommandId = 0)
             : ModbusAddressRange(pRegisterNumber, pType, pCount),
-              mSlaveId(pSlaveId)
-        {}
+              mSlaveId(pSlaveId),
+              mCommandId(pCommandId) {}
+
+        int getCommandId() const { return mCommandId; }
+        bool hasCommandId() const { return mCommandId != 0; }
+        bool isRpc() const { return mCommandId < 0; }
 
         int mSlaveId;
+        int mCommandId;
 };
 
 }
-
-

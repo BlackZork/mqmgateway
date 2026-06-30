@@ -176,6 +176,11 @@ class MockedModMqttServerThread : public ModMqttServerThread {
         REQUIRE(current_val == val);
     }
 
+    void waitForRpcResponse(int pCorrId, std::chrono::milliseconds pTimeout = timing::defaultWait) {
+        bool got = mMqtt->waitForRpcResponse(pCorrId, pTimeout);
+        REQUIRE(got == true);
+    }
+
     std::chrono::time_point<std::chrono::steady_clock>
     getLastPollTime(const char* network = nullptr) const {
         return mModbusFactory->getLastPollTime(network);

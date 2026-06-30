@@ -1,6 +1,14 @@
 #include <cstring>
 
 #include "mosquitto.hpp"
+
+// Distros that put mosquitto headers in the mosquitto/ subdirectory (Arch, Alpine)
+// have mosquitto.h transitively include mqtt_protocol.h. On distros that don't
+// (Debian/Ubuntu), MQTT_PROP_* constants require an explicit include.
+#if !__has_include(<mosquitto/mqtt_protocol.h>)
+#include <mqtt_protocol.h>
+#endif
+
 #include "exceptions.hpp"
 #include "mqttclient.hpp"
 #include "threadutils.hpp"
@@ -43,6 +51,12 @@ static void on_message_wrapper(struct mosquitto *mosq, void *userdata, const str
 {
 	class Mosquitto *m = (class Mosquitto *)userdata;
 	m->on_message(message);
+}
+
+static void
+onMessageV5Wrapper(struct mosquitto* pMosq, void* pUserdata, const struct mosquitto_message* pMessage, const mosquitto_property* pRops) {
+    class Mosquitto* m = (class Mosquitto*)pUserdata;
+    m->onMessageV5(pMessage, pRops);
 }
 
 /*
@@ -102,8 +116,14 @@ Mosquitto::Mosquitto() {
 void
 Mosquitto::connect(const MqttBrokerConfig& config) {
     spdlog::info("Connecting to {}:{}", config.mHost, config.mPort);
+    mProtocolV5 = config.mProtocolV5;
 
     int rc = 0;
+    if (config.mProtocolV5) {
+        rc = mosquitto_int_option(mMosq, MOSQ_OPT_PROTOCOL_VERSION, MQTT_PROTOCOL_V5);
+        throwOnCriticalError(rc);
+    }
+
     if (!config.mUsername.empty()) {
         rc = mosquitto_username_pw_set(mMosq, config.mUsername.c_str(), config.mPassword.c_str());
         throwOnCriticalError(rc);
@@ -137,7 +157,11 @@ Mosquitto::connect(const MqttBrokerConfig& config) {
         mosquitto_connect_with_flags_callback_set(mMosq, on_connect_with_flags_wrapper);
         mosquitto_disconnect_callback_set(mMosq, on_disconnect_wrapper);
         mosquitto_publish_callback_set(mMosq, on_publish_wrapper);
-        mosquitto_message_callback_set(mMosq, on_message_wrapper);
+        if (config.mProtocolV5) {
+            mosquitto_message_v5_callback_set(mMosq, onMessageV5Wrapper);
+        } else {
+            mosquitto_message_callback_set(mMosq, on_message_wrapper);
+        }
         //mosquitto_subscribe_callback_set(mMosq, on_subscribe_wrapper);
         //mosquitto_unsubscribe_callback_set(mMosq, on_unsubscribe_wrapper);
         mosquitto_log_callback_set(mMosq, on_log_wrapper);
@@ -228,6 +252,40 @@ Mosquitto::on_log(int level, const char* message) {
 void
 Mosquitto::on_message(const struct mosquitto_message *message) {
     mOwner->onMessage(message->topic, message->payload, message->payloadlen);
+}
+
+void
+Mosquitto::onMessageV5(const struct mosquitto_message* pMessage, const mosquitto_property* pRops) {
+    char* rawRespTopic = nullptr;
+    void* rawCorr = nullptr;
+    uint16_t corrLen = 0;
+    mosquitto_property_read_string(pRops, MQTT_PROP_RESPONSE_TOPIC, &rawRespTopic, false);
+    mosquitto_property_read_binary(pRops, MQTT_PROP_CORRELATION_DATA, &rawCorr, &corrLen, false);
+    std::shared_ptr<char> respTopic(rawRespTopic, free);
+    std::shared_ptr<void> corr(rawCorr, free);
+    mOwner->onMessage(pMessage->topic, pMessage->payload, pMessage->payloadlen,
+                      respTopic.get(), corr, corrLen);
+}
+
+int
+Mosquitto::publishResponse(const char* pTopic, int pLen, const void* pData,
+                           const void* pCorrelationData, int pCorrelationLen,
+                           const std::vector<std::pair<std::string, std::string>>& pUserProperties) {
+    int msgId;
+    mosquitto_property* rawProps = nullptr;
+    if (pCorrelationData != nullptr && pCorrelationLen > 0) {
+        mosquitto_property_add_binary(&rawProps, MQTT_PROP_CORRELATION_DATA, pCorrelationData, static_cast<uint16_t>(pCorrelationLen));
+    }
+    for (const auto& kv: pUserProperties) {
+        mosquitto_property_add_string_pair(&rawProps, MQTT_PROP_USER_PROPERTY,
+                                           kv.first.c_str(), kv.second.c_str());
+    }
+    std::shared_ptr<mosquitto_property> props(rawProps, [](mosquitto_property* p_) {
+        mosquitto_property_free_all(&p_);
+    });
+    int rc = mosquitto_publish_v5(mMosq, &msgId, pTopic, pLen, pData, 0, false, props.get());
+    throwOnCriticalError(rc);
+    return msgId;
 }
 
 const char*

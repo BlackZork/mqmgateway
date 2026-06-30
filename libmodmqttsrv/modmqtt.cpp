@@ -346,11 +346,31 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     std::string clientId = ConfigTools::readRequiredString(mqtt, "client_id");
     mMqtt->setClientId(clientId);
 
+    RpcMode rpcMode = RpcMode::DISABLED;
+    if (mqtt["rpc"].IsDefined()) {
+        const YAML::Node& rpc = mqtt["rpc"];
+        std::string modeStr = "disabled";
+        ConfigTools::readOptionalValue<std::string>(modeStr, rpc, "mode");
+        if (modeStr == "disabled") {
+            rpcMode = RpcMode::DISABLED;
+        } else if (modeStr == "read") {
+            rpcMode = RpcMode::READ;
+            spdlog::info("Enabling RPC interface in read-only mode");
+        } else if (modeStr == "readwrite") {
+            rpcMode = RpcMode::READ_WRITE;
+            spdlog::info("Enabling RPC interface in read-write mode");
+        } else {
+            throw ConfigurationException(rpc["mode"].Mark(), "Unknown rpc mode: " + modeStr);
+        }
+    }
+    mMqtt->setRpcMode(rpcMode);
+
     const YAML::Node& broker = mqtt["broker"];
     if (!broker.IsDefined())
         throw ConfigurationException(config.Mark(), "no broker configuration in mqtt section");
 
     MqttBrokerConfig brokerConfig(broker);
+    brokerConfig.mProtocolV5 = (rpcMode != RpcMode::DISABLED);
 
     mMqtt->setBrokerConfig(brokerConfig);
     spdlog::debug("Broker configuration initialized");
@@ -678,28 +698,30 @@ ModMqtt::parseObjectCommand(
 
 
 std::shared_ptr<DataConverter>
+ModMqtt::createConverterFromString(const std::string& pSpec) const {
+    ConverterSpecification parsed(ConverterNameParser::parse(pSpec));
+
+    std::shared_ptr<DataConverter> conv = createConverterInstance(parsed.plugin, parsed.converter);
+    if (conv == nullptr) {
+        throw ConvNameParserException("Converter " + parsed.plugin + "." + parsed.converter + " not found");
+    }
+
+    if (parsed.arguments != "()") {
+        ConverterArgValues values = ConverterNameParser::parseArgs(conv->getArgs(), parsed.arguments);
+        conv->setArgValues(values);
+    }
+    return conv;
+}
+
+std::shared_ptr<DataConverter>
 ModMqtt::createConverter(const YAML::Node& node) const {
     if (!node.IsScalar())
         throw ConfigurationException(node.Mark(), "converter must be a string");
     std::string line = ConfigTools::readRequiredValue<std::string>(node);
 
     try {
-        ConverterSpecification spec(ConverterNameParser::parse(line));
-
-        std::shared_ptr<DataConverter> conv = createConverterInstance(spec.plugin, spec.converter);
-        if (conv == nullptr)
-            throw ConfigurationException(node.Mark(), "Converter " + spec.plugin + "." + spec.converter + " not found");
-
-        try {
-            if (spec.arguments != "()") {
-                ConverterArgValues values = ConverterNameParser::parseArgs(conv->getArgs(), spec.arguments);
-                conv->setArgValues(values);
-            }
-            return conv;
-        } catch (const std::exception& ex) {
-            throw ConfigurationException(node.Mark(), ex.what());
-        }
-    } catch (const ConvNameParserException& ex) {
+        return createConverterFromString(line);
+    } catch (const std::exception& ex) {
         throw ConfigurationException(node.Mark(), ex.what());
     }
 }
@@ -965,10 +987,18 @@ ModMqtt::processModbusMessages() {
                 mMqtt->processRegisterValues((*client)->mNetworkName, *val);
             } else if (item.isSameAs(typeid(MsgRegisterReadFailed))) {
                 std::unique_ptr<MsgRegisterReadFailed> val(item.getData<MsgRegisterReadFailed>());
-                mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
+                if (val->isRpc()) {
+                    mMqtt->publishRpcError((*client)->mNetworkName, *val);
+                } else {
+                    mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
+                }
             } else if (item.isSameAs(typeid(MsgRegisterWriteFailed))) {
                 std::unique_ptr<MsgRegisterWriteFailed> val(item.getData<MsgRegisterWriteFailed>());
-                mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
+                if (val->isRpc()) {
+                    mMqtt->publishRpcError((*client)->mNetworkName, *val);
+                } else {
+                    mMqtt->processRegistersOperationFailed((*client)->mNetworkName, *val);
+                }
             } else if (item.isSameAs(typeid(MsgModbusNetworkState))) {
                 std::unique_ptr<MsgModbusNetworkState> val(item.getData<MsgModbusNetworkState>());
                 mMqtt->processModbusNetworkState(val->mNetworkName, val->mIsUp);
