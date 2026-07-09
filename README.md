@@ -169,12 +169,17 @@ Modbus network configuration parameters are listed below:
 
 * **read_retries** (optional, default 1)
 
-  A number of retries after a modbus read command fails. A failed command will trigger a publish of "0" value
-  to all availability topics for objects which needs command registers for `state` or `command` section.
+  Number of retries issued after a failed read, *in addition to* the initial read, so the total number of
+  attempts before giving up is `read_retries + 1`. The default of `1` means one initial read plus one retry
+  (two attempts total); `0` means a single attempt with no retry. The retry counter resets on the first
+  successful read, so a transient miss that a retry recovers does not affect availability. Only once every
+  attempt has failed is a `"0"` published to the availability topic of each object that uses the failed
+  register in its `state` or `command` section.
 
 * **write_retries** (optional, default 2)
 
-  A number of retries after a modbus write command fails.
+  Number of retries issued after a failed write, *in addition to* the initial write, so the total number of
+  attempts is `write_retries + 1` (the default of `2` means one write plus two retries, three attempts total).
 
 * **RTU device settings**
 
