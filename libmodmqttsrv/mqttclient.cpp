@@ -254,12 +254,13 @@ MqttClient::processModbusNetworkState(const std::string& pNetworkName, bool pIsU
     if (pIsUp)
         return;
 
+    std::set<std::shared_ptr<MqttObject>> processed;
+
     for (MqttPollObjMap::iterator it = mObjects.begin(); it != mObjects.end(); it++) {
         if (it->first.mNetworkName != pNetworkName)
             continue;
 
         for (std::vector<std::shared_ptr<MqttObject>>::iterator oit = it->second.begin(); oit != it->second.end(); oit++) {
-            std::set<std::shared_ptr<MqttObject>> processed;
             const std::shared_ptr<MqttObject>& optr = *oit;
             if (processed.find(optr) == processed.end()) {
 
