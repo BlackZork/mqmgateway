@@ -1,0 +1,32 @@
+name: ghcr cleanup
+
+# Prune orphaned *untagged* image versions that accumulate on ghcr.io because the
+# multi-arch build pushes per-arch images by digest on every run. Tagged versions
+# (releases, latest, master) and their platform children are always kept.
+
+on:
+  schedule:
+    - cron: '30 4 * * 1'   # Mondays 04:30 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List what would be deleted without deleting'
+        type: boolean
+        default: true
+
+permissions:
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      -
+        name: Delete untagged ghcr versions
+        uses: dataaxiom/ghcr-cleanup-action@v1.2.2
+        with:
+          packages: mqmgateway
+          delete-untagged: true
+          validate: true
+          # Manual runs default to a safe dry-run; the weekly schedule deletes for real.
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
