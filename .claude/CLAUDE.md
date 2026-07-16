@@ -54,8 +54,10 @@ Environment variables that affect tests:
 
 CI builds and runs the suite inside `Dockerfile` (Alpine). Three workflows live in
 `.github/workflows/`: `main.yml` (push to `master` / release → build **and push** the multi-arch
-image to `ghcr.io`), `ci_tests.yml` (push to the `ci_tests` branch → build only, `push=false` — the
-safe vehicle for trying CI changes without publishing), and `lint.yml` (PRs → diff-scoped
+image to `ghcr.io`), `ci_tests.yml` (push to the **long-lived `ci_tests` branch** → a stripped-down
+copy of `main.yml` that is **build & test only** — no registry login, digest upload, or manifest
+merge/push (`push=false`), so you can validate CI changes there without publishing), and `lint.yml`
+(PRs → diff-scoped
 clang-format / clang-tidy naming). Each build is a matrix with a **per-arch runner**: `amd64`/`i386`
 on `ubuntu-24.04` (native x86) and `arm64`/`arm/v7`/`arm/v6` on `ubuntu-24.04-arm`. `arm64` builds
 natively there; only 32-bit `arm/v7`+`arm/v6` are emulated (gated `Set up QEMU` step, pinned
