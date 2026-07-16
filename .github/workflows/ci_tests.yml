@@ -17,16 +17,17 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        platform:
-          - linux/amd64
-          - linux/arm/v6
-          - linux/arm/v7
-          - linux/arm64
-          - linux/i386
+        include:
+          - { platform: linux/amd64,  runner: ubuntu-24.04 }
+          - { platform: linux/i386,   runner: ubuntu-24.04 }
+          - { platform: linux/arm64,  runner: ubuntu-24.04-arm }
+          - { platform: linux/arm/v7, runner: ubuntu-24.04-arm, emulated: true }
+          - { platform: linux/arm/v6, runner: ubuntu-24.04-arm, emulated: true }
     steps:
       -
         name: Prepare
@@ -37,14 +38,11 @@ jobs:
         name: Checkout
         uses: actions/checkout@v5
       -
-        name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY_IMAGE }}
-      -
         name: Set up QEMU
+        if: ${{ matrix.emulated }}
         uses: docker/setup-qemu-action@v4
+        with:
+          image: tonistiigi/binfmt:qemu-v10.2.3
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

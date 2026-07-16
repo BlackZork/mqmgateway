@@ -52,8 +52,18 @@ Environment variables that affect tests:
   development machines). If failures persist above `10`, the cause is elsewhere.
 - `MQM_TEST_LOGLEVEL` — log verbosity during tests (`trace`..`critical`).
 
-CI builds and runs the suite inside `Dockerfile` (Alpine, multi-arch via QEMU). There is no
-separate lint step.
+CI builds and runs the suite inside `Dockerfile` (Alpine). Three workflows live in
+`.github/workflows/`: `main.yml` (push to `master` / release → build **and push** the multi-arch
+image to `ghcr.io`), `ci_tests.yml` (push to the `ci_tests` branch → build only, `push=false` — the
+safe vehicle for trying CI changes without publishing), and `lint.yml` (PRs → diff-scoped
+clang-format / clang-tidy naming). Each build is a matrix with a **per-arch runner**: `amd64`/`i386`
+on `ubuntu-24.04` (native x86) and `arm64`/`arm/v7`/`arm/v6` on `ubuntu-24.04-arm`. `arm64` builds
+natively there; only 32-bit `arm/v7`+`arm/v6` are emulated (gated `Set up QEMU` step, pinned
+`tonistiigi/binfmt` image). `fail-fast: false` keeps one flaky arch from cancelling the others.
+
+CI-log gotcha: the GitHub **web** log viewer truncates large buildkit build logs and can appear to
+freeze mid-`apk` — it is a rendering limitation, not a stuck build. The authoritative full log is
+the gear menu → **"View raw logs"**, or `gh run view <run-id> --log` / `--log-failed`.
 
 ### Running the daemon
 
