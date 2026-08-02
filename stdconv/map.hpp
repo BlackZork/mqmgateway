@@ -92,7 +92,7 @@ class MapConverter : public DataConverter {
 
                 void dispose() {
                     if (!mIsInt && mMqttValue.mStr != nullptr)
-                        delete mMqttValue.mStr;
+                        delete[] mMqttValue.mStr;
                 }
 
                 ~Mapping() {}
