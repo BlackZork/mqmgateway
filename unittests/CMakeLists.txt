@@ -43,6 +43,7 @@ add_executable(tests
     mqtt_every_poll_tests.cpp
     mqtt_expr_conv_tests.cpp
     mqtt_config_tests.cpp
+    mqtt_converter_error_tests.cpp
     mqtt_json_conv_tests.cpp
     mqtt_named_list_conv_tests.cpp
     mqtt_named_list_tests.cpp

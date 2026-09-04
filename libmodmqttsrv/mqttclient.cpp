@@ -174,32 +174,38 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 
     try {
         for (std::shared_ptr<MqttObject>& obj: *affectedObjects) {
-            AvailableFlag oldAvail = obj->getAvailableFlag();
-            obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
-            AvailableFlag newAvail = obj->getAvailableFlag();
+            try {
+                AvailableFlag oldAvail = obj->getAvailableFlag();
+                obj->updateRegisterValues(pModbusNetworkName, pSlaveData);
+                AvailableFlag newAvail = obj->getAvailableFlag();
 
-            if (oldAvail != newAvail) {
-                if (newAvail == AvailableFlag::True) {
-                    // if object is not retained
-                    // then publish state changes only
-                    // if availability is already set to true
-                    if (obj->getRetain()) {
-                        publishState(obj, true);
-                    } else {
-                        // delete retained message
-                        if (oldAvail == AvailableFlag::NotSet) {
-                            mMqttImpl->publish(obj->getStateTopic().c_str(), 0, NULL, true);
-                            // remember initial payload for comparsion with subsequent modbus data updates
-                            if (!obj->getRetain())
-                                obj->setLastPublishedPayload(MqttPayload::generate(*obj));
-                        }
-                        if (obj->getPublishMode() == PublishMode::EVERY_POLL)
+                if (oldAvail != newAvail) {
+                    if (newAvail == AvailableFlag::True) {
+                        // if object is not retained
+                        // then publish state changes only
+                        // if availability is already set to true
+                        if (obj->getRetain()) {
                             publishState(obj, true);
+                        } else {
+                            // delete retained message
+                            if (oldAvail == AvailableFlag::NotSet) {
+                                mMqttImpl->publish(obj->getStateTopic().c_str(), 0, NULL, true);
+                                // remember initial payload for comparsion with subsequent modbus data updates
+                                if (!obj->getRetain()) {
+                                    obj->setLastPublishedPayload(MqttPayload::generate(*obj));
+                                }
+                            }
+                            if (obj->getPublishMode() == PublishMode::EVERY_POLL) {
+                                publishState(obj, true);
+                            }
+                        }
                     }
+                    publishAvailabilityChange(*obj);
+                } else {
+                    publishState(obj, obj->needStateRepublish());
                 }
-                publishAvailabilityChange(*obj);
-            } else {
-                publishState(obj, obj->needStateRepublish());
+            } catch (const ConvException& ex) {
+                spdlog::error("Failed to convert polled register values for topic {}: {}", obj->getStateTopic(), ex.what());
             }
         }
     } catch (const MosquittoException& ex) {
@@ -236,14 +242,18 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
         return;
 
     for (std::shared_ptr<MqttObject>& obj: it->second) {
-        AvailableFlag oldAvail = obj->getAvailableFlag();
-        obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
-        AvailableFlag newAvail = obj->getAvailableFlag();
+        try {
+            AvailableFlag oldAvail = obj->getAvailableFlag();
+            obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
+            AvailableFlag newAvail = obj->getAvailableFlag();
 
-        publishState(obj);
+            publishState(obj);
 
-        if (oldAvail != newAvail) {
-            publishAvailabilityChange(*obj);
+            if (oldAvail != newAvail) {
+                publishAvailabilityChange(*obj);
+            }
+        } catch (const ConvException& ex) {
+            spdlog::error("Failed to convert data after register read error for topic {}: {}", obj->getStateTopic(), ex.what());
         }
     }
 }
@@ -296,9 +306,14 @@ MqttClient::publishAll() {
             const std::shared_ptr<MqttObject>& optr = *oit;
 
             if (published.find(optr) == published.end()) {
-                if ((*oit)->getAvailableFlag() == AvailableFlag::True)
-                    publishState(*oit, true);
-                publishAvailabilityChange(**oit);
+                try {
+                    if ((*oit)->getAvailableFlag() == AvailableFlag::True) {
+                        publishState(*oit, true);
+                    }
+                    publishAvailabilityChange(**oit);
+                } catch (const ConvException& ex) {
+                    spdlog::error("Failed to convert data while publishing all topics, topic {}: {}", (*oit)->getStateTopic(), ex.what());
+                }
                 published.insert(*oit);
             }
         }
