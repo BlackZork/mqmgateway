@@ -1,5 +1,6 @@
 #include "mqttpayload.hpp"
 
+#include <optional>
 #include <stdexcept>
 
 #include <rapidjson/stringbuffer.h>
@@ -39,6 +40,27 @@ createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const 
     case MqttValue::SourceType::UINT64:
         pWriter.Uint64(pValue.getUInt64());
         return;
+    case MqttValue::SourceType::FLOAT64: {
+        // A whole value is written as an integer so that a 64 bit result keeps
+        // every digit; writer.Double() would round it to a double first. Same
+        // rule MqttValue::format() applies to the scalar payload, shared via
+        // asIntegral() so the two cannot disagree.
+        int prec = pValue.getDoublePrecision();
+        if (prec == MqttValue::NO_PRECISION) {
+            const std::optional<MqttValue::IntegralValue> integral = pValue.asIntegral();
+            if (integral.has_value()) {
+                if (integral->isSigned()) {
+                    pWriter.Int64(integral->asInt64());
+                } else {
+                    pWriter.Uint64(integral->asUInt64());
+                }
+                return;
+            }
+        }
+        pWriter.SetMaxDecimalPlaces(prec == MqttValue::NO_PRECISION ? 6 : prec);
+        pWriter.Double(pValue.getDouble());
+        return;
+    }
     }
     // Each arm returns, so reaching here means a source type has no arm. Not a
     // ConvException: that is a bug, not bad device data, and must not be
