@@ -328,7 +328,23 @@ ModMqtt::initConverterPlugin(const std::string& name) {
         throw ConvPluginNotFoundException(std::string("Converter plugin ") + name + " not found");
     }
 
-    spdlog::debug("Trying to load converter plugin from ", final_path);
+    spdlog::debug("Trying to load converter plugin from {}", final_path);
+
+    // Check the ABI marker before the plugin object is touched. It is a plain C
+    // data symbol, safe to read whatever the plugin was built against, while
+    // the plugin object itself is only safe once the versions agree.
+    std::shared_ptr<const int> abiVersion;
+    try {
+        abiVersion = modmqttd::dll_import<const int>(final_path, "converter_plugin_abi_version");
+    } catch (const ConvPluginNotFoundException&) {
+        throw ConvPluginAbiException(
+            "Converter plugin " + final_path + " does not declare converter_plugin_abi_version. It predates converter ABI versioning and has to be rebuilt against the current headers");
+    }
+
+    if (*abiVersion != CONVERTER_ABI_VERSION) {
+        throw ConvPluginAbiException(
+            "Converter plugin " + final_path + " was built for converter ABI version " + std::to_string(*abiVersion) + ", this modmqttd needs " + std::to_string(CONVERTER_ABI_VERSION) + ". Rebuild the plugin");
+    }
 
     std::shared_ptr<ConverterPlugin> plugin = modmqttd::dll_import<ConverterPlugin>(
         final_path,

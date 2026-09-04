@@ -4,6 +4,10 @@ endif()
 
 find_package(Catch2 REQUIRED)
 
+# plugins with a mismatched and with a missing converter ABI marker, loaded by
+# server_config_tests to check that modmqttd refuses both
+add_subdirectory(abiconv)
+
 add_executable(tests
     jsonutils.cpp
     jsonutils.hpp
@@ -88,6 +92,8 @@ add_executable(tests
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )
+
+add_dependencies(tests badabiconv noabiconv)
 
 target_link_libraries(tests
     modmqttsrv

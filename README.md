@@ -1039,6 +1039,20 @@ In any case, the number of registers to be written must match the number of valu
 
 Custom converters can be added by creating a C++ dynamically loaded library with conversion classes. There is a header only libmodmqttconv library that provide base classes for plugin and converter implementations.
 
+Because that library is header only, a plugin carries its own copy of `MqttValue`,
+`ModbusRegisters` and the other exchanged types. A plugin built against a different
+version of those headers disagrees with modmqttd about their layout, which would
+corrupt memory instead of failing cleanly. Every plugin therefore exports an ABI
+marker next to its `converter_plugin` symbol, as shown at the end of the example
+below. modmqttd reads it first and refuses to load a plugin that reports anything
+else, so **rebuild your plugin whenever you upgrade modmqttd** - startup then reports:
+
+```
+Converter plugin myplugin.so was built for converter ABI version 1, this modmqttd needs 2. Rebuild the plugin
+```
+
+A plugin that predates the marker is refused the same way.
+
 Here is a minimal example of custom conversion plugin:
 
 ```C++
@@ -1104,6 +1118,9 @@ class MyPlugin : ConverterPlugin {
 // modmqttd search for "converter_plugin" C symbol in loaded dll
 extern "C" MyPlugin converter_plugin;
 MyPlugin converter_plugin;
+
+// modmqttd checks this before it touches anything else in the plugin
+extern "C" const int converter_plugin_abi_version = CONVERTER_ABI_VERSION;
 
 ```
 
