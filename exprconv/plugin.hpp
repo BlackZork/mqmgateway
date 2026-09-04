@@ -2,12 +2,12 @@
 
 #include "libmodmqttconv/converterplugin.hpp"
 
-class StdConvPlugin : ConverterPlugin {
+class ExprConvPlugin : ConverterPlugin {
     public:
         virtual std::string getName() const { return "expr"; }
-        virtual DataConverter* getConverter(const std::string& name);
-        virtual ~StdConvPlugin() {}
+        virtual DataConverter* getConverter(const std::string& pName);
+        virtual ~ExprConvPlugin() {}
 };
 
-extern "C" StdConvPlugin converter_plugin;
-StdConvPlugin converter_plugin;
+extern "C" ExprConvPlugin converter_plugin;
+ExprConvPlugin converter_plugin;
