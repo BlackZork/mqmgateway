@@ -1,5 +1,7 @@
 #include "mqttpayload.hpp"
 
+#include <stdexcept>
+
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
@@ -7,35 +9,42 @@
 namespace modmqttd {
 
 void
-createConvertedValue(
-    rapidjson::Writer<rapidjson::StringBuffer>& writer,
-    const MqttValue& value
-) {
-    switch(value.getSourceType()) {
-        case MqttValue::SourceType::INT:
-            writer.Int(value.getInt());
-            break;
-        case MqttValue::SourceType::DOUBLE: {
-            int prec = value.getDoublePrecision();
-            if (prec > 0)
-                writer.SetMaxDecimalPlaces(prec);
-            else if (prec == MqttValue::NO_PRECISION)
-                // same as sstream default, see MqttValue::format(double val)
-                writer.SetMaxDecimalPlaces(6);
-
-            if (prec == 0)
-                writer.Int64(value.getInt64());
-            else
-                writer.Double(value.getDouble());
-            break;
+createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttValue& pValue) {
+    switch (pValue.getSourceType()) {
+    case MqttValue::SourceType::INT:
+        pWriter.Int(pValue.getInt());
+        return;
+    case MqttValue::SourceType::DOUBLE: {
+        int prec = pValue.getDoublePrecision();
+        if (prec > 0) {
+            pWriter.SetMaxDecimalPlaces(prec);
+        } else if (prec == MqttValue::NO_PRECISION) {
+            // same as sstream default, see MqttValue::format(T pValue)
+            pWriter.SetMaxDecimalPlaces(6);
         }
-        case MqttValue::SourceType::BINARY:
-            writer.String(static_cast<const char*>(value.getBinaryPtr()), value.getBinarySize());
-            break;
-        case MqttValue::SourceType::INT64:
-            writer.Int64(value.getInt64());
-            break;
+
+        if (prec == 0) {
+            pWriter.Int64(pValue.getInt64());
+        } else {
+            pWriter.Double(pValue.getDouble());
+        }
+        return;
     }
+    case MqttValue::SourceType::BINARY:
+        pWriter.String(static_cast<const char*>(pValue.getBinaryPtr()), pValue.getBinarySize());
+        return;
+    case MqttValue::SourceType::INT64:
+        pWriter.Int64(pValue.getInt64());
+        return;
+    case MqttValue::SourceType::UINT64:
+        pWriter.Uint64(pValue.getUInt64());
+        return;
+    }
+    // Each arm returns, so reaching here means a source type has no arm. Not a
+    // ConvException: that is a bug, not bad device data, and must not be
+    // swallowed by the publish path error handling. A default: label would
+    // silence -Wswitch, the only compile time check for a missing arm.
+    throw std::logic_error("Unhandled MqttValue source type " + std::to_string(pValue.getSourceType()));
 }
 
 

@@ -355,12 +355,7 @@ rpcWriteValueFromJson(const rapidjson::Value& pValue) {
         return MqttValue::fromInt64(pValue.GetUint());
     }
     if (pValue.IsUint64()) {
-        // TODO MqttValue has no unsigned 64-bit holder; reject values that do not fit int64
-        const uint64_t u = pValue.GetUint64();
-        if (u > static_cast<uint64_t>(INT64_MAX)) {
-            throw std::invalid_argument("value out of range");
-        }
-        return MqttValue::fromInt64(static_cast<int64_t>(u));
+        return MqttValue::fromUInt64(pValue.GetUint64());
     }
     throw std::invalid_argument("converter write requires a scalar value (number or string)");
 }
