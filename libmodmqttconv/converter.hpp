@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "convargs.hpp"
+#include "convexception.hpp"
 #include "mqttvalue.hpp"
 #include "modbusregisters.hpp"
 
@@ -43,4 +44,19 @@ class DataConverter {
         virtual ModbusRegisters toModbus(const MqttValue&, int registerCount) const {
             throw std::logic_error("Conversion to modbus register values is not implemented");
         };
+
+    protected:
+        /**
+            Throws unless pCount matches getExpectedRegisterCount(), for a
+            converter whose width is not negotiable - a float needs exactly its
+            own bit pattern, no more and no fewer registers.
+
+            pValueName names what is being converted, so the message reads
+            "64-bit float needs 4 registers, got 2".
+        */
+        void requireExpectedRegisterCount(int pCount, const std::string& pValueName) const {
+            if (pCount != getExpectedRegisterCount()) {
+                throw ConvException(pValueName + " needs " + std::to_string(getExpectedRegisterCount()) + " registers, got " + std::to_string(pCount));
+            }
+        }
 };

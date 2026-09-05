@@ -1,26 +1,25 @@
 #pragma once
 
-#include <cmath>
-
 #include "libmodmqttconv/converter.hpp"
+#include "libmodmqttconv/convtools.hpp"
 
 #include "argtools.hpp"
 
-class FloatConverter : public DataConverter {
+class Float64Converter : public DataConverter {
     public:
-        virtual int getExpectedRegisterCount() const { return 2; }
+        virtual int getExpectedRegisterCount() const { return 4; }
 
         virtual MqttValue toMqtt(const ModbusRegisters& pData) const {
-            requireExpectedRegisterCount(pData.getCount(), "32-bit float");
+            requireExpectedRegisterCount(pData.getCount(), "64-bit float");
 
-            float val = ConverterTools::registersToFloatingPoint<float>(pData.values(), mLowFirst, mSwapBytes);
+            double val = ConverterTools::registersToFloatingPoint<double>(pData.values(), mLowFirst, mSwapBytes);
             return MqttValue::fromDouble(val, mPrecision);
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& pValue, int pRegisterCount) const {
-            requireExpectedRegisterCount(pRegisterCount, "32-bit float");
+            requireExpectedRegisterCount(pRegisterCount, "64-bit float");
 
-            return ConverterTools::floatingPointToRegisters<float>(static_cast<float>(pValue.getDouble()), mLowFirst, mSwapBytes, pRegisterCount);
+            return ConverterTools::floatingPointToRegisters<double>(pValue.getDouble(), mLowFirst, mSwapBytes, pRegisterCount);
         };
 
         virtual ConverterArgs getArgs() const {
@@ -37,7 +36,8 @@ class FloatConverter : public DataConverter {
             mPrecision = pArgs[ConverterArg::sPrecisionArgName].as_int();
         };
 
-        virtual ~FloatConverter() {}
+        virtual ~Float64Converter() {}
+
     private:
         int mPrecision = ConverterArgValue::NO_PRECISION;
         bool mLowFirst = false;

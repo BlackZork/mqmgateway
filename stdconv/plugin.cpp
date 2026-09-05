@@ -4,6 +4,7 @@
 #include "bits.hpp"
 #include "debug.hpp"
 #include "float32.hpp"
+#include "float64.hpp"
 #include "int16.hpp"
 #include "int32.hpp"
 #include "int64.hpp"
@@ -45,6 +46,8 @@ StdConvPlugin::getConverter(const std::string& name) {
         return new UInt64Converter();
     } else if (name == "float32") {
         return new FloatConverter();
+    } else if (name == "float64") {
+        return new Float64Converter();
     } else if (name == "int8") {
         return new Int8Converter();
     } else if (name == "uint8") {

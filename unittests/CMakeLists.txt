@@ -90,6 +90,7 @@ add_executable(tests
     stdconv_multiply_tests.cpp
     stdconv_register_count_tests.cpp
     stdconv_float_tests.cpp
+    stdconv_float64_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp
     stdconv_uint32_tests.cpp
