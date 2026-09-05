@@ -5,9 +5,14 @@ file records what is true today and which milestone is active — not intended e
 
 ## Current state
 
-`stdconv` provides converters up to 32 bits: `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`
-and `float32`, alongside `bit`, `bitmask`, `divide`, `multiply`, `scale`, `string`, `map` and
-`debug`. There is no 64-bit converter of any kind.
+`stdconv` provides converters up to 64 bits: `int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`,
+`float32`, `int64`, `uint64` and `float64`, alongside `bit`, `bitmask`, `divide`, `multiply`,
+`scale`, `string`, `map` and `debug`. `ConverterTools` combines and splits registers at any width
+through one pair of templates, which the whole family and `exprconv` share.
+
+A converter declares the register count it is designed for, and modmqttd reports a configured
+`count` that disagrees once, while the config is read. `std.debug` reports every word and byte order
+for one, two and four registers.
 
 `MqttValue` carries six source types — `INT`, `DOUBLE`, `BINARY`, `INT64`, `UINT64` and `FLOAT64`.
 A value up to `UINT64_MAX` is held and published exactly, and `rpcWriteValueFromJson()` accepts an
@@ -20,7 +25,8 @@ widths, so a `double` and a `long double` holding the same value render identica
 Converter plugins declare `converter_plugin_abi_version`, and `ModMqtt::initConverterPlugin()`
 refuses to load a plugin that reports anything but `CONVERTER_ABI_VERSION`, or that omits the marker.
 The constant is at 1 and has not been released — it was introduced on this branch, so it still
-absorbs further changes to the plugin interface until the branch merges.
+absorbs further changes to the plugin interface until the branch merges. `DataConverter` has gained
+`getExpectedRegisterCount()` and a protected `requireExpectedRegisterCount()` since it was added.
 
 A `ConvException` raised while converting a polled value is logged and that one object is skipped;
 any other exception still terminates the daemon.
@@ -39,14 +45,17 @@ they were silently missing.
 
 ## Milestone 2 — `std` 64-bit converters
 
-**Status: in progress.**
+**Status: done.**
 
-Adds generic 64-bit register helpers to the public converter API and the converters built on them:
+Added width-generic register helpers to the public converter API and the converters built on them:
 `std.int64`, `std.uint64` and `std.float64`, reading and writing four Modbus registers with the same
-`low_first` / `swap_bytes` word- and byte-order arguments as the 32-bit family. Extends `std.debug`
-with a four-register section so a 64-bit device register can be identified during commissioning.
+`low_first` / `swap_bytes` word- and byte-order arguments as the 32-bit family, which moved onto the
+same helpers. Extended `std.debug` with a four-register section so a 64-bit device register can be
+identified during commissioning, and made a converter able to declare its width so a mismatched
+`count` is reported at startup.
 
-Closes [#125](https://github.com/BlackZork/mqmgateway/issues/125).
+Closed [#125](https://github.com/BlackZork/mqmgateway/issues/125) and
+[#127](https://github.com/BlackZork/mqmgateway/issues/127).
 
 ## Milestone 3 — exprconv `long double` migration
 
