@@ -59,7 +59,7 @@ Closed [#125](https://github.com/BlackZork/mqmgateway/issues/125) and
 
 ## Milestone 3 — exprconv `long double` migration
 
-**Status: not started.**
+**Status: in progress.**
 
 Widens the exprtk engine from `double` to `long double` so its 64-bit integer helpers are exact, and
 gates those helpers out at compile time on platforms whose `long double` is only 53-bit — a config
