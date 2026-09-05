@@ -9,32 +9,37 @@ file records what is true today and which milestone is active — not intended e
 and `float32`, alongside `bit`, `bitmask`, `divide`, `multiply`, `scale`, `string`, `map` and
 `debug`. There is no 64-bit converter of any kind.
 
-`MqttValue` carries four source types — `INT`, `DOUBLE`, `BINARY` and `INT64`. It has **no unsigned
-64-bit holder**, so a value above `INT64_MAX` cannot be represented and would publish as a negative
-number. `rpcWriteValueFromJson()` documents this gap in a `TODO` and rejects RPC writes that do not
-fit an `int64`.
+`MqttValue` carries six source types — `INT`, `DOUBLE`, `BINARY`, `INT64`, `UINT64` and `FLOAT64`.
+A value up to `UINT64_MAX` is held and published exactly, and `rpcWriteValueFromJson()` accepts an
+RPC write of one. Whole-value formatting is decided by one templated `format()` shared by both float
+widths, so a `double` and a `long double` holding the same value render identically.
 
 `exprconv` instantiates exprtk on `double`, so every expression, register helper and result is a
 64-bit IEEE float. Integers above 2^53 cannot pass through it exactly.
 
-There is no plugin ABI version constant. The loader resolves the `converter_plugin` symbol with no
-handshake, so a third-party converter built against a different header version is not detected.
+Converter plugins declare `converter_plugin_abi_version`, and `ModMqtt::initConverterPlugin()`
+refuses to load a plugin that reports anything but `CONVERTER_ABI_VERSION`, or that omits the marker.
+The constant is at 1 and has not been released — it was introduced on this branch, so it still
+absorbs further changes to the plugin interface until the branch merges.
+
+A `ConvException` raised while converting a polled value is logged and that one object is skipped;
+any other exception still terminates the daemon.
 
 ## Milestone 1 — 64-bit values in `MqttValue`
 
-**Status: in progress.**
+**Status: done.**
 
-Adds `UINT64` and `FLOAT64` source types, collapses the whole-value formatting rule into one
-templated `format()` serving both float widths, and introduces a plugin ABI version handshake — the
-layout of `MqttValue` changes, and it crosses the plugin boundary by value.
+Added the `UINT64` and `FLOAT64` source types, collapsed the whole-value formatting rule into one
+templated `format()` serving both float widths, and introduced the plugin ABI version handshake —
+`MqttValue` crosses the plugin boundary by value, so its changed layout had to become detectable.
 
-Also carries two prerequisites that everything later depends on: making a converter exception on the
-publish path non-fatal (it currently terminates the daemon), and enabling the warning flags that
-`libmodmqttsrv`, `modmqttd` and `unittests` are silently built without today.
+Also carried two prerequisites everything later stands on: a converter exception on the publish path
+is no longer fatal, and `libmodmqttsrv`, `modmqttd` and `unittests` are built with the warning flags
+they were silently missing.
 
 ## Milestone 2 — `std` 64-bit converters
 
-**Status: not started.** Depends on milestone 1.
+**Status: in progress.**
 
 Adds generic 64-bit register helpers to the public converter API and the converters built on them:
 `std.int64`, `std.uint64` and `std.float64`, reading and writing four Modbus registers with the same
@@ -45,7 +50,7 @@ Closes [#125](https://github.com/BlackZork/mqmgateway/issues/125).
 
 ## Milestone 3 — exprconv `long double` migration
 
-**Status: not started.** Depends on milestone 1.
+**Status: not started.**
 
 Widens the exprtk engine from `double` to `long double` so its 64-bit integer helpers are exact, and
 gates those helpers out at compile time on platforms whose `long double` is only 53-bit — a config
