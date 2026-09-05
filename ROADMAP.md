@@ -130,3 +130,29 @@ or rejecting the configuration at startup are all defensible, and the choice int
 [#126](https://github.com/BlackZork/mqmgateway/issues/126), which is the same comparison truncating
 to int32. No test asserts the current behaviour, deliberately — pinning it down would cement a
 behaviour that has not been chosen.
+
+### An `every_poll` republish is decided by a sub-millisecond race
+
+Measured 2026-09-05. `MqttObject::needStateRepublish()` allows an `every_poll` republish once
+`mLastPublishTime + mEveryPollPeriod <= now`. `mEveryPollPeriod` is the object's smallest register
+refresh — the same value the scheduler uses for the poll cadence — but the two are timed from
+different origins. The scheduler measures poll to poll, while `mLastPublishTime` is stamped in
+`MqttClient::publishState()` on the main thread, after the read has finished and the values have
+crossed the queue.
+
+Consecutive publishes are therefore separated by one period plus whatever tiny delta lies between
+"poll fired" and "value published", and the gate opens only when that delta is not negative. Measured
+margins over six runs of the `every_poll` test at `MQM_TEST_TIMING_FACTOR=5`: publish gaps of 250.083
+to 251.219 ms against a 250 ms gate, so between +0.08 ms and +1.2 ms of room. The same measurement on
+the `every_poll` section of the retain tests: gaps of 500.160 to 502.128 ms against a 500 ms gate.
+
+When the delta lands the wrong way the poll is skipped and the next republish comes a full period
+later, so the object publishes at half its configured rate for that interval. That is a defect in
+the daemon, not only in the tests: an `every_poll` topic drops republishes at random. It surfaces as
+intermittent failures in `mqtt_every_poll_tests` and `mqtt_publish_retain_tests`, the latter failing
+two of five isolated runs.
+
+Raising `MQM_TEST_TIMING_FACTOR` does not help. Both the cadence and the gate scale with it, so the
+margin stays a near-zero absolute quantity rather than growing. A fix has to stop the two periods
+being identical — gating at slightly less than the period, or timing the gate from the poll rather
+than from the publish.
