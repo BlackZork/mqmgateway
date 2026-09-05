@@ -237,6 +237,42 @@ class MqttValue {
             throw std::logic_error("Unhandled MqttValue source type " + std::to_string(mType));
         }
 
+        /**
+         * The widest exact carrier this platform has. On amd64, i386 and arm64
+         * a long double mantissa holds every uint64, so a value that getDouble()
+         * would round survives here. On 32-bit arm a long double is just a
+         * double, so a caller needing exact 64 bit integers there must use
+         * getInt64()/getUInt64() instead.
+         *
+         * The BINARY arm parses with strtold rather than strtod, which is what
+         * makes it exact: a command payload reaches a converter as text, so the
+         * rounding getDouble() suffers happens in the parse, not in a cast.
+         */
+        long double getLongDouble() const {
+            switch (mType) {
+            case SourceType::BINARY: {
+                char* endptr;
+                std::string strval(getString());
+                long double ret = std::strtold(strval.c_str(), &endptr);
+                if (endptr == nullptr || *endptr != '\0') {
+                    throw ConvException(std::string("Cannot convert ") + strval + " to long double");
+                }
+                return ret;
+            }
+            case SourceType::INT:
+                return mValue.v_int;
+            case SourceType::INT64:
+                return mValue.v_int64;
+            case SourceType::UINT64:
+                return static_cast<long double>(mValue.v_uint64);
+            case SourceType::DOUBLE:
+                return mValue.v_double;
+            case SourceType::FLOAT64:
+                return mValue.v_ldouble;
+            }
+            throw std::logic_error("Unhandled MqttValue source type " + std::to_string(mType));
+        }
+
         int32_t getInt() const {
             switch (mType) {
             case SourceType::BINARY: {

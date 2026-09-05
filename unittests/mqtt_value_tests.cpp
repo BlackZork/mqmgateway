@@ -135,6 +135,64 @@ TEST_CASE("MqttValue::getUInt64 should") {
     }
 }
 
+TEST_CASE("MqttValue::getLongDouble should") {
+#if LDBL_MANT_DIG >= 64
+    // 0xA1B2C3D4E5F61728, the four-register pattern the std and expr 64-bit
+    // converters are checked against. It needs 64 mantissa bits, so it is the
+    // value that separates strtold from strtod.
+    const uint64_t exactValue = 11651590505119487784u;
+
+    SECTION("parse a decimal string that a double cannot hold") {
+        MqttValue val(MqttValue::fromString("11651590505119487784"));
+
+        REQUIRE(exactValue == static_cast<uint64_t>(val.getLongDouble()));
+    }
+
+    SECTION("parse a decimal string that getDouble() rounds") {
+        MqttValue val(MqttValue::fromString("11651590505119487784"));
+
+        REQUIRE(exactValue != static_cast<uint64_t>(val.getDouble()));
+    }
+
+    SECTION("widen a uint64 that a double cannot hold") {
+        MqttValue val(MqttValue::fromUInt64(UINT64_MAX));
+
+        REQUIRE(UINT64_MAX == static_cast<uint64_t>(val.getLongDouble()));
+    }
+#endif
+
+    SECTION("return a long double source unchanged") {
+        const long double val = 1.2345678901234567890L;
+
+        REQUIRE(val == MqttValue::fromLongDouble(val).getLongDouble());
+    }
+
+    SECTION("widen an int") {
+        REQUIRE(-7.0L == MqttValue::fromInt(-7).getLongDouble());
+    }
+
+    SECTION("widen an int64") {
+        REQUIRE(static_cast<long double>(INT64_MIN) == MqttValue::fromInt64(INT64_MIN).getLongDouble());
+    }
+
+    SECTION("widen a double") {
+        REQUIRE(0.5L == MqttValue::fromDouble(0.5).getLongDouble());
+    }
+
+    SECTION("reject a string that is not a number") {
+        MqttValue val(MqttValue::fromString("nope"));
+
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("reject a string with trailing characters, as getDouble() does") {
+        MqttValue val(MqttValue::fromString("1.5x"));
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+}
+
 TEST_CASE("MqttValue::fromLongDouble should") {
     SECTION("render a whole value as an integer") {
         MqttValue val(MqttValue::fromLongDouble(1.0L));
