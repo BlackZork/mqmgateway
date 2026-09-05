@@ -268,17 +268,8 @@ class ExprtkConverter : public DataConverter {
         }
 
         void writeFloat32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
-            assert(sizeof(float) == sizeof(int32_t));
-            union {
-                int32_t out_value;
-                float in_value;
-            } CastData;
-
-            CastData.in_value = exprval;
-
             std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(CastData.out_value, mWriteLowFirst, swapBytes, 2)
-            );
+                ConverterTools::floatingPointToRegisters<float>(static_cast<float>(exprval), mWriteLowFirst, swapBytes, 2));
 
             ret.appendValue(regdata[0]);
             ret.appendValue(regdata[1]);
