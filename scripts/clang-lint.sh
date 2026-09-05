@@ -29,12 +29,18 @@ fi
 
 case "$MODE" in
     format)
-        # Reformat only the changed lines, in place.
-        git clang-format --extensions cpp,hpp "$BASE_SHA" -- "${LINT_DIRS[@]}"
+        # Reformat only the changed lines, in place. `|| true` for the same reason as
+        # below: git clang-format reports a non-zero status once it has actually
+        # reformatted something, which would make this target look like it failed
+        # every time it did its job.
+        git clang-format --extensions cpp,hpp "$BASE_SHA" -- "${LINT_DIRS[@]}" || true
         ;;
 
     format-check)
-        FMT_DIFF="$(git clang-format --diff --extensions cpp,hpp "$BASE_SHA" -- "${LINT_DIRS[@]}")"
+        # `|| true`: git clang-format --diff exits non-zero whenever it has changes to
+        # propose, which under `set -e` aborted this script before the diff could be
+        # reported — leaving the caller with a bare exit code and no explanation.
+        FMT_DIFF="$(git clang-format --diff --extensions cpp,hpp "$BASE_SHA" -- "${LINT_DIRS[@]}" || true)"
         if echo "$FMT_DIFF" | grep -qE '^[-+]' && ! echo "$FMT_DIFF" | grep -q 'no modified files'; then
             echo "clang-format: formatting issues on changed lines. Fix with:"
             echo "  cmake --build $BUILD --target format"
