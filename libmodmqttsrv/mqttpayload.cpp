@@ -45,8 +45,13 @@ createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const 
         // every digit; writer.Double() would round it to a double first. Same
         // rule MqttValue::format() applies to the scalar payload, shared via
         // asIntegral() so the two cannot disagree.
+        //
+        // A precision of zero or less asks for no decimal places at all, so it
+        // takes the integer path too. rapidjson's dtoa() asserts
+        // maxDecimalPlaces >= 1, and writer.Double() would in any case round a
+        // 64 bit result through a double after the caller asked to keep it.
         int prec = pValue.getDoublePrecision();
-        if (prec == MqttValue::NO_PRECISION) {
+        if (prec <= 0) {
             const std::optional<MqttValue::IntegralValue> integral = pValue.asIntegral();
             if (integral.has_value()) {
                 if (integral->isSigned()) {
@@ -54,6 +59,12 @@ createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const 
                 } else {
                     pWriter.Uint64(integral->asUInt64());
                 }
+                return;
+            }
+            if (prec != MqttValue::NO_PRECISION) {
+                // a fractional value whose decimals were asked away, the same
+                // way the DOUBLE arm drops them
+                pWriter.Int64(pValue.getInt64());
                 return;
             }
         }

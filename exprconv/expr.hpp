@@ -4,13 +4,13 @@
 #include "libmodmqttconv/convexception.hpp"
 #include "libmodmqttconv/converter.hpp"
 
-std::string
-strvecToString(const std::vector<std::string>& elements, const char *const delimiter) {
+static std::string
+strvecToString(const std::vector<std::string>& pElements, const char* const pDelimiter) {
     std::ostringstream os;
-    auto b = begin(elements), e = end(elements);
+    auto b = begin(pElements), e = end(pElements);
 
     if (b != e) {
-        std::copy(b, prev(e), std::ostream_iterator<std::string>(os, delimiter));
+        std::copy(b, prev(e), std::ostream_iterator<std::string>(os, pDelimiter));
         b = prev(e);
     }
     if (b != e) {
@@ -34,20 +34,25 @@ class ExprtkConverter : public DataConverter {
             for(int i = 0; i < data.getCount(); i++) {
                 mValues[i] =  data.getValue(i);
             }
+            // an expression may name any of R0..R9, so clear the ones this poll
+            // did not supply instead of leaving the previous poll's values there
+            for (int i = data.getCount(); i < MAX_REGISTERS; i++) {
+                mValues[i] = 0;
+            }
 
-            double ret = mExpression.value();
+            long double ret = mExpression.value();
 
-            return MqttValue::fromDouble(ret, mPrecision);
+            return MqttValue::fromLongDouble(ret, mPrecision);
         }
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
             ModbusRegisters ret;
 
-            mValues[0] = value.getDouble();
+            mValues[0] = value.getLongDouble();
 
-            double exprval = mExpression.value();
+            long double exprval = mExpression.value();
 
-            typedef exprtk::results_context<double> results_context_t;
+            typedef exprtk::results_context<long double> ResultsContext;
             const auto& results = mExpression.results();
 
             if (std::isnan(exprval)) {
@@ -59,24 +64,22 @@ class ExprtkConverter : public DataConverter {
                 if (registersNeeded != registerCount)
                     throw ConvException("Got " + std::to_string(results.count()) + " values, need " + std::to_string(registerCount));
 
-                typedef typename results_context_t::type_store_t type_t;
+                typedef typename ResultsContext::type_store_t TypeStore;
+                typedef typename TypeStore::scalar_view ScalarView;
 
                 for(std::size_t i = 0; i < results.count(); i++) {
-                    type_t ts = results[i];
+                    TypeStore ts = results[i];
                     switch (ts.type) {
-                        case type_t::e_scalar: {
-                            double val = *(double*)(ts.data);
-                            writeRegisterValues(ret, val);
-                        } break;
-                        case type_t::e_vector:
-                            throw ConvException("Invalid list returned on position " + std::to_string(i));
-                        break;
-                        case type_t::e_string:
-                            throw ConvException("Invalid string value returned on position " + std::to_string(i));
-                        break;
-                        case type_t::e_unknown:
-                            throw ConvException("Unknown value type returned on position " + std::to_string(i));
-                        break;
+                    case TypeStore::e_scalar: {
+                        long double val = ScalarView(ts)();
+                        writeRegisterValues(ret, val);
+                    } break;
+                    case TypeStore::e_vector:
+                        throw ConvException("Invalid list returned on position " + std::to_string(i));
+                    case TypeStore::e_string:
+                        throw ConvException("Invalid string value returned on position " + std::to_string(i));
+                    case TypeStore::e_unknown:
+                        throw ConvException("Unknown value type returned on position " + std::to_string(i));
                     }
                 }
             } else {
@@ -85,7 +88,6 @@ class ExprtkConverter : public DataConverter {
                     throw ConvException("Got a single value, need " + std::to_string(registersNeeded));
 
                 writeRegisterValues(ret, exprval);
-                //ret.appendValue(toUInt16(exprval));
             }
 
             return ret;
@@ -160,51 +162,51 @@ class ExprtkConverter : public DataConverter {
             mExpression.release();
         }
     private:
-        exprtk::symbol_table<double> mSymbolTable;
-        exprtk::parser<double> mParser;
-        exprtk::expression<double> mExpression;
-        mutable std::vector<double> mValues;
-        int mPrecision;
+        exprtk::symbol_table<long double> mSymbolTable;
+        exprtk::parser<long double> mParser;
+        exprtk::expression<long double> mExpression;
+        mutable std::vector<long double> mValues;
+        int mPrecision = ConverterArgValue::NO_PRECISION;
         std::string mWriteAs;
-        bool mWriteLowFirst;
+        bool mWriteLowFirst = false;
 
-        static double int32(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, false);
+        static long double int32(const long double pHighRegister, const long double pLowRegister) {
+            return ConverterTools::toNumber<int32_t>(pHighRegister, pLowRegister, false);
         }
 
-        static double int32bs(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<int32_t>(highRegister, lowRegister, true);
+        static long double int32bs(const long double pHighRegister, const long double pLowRegister) {
+            return ConverterTools::toNumber<int32_t>(pHighRegister, pLowRegister, true);
         }
 
-        static double uint32(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, false);
+        static long double uint32(const long double pHighRegister, const long double pLowRegister) {
+            return ConverterTools::toNumber<uint32_t>(pHighRegister, pLowRegister, false);
         }
 
-        static double uint32bs(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<uint32_t>(highRegister, lowRegister, true);
+        static long double uint32bs(const long double pHighRegister, const long double pLowRegister) {
+            return ConverterTools::toNumber<uint32_t>(pHighRegister, pLowRegister, true);
         }
 
-        static double flt32(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<float>(highRegister, lowRegister, false);
+        static long double flt32(const long double pHighRegister, const long double pLowRegister) {
+            return ConverterTools::toNumber<float>(pHighRegister, pLowRegister, false);
         }
 
-        static double flt32bs(const double highRegister, const double lowRegister) {
-            return ConverterTools::toNumber<float>(highRegister, lowRegister, true);
+        static long double flt32bs(const long double pHighRegister, const long double pLowRegister) {
+            return ConverterTools::toNumber<float>(pHighRegister, pLowRegister, true);
         }
 
-        static double int16(const double regValue) {
-            uint16_t val = uint16_t(regValue);
+        static long double int16(const long double pRegValue) {
+            uint16_t val = uint16_t(pRegValue);
             return (int16_t)val;
         }
 
-        static double uint16bs(const double regValue) {
-            uint16_t val = uint16_t(regValue);
+        static long double uint16bs(const long double pRegValue) {
+            uint16_t val = uint16_t(pRegValue);
             val = ConverterTools::setByteOrder(val, true);
             return val;
         }
 
-        static double int16bs(const double regValue) {
-            uint16_t val = uint16_t(regValue);
+        static long double int16bs(const long double pRegValue) {
+            uint16_t val = uint16_t(pRegValue);
             val = ConverterTools::setByteOrder(val, true);
             return (int16_t)(val);
         }
@@ -217,85 +219,79 @@ class ExprtkConverter : public DataConverter {
             return 2*resultsCount;
         }
 
-        void writeRegisterValues(ModbusRegisters& ret, double exprval) const {
+        void writeRegisterValues(ModbusRegisters& pRegisters, long double pExprValue) const {
             try {
                 if (mWriteAs.empty() || mWriteAs == "uint16") {
-                    writeUInt16(ret, exprval, false);
+                    writeUInt16(pRegisters, pExprValue, false);
                 } else if (mWriteAs == "uint16bs") {
-                    writeUInt16(ret, exprval, true);
+                    writeUInt16(pRegisters, pExprValue, true);
                 } else if (mWriteAs == "int16") {
-                    writeInt16(ret, exprval, false);
+                    writeInt16(pRegisters, pExprValue, false);
                 } else if (mWriteAs == "int16bs") {
-                    writeInt16(ret, exprval, true);
-                } else if (mWriteAs == "uint16bs") {
-                    writeInt16(ret, exprval, true);
+                    writeInt16(pRegisters, pExprValue, true);
                 } else if (mWriteAs == "flt32") {
-                    writeFloat32(ret, exprval, false);
+                    writeFloat32(pRegisters, pExprValue, false);
                 } else if (mWriteAs == "flt32bs") {
-                    writeFloat32(ret, exprval, true);
+                    writeFloat32(pRegisters, pExprValue, true);
                 } else if (mWriteAs == "int32") {
-                    writeInt32(ret, exprval, false);
+                    writeInt32(pRegisters, pExprValue, false);
                 } else if (mWriteAs == "int32bs") {
-                    writeInt32(ret, exprval, true);
+                    writeInt32(pRegisters, pExprValue, true);
                 } else if (mWriteAs == "uint32") {
-                    writeUInt32(ret, exprval, false);
+                    writeUInt32(pRegisters, pExprValue, false);
                 } else if (mWriteAs == "uint32bs") {
-                    writeUInt32(ret, exprval, true);
+                    writeUInt32(pRegisters, pExprValue, true);
                 }
             } catch (const std::exception& ex) {
                 throw ConvException(mWriteAs + " conversion failed: " + ex.what());
             } catch (...) {
-                throw ConvException("Unknown error when converting "s + std::to_string(exprval) + " using " + mWriteAs);
+                throw ConvException("Unknown error when converting "s + std::to_string(pExprValue) + " using " + mWriteAs);
             }
         }
 
-        void writeInt16(ModbusRegisters& ret, double exprval, bool swapBytes) const {
-            int32_t tmp = exprval;
+        void writeInt16(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            int32_t tmp = pExprValue;
             if (tmp < INT16_MIN || tmp > INT16_MAX)
                 throw ConvException(std::string("Conversion failed, value " + std::to_string(tmp) + " out of range"));
             int16_t toWrite = tmp;
-            toWrite = ConverterTools::setByteOrder(toWrite, swapBytes);
-            ret.appendValue(toWrite);
+            toWrite = ConverterTools::setByteOrder(toWrite, pSwapBytes);
+            pRegisters.appendValue(toWrite);
         }
 
-        void writeUInt16(ModbusRegisters& ret, double exprval, bool swapBytes) const {
-            int32_t tmp = exprval;
+        void writeUInt16(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            int32_t tmp = pExprValue;
             if (tmp < 0 || tmp > UINT16_MAX)
                 throw ConvException(std::string("Conversion failed, value " + std::to_string(tmp) + " out of range"));
             uint16_t toWrite = tmp;
-            toWrite = ConverterTools::setByteOrder(toWrite, swapBytes);
-            ret.appendValue(toWrite);
+            toWrite = ConverterTools::setByteOrder(toWrite, pSwapBytes);
+            pRegisters.appendValue(toWrite);
         }
 
-        void writeFloat32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
+        void writeFloat32(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
             std::vector<uint16_t> regdata(
-                ConverterTools::floatingPointToRegisters<float>(static_cast<float>(exprval), mWriteLowFirst, swapBytes, 2));
+                ConverterTools::floatingPointToRegisters<float>(static_cast<float>(pExprValue), mWriteLowFirst, pSwapBytes, 2));
 
-            ret.appendValue(regdata[0]);
-            ret.appendValue(regdata[1]);
+            pRegisters.appendValue(regdata[0]);
+            pRegisters.appendValue(regdata[1]);
         }
 
-        void writeInt32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
-            int32_t val = exprval;
-
-            std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(val, mWriteLowFirst, swapBytes, 2)
-            );
-
-            ret.appendValue(regdata[0]);
-            ret.appendValue(regdata[1]);
-        }
-
-        void writeUInt32(ModbusRegisters& ret, double exprval, bool swapBytes) const {
-            int64_t val = exprval;
+        void writeInt32(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            int32_t val = pExprValue;
 
             std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(val, mWriteLowFirst, swapBytes, 2)
-            );
+                ConverterTools::int32ToRegisters(val, mWriteLowFirst, pSwapBytes, 2));
 
-            ret.appendValue(regdata[0]);
-            ret.appendValue(regdata[1]);
+            pRegisters.appendValue(regdata[0]);
+            pRegisters.appendValue(regdata[1]);
         }
 
+        void writeUInt32(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            int64_t val = pExprValue;
 
+            std::vector<uint16_t> regdata(
+                ConverterTools::int32ToRegisters(val, mWriteLowFirst, pSwapBytes, 2));
+
+            pRegisters.appendValue(regdata[0]);
+            pRegisters.appendValue(regdata[1]);
+        }
     };
