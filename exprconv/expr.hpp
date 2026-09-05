@@ -4,6 +4,8 @@
 #include "libmodmqttconv/convexception.hpp"
 #include "libmodmqttconv/converter.hpp"
 
+#include "int64support.hpp"
+
 static std::string
 strvecToString(const std::vector<std::string>& pElements, const char* const pDelimiter) {
     std::ostringstream os;
@@ -113,6 +115,16 @@ class ExprtkConverter : public DataConverter {
             mSymbolTable.add_function("int16", int16);
             mSymbolTable.add_function("int16bs", int16bs);
             mSymbolTable.add_function("uint16bs", uint16bs);
+            mSymbolTable.add_function("flt64", flt64);
+            mSymbolTable.add_function("flt64bs", flt64bs);
+            // only the integer helpers need a mantissa wide enough to hold every
+            // bit; a double read through flt64 is exact at any long double width
+            if constexpr (exprconv::sExactInt64) {
+                mSymbolTable.add_function("int64", int64);
+                mSymbolTable.add_function("int64bs", int64bs);
+                mSymbolTable.add_function("uint64", uint64);
+                mSymbolTable.add_function("uint64bs", uint64bs);
+            }
             mSymbolTable.add_constants();
 
             char buf[16];
@@ -127,7 +139,12 @@ class ExprtkConverter : public DataConverter {
 
             mExpression.register_symbol_table(mSymbolTable);
             if (!mParser.compile(values["expression"].as_str(), mExpression)) {
-                throw ConvException(std::string("Exprtk ") + mParser.error());
+                std::string error = std::string("Exprtk ") + mParser.error();
+                const std::optional<std::string> hint = exprconv::narrowLongDoubleHint(values["expression"].as_str());
+                if (hint.has_value()) {
+                    error += ". " + *hint;
+                }
+                throw ConvException(error);
             }
 
             mPrecision = values[ConverterArg::sPrecisionArgName].as_int();
@@ -192,6 +209,41 @@ class ExprtkConverter : public DataConverter {
 
         static long double flt32bs(const long double pHighRegister, const long double pLowRegister) {
             return ConverterTools::toNumber<float>(pHighRegister, pLowRegister, true);
+        }
+
+        /**
+         * The four registers of a 64-bit value, most significant word first.
+         * A caller wanting the reverse word order passes them reversed, the way
+         * the 32-bit helpers already take int32(R1, R0).
+         */
+        static std::vector<uint16_t> toRegisters(const long double pWord0, const long double pWord1, const long double pWord2,
+                                                 const long double pWord3) {
+            return {static_cast<uint16_t>(pWord0), static_cast<uint16_t>(pWord1), static_cast<uint16_t>(pWord2),
+                    static_cast<uint16_t>(pWord3)};
+        }
+
+        static long double int64(const long double pWord0, const long double pWord1, const long double pWord2, const long double pWord3) {
+            return static_cast<long double>(ConverterTools::registersToNumber<int64_t>(toRegisters(pWord0, pWord1, pWord2, pWord3), false, false));
+        }
+
+        static long double int64bs(const long double pWord0, const long double pWord1, const long double pWord2, const long double pWord3) {
+            return static_cast<long double>(ConverterTools::registersToNumber<int64_t>(toRegisters(pWord0, pWord1, pWord2, pWord3), false, true));
+        }
+
+        static long double uint64(const long double pWord0, const long double pWord1, const long double pWord2, const long double pWord3) {
+            return static_cast<long double>(ConverterTools::registersToNumber<uint64_t>(toRegisters(pWord0, pWord1, pWord2, pWord3), false, false));
+        }
+
+        static long double uint64bs(const long double pWord0, const long double pWord1, const long double pWord2, const long double pWord3) {
+            return static_cast<long double>(ConverterTools::registersToNumber<uint64_t>(toRegisters(pWord0, pWord1, pWord2, pWord3), false, true));
+        }
+
+        static long double flt64(const long double pWord0, const long double pWord1, const long double pWord2, const long double pWord3) {
+            return ConverterTools::registersToFloatingPoint<double>(toRegisters(pWord0, pWord1, pWord2, pWord3), false, false);
+        }
+
+        static long double flt64bs(const long double pWord0, const long double pWord1, const long double pWord2, const long double pWord3) {
+            return ConverterTools::registersToFloatingPoint<double>(toRegisters(pWord0, pWord1, pWord2, pWord3), false, true);
         }
 
         static long double int16(const long double pRegValue) {

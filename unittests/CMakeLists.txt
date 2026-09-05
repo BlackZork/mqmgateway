@@ -23,10 +23,15 @@ add_executable(tests
     timing.cpp
     timing.hpp
     # tests
+    conv_parity_tests.cpp
     converter_name_parser_tests.cpp
     convtools_tests.cpp
     exprconv_float_tests.cpp
+    exprconv_float64_tests.cpp
+    exprconv_gate_tests.cpp
     exprconv_int16_tests.cpp
+    exprconv_int64_tests.cpp
+    exprconv_uint64_tests.cpp
     exprconv_uint16_tests.cpp
     exprconv_int32_tests.cpp
     exprconv_tests.cpp
