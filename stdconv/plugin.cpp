@@ -6,46 +6,53 @@
 #include "float32.hpp"
 #include "int16.hpp"
 #include "int32.hpp"
+#include "int64.hpp"
 #include "int8.hpp"
 #include "map.hpp"
 #include "scale.hpp"
 #include "single_arg_ops.hpp"
 #include "string.hpp"
 #include "uint32.hpp"
+#include "uint64.hpp"
 
 extern "C" const int converter_plugin_abi_version = CONVERTER_ABI_VERSION;
 
 DataConverter*
 StdConvPlugin::getConverter(const std::string& name) {
-    if (name == "bit")
+    if (name == "bit") {
         return new BitConverter();
-    else if (name == "bitmask")
+    } else if (name == "bitmask") {
         return new BitmaskConverter();
-    else if (name == "divide")
+    } else if (name == "divide") {
         return new DivideConverter();
-    else if (name == "multiply")
-         return new MultiplyConverter();
-    else if (name == "int32")
-         return new Int32Converter();
-    else if (name == "scale")
-         return new ScaleConverter();
-    else if (name == "string")
-         return new StringConverter();
-    else if (name == "int16")
+    } else if (name == "multiply") {
+        return new MultiplyConverter();
+    } else if (name == "int32") {
+        return new Int32Converter();
+    } else if (name == "int64") {
+        return new Int64Converter();
+    } else if (name == "scale") {
+        return new ScaleConverter();
+    } else if (name == "string") {
+        return new StringConverter();
+    } else if (name == "int16") {
         return new Int16Converter();
-    else if (name == "uint16")
+    } else if (name == "uint16") {
         return new UInt16Converter();
-    else if (name == "uint32")
+    } else if (name == "uint32") {
         return new UInt32Converter();
-    else if (name == "float32")
+    } else if (name == "uint64") {
+        return new UInt64Converter();
+    } else if (name == "float32") {
         return new FloatConverter();
-    else if (name == "int8")
+    } else if (name == "int8") {
         return new Int8Converter();
-    else if (name == "uint8")
+    } else if (name == "uint8") {
         return new UInt8Converter();
-    else if (name == "map")
+    } else if (name == "map") {
         return new MapConverter();
-    else if (name == "debug")
+    } else if (name == "debug") {
         return new DebugConverter();
+    }
     return nullptr;
 }

@@ -80,12 +80,13 @@ class Int64 {
         static constexpr uint16_t GH = 0x1728;
         static constexpr uint16_t HG = 0x2817;
 
+        // the pattern has its top bit set, so the signed reading is negative and
+        // the unsigned one is above INT64_MAX without needing separate constants
         static constexpr int64_t ABCDEFGH_as_int64 = -6795153568590063832;
         static constexpr int64_t GHEFCDAB_as_int64 = 1668836509950976434;
         static constexpr int64_t BADCFEHG_as_int64 = -5574940925582039017;
         static constexpr int64_t HGFEDCBA_as_int64 = 2889049152959001249;
 
-        // ABCDEFGH is above INT64_MAX, so it only survives an unsigned holder
         static constexpr uint64_t ABCDEFGH_as_uint64 = 11651590505119487784u;
         static constexpr uint64_t GHEFCDAB_as_uint64 = 1668836509950976434u;
         static constexpr uint64_t BADCFEHG_as_uint64 = 12871803148127512599u;

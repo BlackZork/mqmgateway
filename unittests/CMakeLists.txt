@@ -85,6 +85,7 @@ add_executable(tests
     stdconv_int8_tests.cpp
     stdconv_int16_tests.cpp
     stdconv_int32_tests.cpp
+    stdconv_int64_tests.cpp
     stdconv_map_tests.cpp
     stdconv_multiply_tests.cpp
     stdconv_register_count_tests.cpp
@@ -92,6 +93,7 @@ add_executable(tests
     stdconv_string_tests.cpp
     stdconv_tests.cpp
     stdconv_uint32_tests.cpp
+    stdconv_uint64_tests.cpp
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )
