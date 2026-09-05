@@ -16,7 +16,9 @@ static rapidjson::Document parseOutput(DataConverter& pConv, const ModbusRegiste
     MqttValue out = pConv.toMqtt(pData);
     std::string json = out.getString();
     rapidjson::Document doc;
-    REQUIRE_FALSE(doc.Parse(json.c_str()).HasParseError());
+    // rapidjson's default float parsing is only accurate to about one ULP, which
+    // is not enough to check that a 64-bit double survived the round trip
+    REQUIRE_FALSE(doc.Parse<rapidjson::kParseFullPrecisionFlag>(json.c_str()).HasParseError());
     return doc;
 }
 
@@ -102,7 +104,7 @@ TEST_CASE("std.debug for two registers") {
     }
 }
 
-TEST_CASE("std.debug for more than two registers") {
+TEST_CASE("std.debug for a register count no type fits") {
     PluginLoader loader("../stdconv/stdconv.so");
     std::shared_ptr<DataConverter> conv(loader.getConverter("debug"));
 
@@ -127,6 +129,83 @@ TEST_CASE("std.debug for more than two registers") {
         auto doc = parseOutput(*conv, input);
         REQUIRE_FALSE(doc.HasMember("int16"));
         REQUIRE_FALSE(doc.HasMember("uint16"));
+    }
+
+    SECTION("should not output 64-bit sections for five registers") {
+        const ModbusRegisters fiveRegisters({TestNumbers::Int64::AB, TestNumbers::Int64::CD, TestNumbers::Int64::EF, TestNumbers::Int64::GH, TestNumbers::Int64::AB});
+
+        auto doc = parseOutput(*conv, fiveRegisters);
+        REQUIRE(doc["raw"].Size() == 5);
+        REQUIRE_FALSE(doc.HasMember("int64"));
+        REQUIRE_FALSE(doc.HasMember("uint64"));
+        REQUIRE_FALSE(doc.HasMember("float64"));
+    }
+}
+
+TEST_CASE("std.debug for four registers") {
+    PluginLoader loader("../stdconv/stdconv.so");
+    std::shared_ptr<DataConverter> conv(loader.getConverter("debug"));
+
+    const ModbusRegisters input({TestNumbers::Int64::AB, TestNumbers::Int64::CD, TestNumbers::Int64::EF, TestNumbers::Int64::GH});
+
+    SECTION("should output all four int64 variants") {
+        auto doc = parseOutput(*conv, input);
+        REQUIRE(doc["int64"]["std.int64"].GetInt64() == TestNumbers::Int64::ABCDEFGH_as_int64);
+        REQUIRE(doc["int64"]["std.int64(low_first=true)"].GetInt64() == TestNumbers::Int64::GHEFCDAB_as_int64);
+        REQUIRE(doc["int64"]["std.int64(swap_bytes=true)"].GetInt64() == TestNumbers::Int64::BADCFEHG_as_int64);
+        REQUIRE(doc["int64"]["std.int64(low_first=true,swap_bytes=true)"].GetInt64() == TestNumbers::Int64::HGFEDCBA_as_int64);
+    }
+
+    SECTION("should output all four uint64 variants") {
+        auto doc = parseOutput(*conv, input);
+        REQUIRE(doc["uint64"]["std.uint64"].GetUint64() == TestNumbers::Int64::ABCDEFGH_as_uint64);
+        REQUIRE(doc["uint64"]["std.uint64(low_first=true)"].GetUint64() == TestNumbers::Int64::GHEFCDAB_as_uint64);
+        REQUIRE(doc["uint64"]["std.uint64(swap_bytes=true)"].GetUint64() == TestNumbers::Int64::BADCFEHG_as_uint64);
+        REQUIRE(doc["uint64"]["std.uint64(low_first=true,swap_bytes=true)"].GetUint64() == TestNumbers::Int64::HGFEDCBA_as_uint64);
+    }
+
+    SECTION("should output the raw, hex and string sections") {
+        auto doc = parseOutput(*conv, input);
+        REQUIRE(doc["raw"].Size() == 4);
+        REQUIRE(doc["hex"][0].GetString() == std::string("0xA1B2"));
+        REQUIRE(doc.HasMember("string"));
+    }
+
+    SECTION("should not output 16 or 32-bit sections") {
+        auto doc = parseOutput(*conv, input);
+        REQUIRE_FALSE(doc.HasMember("int16"));
+        REQUIRE_FALSE(doc.HasMember("int32"));
+        REQUIRE_FALSE(doc.HasMember("uint32"));
+        REQUIRE_FALSE(doc.HasMember("float32"));
+    }
+}
+
+TEST_CASE("std.debug for float64") {
+    PluginLoader loader("../stdconv/stdconv.so");
+    std::shared_ptr<DataConverter> conv(loader.getConverter("debug"));
+
+    SECTION("should output all four float64 variants") {
+        const ModbusRegisters input({TestNumbers::Double::AB, TestNumbers::Double::CD, TestNumbers::Double::EF, TestNumbers::Double::GH});
+
+        auto doc = parseOutput(*conv, input);
+        REQUIRE_THAT(doc["float64"]["std.float64"].GetDouble(), Catch::Matchers::WithinULP(TestNumbers::Double::ABCDEFGH_as_double, 0));
+        REQUIRE_THAT(doc["float64"]["std.float64(low_first=true)"].GetDouble(), Catch::Matchers::WithinULP(TestNumbers::Double::GHEFCDAB_as_double, 0));
+        REQUIRE_THAT(doc["float64"]["std.float64(swap_bytes=true)"].GetDouble(), Catch::Matchers::WithinULP(TestNumbers::Double::BADCFEHG_as_double, 0));
+        REQUIRE_THAT(doc["float64"]["std.float64(low_first=true,swap_bytes=true)"].GetDouble(), Catch::Matchers::WithinULP(TestNumbers::Double::HGFEDCBA_as_double, 0));
+    }
+
+    SECTION("should report nan and infinity as strings") {
+        const ModbusRegisters nanInput(std::vector<uint16_t>(std::begin(TestNumbers::Double::NAN_REGISTERS), std::end(TestNumbers::Double::NAN_REGISTERS)));
+        auto nanDoc = parseOutput(*conv, nanInput);
+        REQUIRE(nanDoc["float64"]["std.float64"].GetString() == std::string("nan"));
+
+        const ModbusRegisters posInfInput(std::vector<uint16_t>(std::begin(TestNumbers::Double::POS_INF_REGISTERS), std::end(TestNumbers::Double::POS_INF_REGISTERS)));
+        auto posInfDoc = parseOutput(*conv, posInfInput);
+        REQUIRE(posInfDoc["float64"]["std.float64"].GetString() == std::string("inf"));
+
+        const ModbusRegisters negInfInput(std::vector<uint16_t>(std::begin(TestNumbers::Double::NEG_INF_REGISTERS), std::end(TestNumbers::Double::NEG_INF_REGISTERS)));
+        auto negInfDoc = parseOutput(*conv, negInfInput);
+        REQUIRE(negInfDoc["float64"]["std.float64"].GetString() == std::string("-inf"));
     }
 }
 
@@ -246,6 +325,30 @@ mqtt:
         REQUIRE(doc.HasMember("float32"));
         REQUIRE(doc["int32"]["std.int32"].GetInt() == TestNumbers::Int::ABCD_as_int32);
         REQUIRE(doc["uint32"]["std.uint32"].GetUint() == TestNumbers::Int::ABCD_as_uint32);
+
+        server.stop();
+    }
+
+    SECTION("should publish the 64-bit sections for four registers") {
+        config.mYAML["mqtt"]["objects"][0]["state"]["count"] = 4;
+        config.mYAML["mqtt"]["objects"][0]["state"]["converter"] = "std.debug()";
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::INPUT, TestNumbers::Int64::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::INPUT, TestNumbers::Int64::CD);
+        server.setModbusRegisterValue("tcptest", 1, 4, modmqttd::RegisterType::INPUT, TestNumbers::Int64::EF);
+        server.setModbusRegisterValue("tcptest", 1, 5, modmqttd::RegisterType::INPUT, TestNumbers::Int64::GH);
+        server.start();
+        server.waitForPublish("test_sensor/state");
+
+        std::string payload = server.mqttValue("test_sensor/state");
+
+        rapidjson::Document doc;
+        REQUIRE_FALSE(doc.Parse(payload.c_str()).HasParseError());
+        REQUIRE(doc["raw"].Size() == 4);
+        REQUIRE(doc["int64"]["std.int64"].GetInt64() == TestNumbers::Int64::ABCDEFGH_as_int64);
+        REQUIRE(doc["uint64"]["std.uint64"].GetUint64() == TestNumbers::Int64::ABCDEFGH_as_uint64);
+        REQUIRE(doc.HasMember("float64"));
+        REQUIRE_FALSE(doc.HasMember("int32"));
 
         server.stop();
     }
