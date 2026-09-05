@@ -19,8 +19,18 @@ A value up to `UINT64_MAX` is held and published exactly, and `rpcWriteValueFrom
 RPC write of one. Whole-value formatting is decided by one templated `format()` shared by both float
 widths, so a `double` and a `long double` holding the same value render identically.
 
-`exprconv` instantiates exprtk on `double`, so every expression, register helper and result is a
-64-bit IEEE float. Integers above 2^53 cannot pass through it exactly.
+`exprconv` instantiates exprtk on `long double`, and offers `int64`, `uint64` and `flt64` register
+helpers, each with a `bs` variant, in both directions. A value read from four registers stays exact
+from the helper to the published payload, and `std.uint64` and
+`expr.evaluate('uint64(R0,R1,R2,R3)')` are checked against each other at converter level, through a
+polled topic and through a JSON list. The integer helpers are registered only where a `long double`
+has at least 64 mantissa bits, so on 32-bit arm a config naming one is refused at startup with the
+reason; the float helpers are offered everywhere, since a `long double` holds an IEEE-754 double
+exactly at any width.
+
+Every `write_as` helper narrows through `MqttValue` rather than casting, so a value that does not fit
+the target type is reported instead of written. The set of names, the register count each needs and
+the writer each uses come from one table.
 
 Converter plugins declare `converter_plugin_abi_version`, and `ModMqtt::initConverterPlugin()`
 refuses to load a plugin that reports anything but `CONVERTER_ABI_VERSION`, or that omits the marker.
@@ -59,14 +69,25 @@ Closed [#125](https://github.com/BlackZork/mqmgateway/issues/125) and
 
 ## Milestone 3 — exprconv `long double` migration
 
-**Status: in progress.**
+**Status: done.**
 
-Widens the exprtk engine from `double` to `long double` so its 64-bit integer helpers are exact, and
-gates those helpers out at compile time on platforms whose `long double` is only 53-bit — a config
-using them there is rejected at startup rather than publishing a rounded value.
+Widened the exprtk engine from `double` to `long double` and added `int64`, `uint64` and `flt64`
+register helpers, each with a `bs` variant, for reading and for `write_as`. Word order is spelled by
+argument order, as the 32-bit helpers already did, so every `std` word and byte order combination
+has an expression that matches it.
 
-The governing requirement is that `std.uint64` and `expr.evaluate('uint64(R0,R1,R2,R3)')` publish
-the same value, or the configuration fails.
+Only the integer helpers are gated on the mantissa width. A float helper reads an IEEE-754 double,
+which a `long double` holds exactly at any width, so gating those would have refused a configuration
+that works; an integer that drifts is usually a bitmask read wrong, which is why those refuse
+instead of rounding. The refusal is the absent registration — a gated helper is never added to the
+symbol table — and an exprtk-free header explains it after the parse has already failed, where
+matching a name that was not the cause costs nothing.
+
+Also carried two fixes the migration reached. `MqttValue` gained `getLongDouble()`, which parses a
+command payload with `strtold` rather than `strtod`, since a configured command always arrives as
+text and that is where the low bits were being lost. And every `write_as` helper now narrows through
+`MqttValue`: each one used to cast a floating point value to an integer before the range check meant
+to catch it, so an out of range value was written rather than reported.
 
 ## Deferred defects
 

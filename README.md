@@ -1035,6 +1035,27 @@ Register values are defined as `R0..Rn` variables.
   * `flt32bs(R0, R1)`: Cast to float `ABCD` from `R0` == `BA` and `R1` == `DC`.
   * `flt32bs(R1, R0)`: Cast to float `ABCD` from `R0` == `DC` and `R1` == `BA`.
 
+  Custom functions for 64-bit numbers, which span four registers.
+  `ABCDEFGH` means a number composed of the byte array `[A, B, C, D, E, F, G, H]`,
+  where `A` is the most significant byte (MSB) and `H` is the least-significant byte (LSB).
+  * `int64(R0, R1, R2, R3)`: Cast to signed integer `ABCDEFGH` from `R0` == `AB`, `R1` == `CD`, `R2` == `EF` and `R3` == `GH`.
+  * `int64(R3, R2, R1, R0)`: Cast to signed integer `ABCDEFGH` from `R0` == `GH`, `R1` == `EF`, `R2` == `CD` and `R3` == `AB`.
+  * `int64bs(R0, R1, R2, R3)`: Cast to signed integer `ABCDEFGH` from `R0` == `BA`, `R1` == `DC`, `R2` == `FE` and `R3` == `HG`.
+  * `int64bs(R3, R2, R1, R0)`: Cast to signed integer `ABCDEFGH` from `R0` == `HG`, `R1` == `FE`, `R2` == `DC` and `R3` == `BA`.
+  * `uint64(R0, R1, R2, R3)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `AB`, `R1` == `CD`, `R2` == `EF` and `R3` == `GH`.
+  * `uint64(R3, R2, R1, R0)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `GH`, `R1` == `EF`, `R2` == `CD` and `R3` == `AB`.
+  * `uint64bs(R0, R1, R2, R3)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `BA`, `R1` == `DC`, `R2` == `FE` and `R3` == `HG`.
+  * `uint64bs(R3, R2, R1, R0)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `HG`, `R1` == `FE`, `R2` == `DC` and `R3` == `BA`.
+  * `flt64(R0, R1, R2, R3)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `AB`, `R1` == `CD`, `R2` == `EF` and `R3` == `GH`.
+  * `flt64(R3, R2, R1, R0)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `GH`, `R1` == `EF`, `R2` == `CD` and `R3` == `AB`.
+  * `flt64bs(R0, R1, R2, R3)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `BA`, `R1` == `DC`, `R2` == `FE` and `R3` == `HG`.
+  * `flt64bs(R3, R2, R1, R0)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `HG`, `R1` == `FE`, `R2` == `DC` and `R3` == `BA`.
+
+  The four integer helpers are not available on 32-bit ARM (armv6 and armv7), where a 64-bit integer
+  cannot be computed exactly. There modmqttd refuses to start instead of publishing a rounded value,
+  and the error names the helper. Use the `std.int64` or `std.uint64` converter on those platforms.
+  `flt64` and `flt64bs` work on all supported platforms.
+
   Custom functions for 16-bit numbers `[A,B]`:
   * `int16(R0)`: Cast uint16 value from `R0` == `AB` to int16
   * `int16bs(R0)`: Cast uint16 value from `R0` == `BA` to int16
@@ -1042,6 +1063,11 @@ Register values are defined as `R0..Rn` variables.
 
   All of the above functions can be used as `write_as` helper to store an expression value in modbus registers during writing. 
   Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`AB`.
+  A 64-bit helper writes four registers, and `low_first` reverses all four of them.
+
+  `precision` adds that many decimal places to any result, so an integer comes out as `42.00`. Leave
+  it unset for an integer helper. On a topic that publishes JSON there is a second reason to: a
+  precision of 1 or more rounds an `int64` or `uint64` value to about 15 digits and loses the rest.
 
 #### Examples
 
@@ -1110,7 +1136,7 @@ Writing multiple return values to separate registers R0, R1, R2:
           converter: expr.evaluate("return [M0+1,M0+2,M0+3]")
 ```
 
-In any case, the number of registers to be written must match the number of values returned by an expression. If 32bit helper is used, the number of registers must be multiplied by two.
+In any case, the number of registers to be written must match the number of values returned by an expression. If a 32bit helper is used, the number of registers must be multiplied by two, and by four for a 64bit helper.
 
 ### Adding custom converters
 
