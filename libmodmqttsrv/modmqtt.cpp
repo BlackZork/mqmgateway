@@ -27,6 +27,28 @@
 namespace
 {
   volatile std::sig_atomic_t gSignalStatus = -1;
+
+  /**
+   * A converter that names the register count it is designed for is not forced to
+   * reject a different one - std.int32 reads whatever it is given, std.float32
+   * throws. Report the mismatch while the config is read, so a wrong count is
+   * visible before the first poll rather than once per poll or not at all.
+   */
+  void
+  warnOnRegisterCountMismatch(const YAML::Node& pNode, const DataConverter& pConverter, const std::string& pConverterSpec, int pRegisterCount, const std::string& pWhat) {
+      const int expected = pConverter.getExpectedRegisterCount();
+      if (expected == 0 || expected == pRegisterCount) {
+          return;
+      }
+
+      std::string location("config warning");
+      if (!pNode.Mark().is_null()) {
+          location += "(line " + std::to_string(pNode.Mark().line + 1) + ")";
+      }
+
+      spdlog::warn("{}: converter {} is designed for {} register(s), but {} has {}",
+                   location, pConverterSpec, expected, pWhat, pRegisterCount);
+  }
 }
 
 void signal_handler(int signal)
@@ -628,9 +650,11 @@ ModMqtt::parseObjectDataNode(
             pEveryPollRefreshOut = pRefresh;
     }
 
-    const YAML::Node& converter = pNode["converter"];
-    if (converter.IsDefined()) {
-        node.setConverter(createConverter(converter));
+    std::string converterSpec;
+    const YAML::Node& converterNode = pNode["converter"];
+    if (converterNode.IsDefined()) {
+        node.setConverter(createConverter(converterNode));
+        converterSpec = ConfigTools::readRequiredValue<std::string>(converterNode);
     }
 
     const YAML::Node& yRegisters = pNode["registers"];
@@ -666,6 +690,10 @@ ModMqtt::parseObjectDataNode(
                 node.addChildDataNode(childNode);
             }
         }
+    }
+
+    if (node.hasConverter()) {
+        warnOnRegisterCountMismatch(pNode, node.getConverter(), converterSpec, node.getRegisterCount(), "this register");
     }
 
     return node;
@@ -704,9 +732,11 @@ ModMqtt::parseObjectCommand(
         writeMode
     );
 
-    const YAML::Node& converter = node["converter"];
-    if (converter.IsDefined()) {
-        cmd.setConverter(createConverter(converter));
+    const YAML::Node& converterNode = node["converter"];
+    if (converterNode.IsDefined()) {
+        const std::string converterSpec = ConfigTools::readRequiredValue<std::string>(converterNode);
+        cmd.setConverter(createConverter(converterNode));
+        warnOnRegisterCountMismatch(node, cmd.getConverter(), converterSpec, count, "command " + topic);
     }
 
     return cmd;

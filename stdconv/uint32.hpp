@@ -8,6 +8,8 @@
 
 class UInt32Converter : public DataConverter {
     public:
+        virtual int getExpectedRegisterCount() const { return 2; }
+
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             uint32_t val = ConverterTools::registersToNumber<uint32_t>(data.values(), mLowFirst, mSwapBytes);
             return MqttValue::fromInt64(val);

@@ -7,6 +7,8 @@
 
 class Int16Converter : public DataConverter {
     public:
+        virtual int getExpectedRegisterCount() const { return 1; }
+
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
             ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);
@@ -41,6 +43,8 @@ class Int16Converter : public DataConverter {
 
 class UInt16Converter : public DataConverter {
     public:
+        virtual int getExpectedRegisterCount() const { return 1; }
+
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
             ret.add(ConverterArg::sSwapBytesArgName, ConverterArgType::BOOL, false);

@@ -111,8 +111,17 @@ class MqttObjectDataNode {
 
         void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         bool hasConverter() const { return mConverter != nullptr; }
+        const DataConverter& getConverter() const { return *mConverter; }
 
         bool isScalar() const { return mNodes.size() == 0; }
+
+        /**
+         * How many registers reach the converter, matching what
+         * getConvertedValue() assembles: the single value of a scalar node, or
+         * one per child of a composite one.
+         */
+        int getRegisterCount() const { return isScalar() ? 1 : mNodes.size(); }
+
         void addChildDataNode(const MqttObjectDataNode& pNode, bool forceList = false);
         void setScalarNode(const MqttObjectRegisterIdent& ident);
         const MqttObjectDataNodeList& getChildNodes() const { return mNodes; }

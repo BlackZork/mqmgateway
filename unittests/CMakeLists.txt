@@ -56,6 +56,7 @@ add_executable(tests
     mqtt_once_tests.cpp
     mqtt_poll_groups_tests.cpp
     mqtt_publish_retain_tests.cpp
+    mqtt_register_count_warning_tests.cpp
     mqtt_publish_type_tests.cpp
     mqtt_refresh_config_tests.cpp
     mqtt_register_default_slave_tests.cpp
@@ -86,6 +87,7 @@ add_executable(tests
     stdconv_int32_tests.cpp
     stdconv_map_tests.cpp
     stdconv_multiply_tests.cpp
+    stdconv_register_count_tests.cpp
     stdconv_float_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp

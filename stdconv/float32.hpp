@@ -8,21 +8,23 @@
 
 class FloatConverter : public DataConverter {
     public:
-        virtual MqttValue toMqtt(const ModbusRegisters& data) const {
-            if (data.getCount() != REGISTER_COUNT) {
-                throw ConvException("32-bit float needs " + std::to_string(REGISTER_COUNT) + " registers, got " + std::to_string(data.getCount()));
+        virtual int getExpectedRegisterCount() const { return 2; }
+
+        virtual MqttValue toMqtt(const ModbusRegisters& pData) const {
+            if (pData.getCount() != getExpectedRegisterCount()) {
+                throw ConvException("32-bit float needs " + std::to_string(getExpectedRegisterCount()) + " registers, got " + std::to_string(pData.getCount()));
             }
 
-            float val = ConverterTools::registersToFloatingPoint<float>(data.values(), mLowFirst, mSwapBytes);
+            float val = ConverterTools::registersToFloatingPoint<float>(pData.values(), mLowFirst, mSwapBytes);
             return MqttValue::fromDouble(val, mPrecision);
         }
 
-        virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
-            if (registerCount != REGISTER_COUNT) {
-                throw ConvException("32-bit float needs " + std::to_string(REGISTER_COUNT) + " registers, got " + std::to_string(registerCount));
+        virtual ModbusRegisters toModbus(const MqttValue& pValue, int pRegisterCount) const {
+            if (pRegisterCount != getExpectedRegisterCount()) {
+                throw ConvException("32-bit float needs " + std::to_string(getExpectedRegisterCount()) + " registers, got " + std::to_string(pRegisterCount));
             }
 
-            return ConverterTools::floatingPointToRegisters<float>(static_cast<float>(value.getDouble()), mLowFirst, mSwapBytes, registerCount);
+            return ConverterTools::floatingPointToRegisters<float>(static_cast<float>(pValue.getDouble()), mLowFirst, mSwapBytes, pRegisterCount);
         };
 
         virtual ConverterArgs getArgs() const {
@@ -33,16 +35,14 @@ class FloatConverter : public DataConverter {
             return ret;
         };
 
-        virtual void setArgValues(const ConverterArgValues& args) {
-            mSwapBytes = RegisterOrderArgTools::getSwapBytes(args);
-            mLowFirst = RegisterOrderArgTools::getLowFirst(args);
-            mPrecision = args[ConverterArg::sPrecisionArgName].as_int();
+        virtual void setArgValues(const ConverterArgValues& pArgs) {
+            mSwapBytes = RegisterOrderArgTools::getSwapBytes(pArgs);
+            mLowFirst = RegisterOrderArgTools::getLowFirst(pArgs);
+            mPrecision = pArgs[ConverterArg::sPrecisionArgName].as_int();
         };
 
         virtual ~FloatConverter() {}
     private:
-        static constexpr int REGISTER_COUNT = 2;
-
         int mPrecision = ConverterArgValue::NO_PRECISION;
         bool mLowFirst = false;
         bool mSwapBytes = false;

@@ -26,6 +26,16 @@ class DataConverter {
         */
         virtual ConverterArgs getArgs() const { return ConverterArgs(); };
 
+        /**
+            How many modbus registers this converter is designed for, or 0 if it
+            works with any number of them.
+
+            modmqttd warns when a configured register count differs from this.
+            Whether a mismatch is fatal is up to the converter: std.int32 reads
+            whatever it is given, std.float32 refuses anything but two registers.
+        */
+        virtual int getExpectedRegisterCount() const { return 0; }
+
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             throw std::logic_error("Conversion to mqtt value is not implemented");
         };

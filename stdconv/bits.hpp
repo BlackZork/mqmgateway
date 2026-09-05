@@ -5,6 +5,8 @@
 
 class BitmaskConverter : public DataConverter {
     public:
+        virtual int getExpectedRegisterCount() const { return 1; }
+
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             int val = data.getValue(0) & mask;
             return MqttValue::fromInt(val);
@@ -28,6 +30,8 @@ class BitmaskConverter : public DataConverter {
 
 class BitConverter : public DataConverter {
     public:
+        virtual int getExpectedRegisterCount() const { return 1; }
+
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
             int val = data.getValue(0) >> (bitNumber-1) & 0x1;
             return MqttValue::fromInt(val);
