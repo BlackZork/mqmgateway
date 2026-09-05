@@ -61,4 +61,63 @@ class Float {
         static constexpr uint16_t NEG_INF_LOW  = 0x0000;
 };
 
+class Int64 {
+    public:
+        // the four register orders a converter can be asked for: as read, with the
+        // whole word order reversed, with the bytes of every register swapped, and
+        // with both.
+        static constexpr uint64_t ABCDEFGH = 0xA1B2C3D4E5F61728;
+        static constexpr uint64_t GHEFCDAB = 0x1728E5F6C3D4A1B2;
+        static constexpr uint64_t BADCFEHG = 0xB2A1D4C3F6E52817;
+        static constexpr uint64_t HGFEDCBA = 0x2817F6E5D4C3B2A1;
+
+        static constexpr uint16_t AB = 0xA1B2;
+        static constexpr uint16_t BA = 0xB2A1;
+        static constexpr uint16_t CD = 0xC3D4;
+        static constexpr uint16_t DC = 0xD4C3;
+        static constexpr uint16_t EF = 0xE5F6;
+        static constexpr uint16_t FE = 0xF6E5;
+        static constexpr uint16_t GH = 0x1728;
+        static constexpr uint16_t HG = 0x2817;
+
+        static constexpr int64_t ABCDEFGH_as_int64 = -6795153568590063832;
+        static constexpr int64_t GHEFCDAB_as_int64 = 1668836509950976434;
+        static constexpr int64_t BADCFEHG_as_int64 = -5574940925582039017;
+        static constexpr int64_t HGFEDCBA_as_int64 = 2889049152959001249;
+
+        // ABCDEFGH is above INT64_MAX, so it only survives an unsigned holder
+        static constexpr uint64_t ABCDEFGH_as_uint64 = 11651590505119487784u;
+        static constexpr uint64_t GHEFCDAB_as_uint64 = 1668836509950976434u;
+        static constexpr uint64_t BADCFEHG_as_uint64 = 12871803148127512599u;
+        static constexpr uint64_t HGFEDCBA_as_uint64 = 2889049152959001249u;
+};
+
+class Double {
+    public:
+        //-1.2345678901234567
+        static constexpr uint64_t ABCDEFGH = 0xBFF3C0CA428C59FB;
+        static constexpr uint64_t GHEFCDAB = 0x59FB428CC0CABFF3;
+        static constexpr uint64_t BADCFEHG = 0xF3BFCAC08C42FB59;
+        static constexpr uint64_t HGFEDCBA = 0xFB598C42CAC0F3BF;
+
+        static constexpr uint16_t AB = 0xBFF3;
+        static constexpr uint16_t BA = 0xF3BF;
+        static constexpr uint16_t CD = 0xC0CA;
+        static constexpr uint16_t DC = 0xCAC0;
+        static constexpr uint16_t EF = 0x428C;
+        static constexpr uint16_t FE = 0x8C42;
+        static constexpr uint16_t GH = 0x59FB;
+        static constexpr uint16_t HG = 0xFB59;
+
+        static const double ABCDEFGH_as_double;
+        static const double GHEFCDAB_as_double;
+        static const double BADCFEHG_as_double;
+        static const double HGFEDCBA_as_double;
+
+        // special values: four registers, most significant first
+        static constexpr uint16_t NAN_REGISTERS[] = {0x7FF8, 0x0000, 0x0000, 0x0000};
+        static constexpr uint16_t POS_INF_REGISTERS[] = {0x7FF0, 0x0000, 0x0000, 0x0000};
+        static constexpr uint16_t NEG_INF_REGISTERS[] = {0xFFF0, 0x0000, 0x0000, 0x0000};
+};
+
 } //namespace

@@ -24,6 +24,7 @@ add_executable(tests
     timing.hpp
     # tests
     converter_name_parser_tests.cpp
+    convtools_tests.cpp
     exprconv_float_tests.cpp
     exprconv_int16_tests.cpp
     exprconv_uint16_tests.cpp
