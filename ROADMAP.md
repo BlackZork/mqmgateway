@@ -67,3 +67,45 @@ using them there is rejected at startup rather than publishing a rounded value.
 
 The governing requirement is that `std.uint64` and `expr.evaluate('uint64(R0,R1,R2,R3)')` publish
 the same value, or the configuration fails.
+
+## Deferred defects
+
+Open defects observed while working on the milestones but outside their scope. Move each to the
+issue tracker when one is reachable — they are recorded here because it was not.
+
+### Re-entrant access to a per-network SPSC queue
+
+Observed 2026-09-05. Running the suite with `MQM_TEST_TIMING_FACTOR=3` aborted in
+`mqtt_command_only_tests.cpp`, on the assertion `ReentrantGuard` raises in
+`readerwriterqueue/readerwriterqueue.h`:
+
+    Concurrent (or re-entrant) enqueue or dequeue operation detected
+    (only one thread at a time may hold the producer or consumer role)
+
+Load dependent, not deterministic: the same test case passed six consecutive runs in isolation at the
+same timing factor. It is unrelated to the 64-bit converter work — that test configures no converter
+and loads no plugin.
+
+It is worth treating as more than a test artifact. `mToModbusQueue` and `mFromModbusQueue` are single
+producer, single consumer by contract, and the whole threading model rests on that; a re-entrancy
+report means two threads held one end of a queue, which would be a defect in the daemon or in the
+shutdown path rather than in the test. Not investigated further.
+
+### An availability value that does not fit int32 silences the object
+
+`MqttObjectAvailability::getAvailableFlag()` decides availability by comparing the converted value
+against `available_value` through `getInt()`. When the converted value does not fit an `int32`,
+`getInt()` throws a `ConvException`; `MqttClient` catches it, logs it, and moves on to the next
+object. The object publishes nothing — neither its state nor an availability of `0` — and because the
+condition comes from the value rather than from a transient fault, every later poll fails the same
+way.
+
+Already reachable with `std.uint64()` as an availability converter and a device value above
+`INT32_MAX`; the exprconv `long double` migration adds a second route to it, since an expression
+result is now range checked where it used to be an unchecked cast.
+
+Deciding what should happen instead is the work: reporting unavailable, comparing at 64-bit width,
+or rejecting the configuration at startup are all defensible, and the choice interacts with
+[#126](https://github.com/BlackZork/mqmgateway/issues/126), which is the same comparison truncating
+to int32. No test asserts the current behaviour, deliberately — pinning it down would cement a
+behaviour that has not been chosen.
