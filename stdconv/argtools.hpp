@@ -5,7 +5,7 @@
 #include "libmodmqttconv/convexception.hpp"
 #include "libmodmqttconv/convargs.hpp"
 
-class DoubleRegisterArgTools {
+class RegisterOrderArgTools {
     public:
         static bool getSwapBytes(const ConverterArgValues& values) {
             bool ret = false;

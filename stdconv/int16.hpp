@@ -14,7 +14,7 @@ class Int16Converter : public DataConverter {
         }
 
         virtual void setArgValues(const ConverterArgValues& args) {
-            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
+            mSwapBytes = RegisterOrderArgTools::getSwapBytes(args);
         };
 
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {
@@ -48,7 +48,7 @@ class UInt16Converter : public DataConverter {
         }
 
         virtual void setArgValues(const ConverterArgValues& args) {
-            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
+            mSwapBytes = RegisterOrderArgTools::getSwapBytes(args);
         };
 
         virtual MqttValue toMqtt(const ModbusRegisters& data) const {

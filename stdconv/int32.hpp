@@ -25,8 +25,8 @@ class Int32Converter : public DataConverter {
         }
 
         virtual void setArgValues(const ConverterArgValues& args) {
-            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
-            mLowFirst = DoubleRegisterArgTools::getLowFirst(args);
+            mSwapBytes = RegisterOrderArgTools::getSwapBytes(args);
+            mLowFirst = RegisterOrderArgTools::getLowFirst(args);
         };
 
         virtual ~Int32Converter() {}
