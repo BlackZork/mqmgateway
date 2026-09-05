@@ -3,8 +3,11 @@
 #include "libmodmqttsrv/config.hpp"
 #include "libmodmqttsrv/dll_import.hpp"
 
+#include "jsonutils.hpp"
+#include "mockedserver.hpp"
 #include "testnumbers.hpp"
 #include "plugin_utils.hpp"
+#include "yaml_utils.hpp"
 
 #ifdef HAVE_EXPRTK
 
@@ -89,5 +92,151 @@ TEST_CASE("std and expr should publish the same 64-bit value") {
         REQUIRE(stdValue(stdLoader, "float64", true, true, dblSwapped) == exprValue(exprLoader, "flt64bs(R3, R2, R1, R0)", dblSwapped));
     }
 }
+
+#if LDBL_MANT_DIG >= 64
+
+/**
+ * The same requirement again, but through the daemon rather than the plugins on
+ * their own, so the publish path is included: a std converter reaches
+ * createConvertedValue() as UINT64 and an expression as FLOAT64, and those are
+ * different arms that have to agree.
+ *
+ * This is the only config in the suite that loads both plugins at once.
+ */
+TEST_CASE("A polled 64-bit register should publish the same value through std and expr") {
+    TestConfig config(R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+    - build/exprconv
+  converter_plugins:
+    - stdconv.so
+    - exprconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  refresh: 1s
+  broker:
+    host: localhost
+  objects:
+    - topic: std_state
+      state:
+        register: tcptest.1.2
+        count: 4
+        converter: std.uint64()
+    - topic: expr_state
+      state:
+        register: tcptest.1.2
+        count: 4
+        converter: expr.evaluate('uint64(R0, R1, R2, R3)')
+    - topic: both_state
+      state:
+        - register: tcptest.1.2
+          count: 4
+          converter: std.uint64()
+        - register: tcptest.1.2
+          count: 4
+          converter: expr.evaluate('uint64(R0, R1, R2, R3)')
+)");
+
+    const std::string expected = std::to_string(TestNumbers::Int64::ABCDEFGH_as_uint64);
+
+    SECTION("on its own state topic") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::CD);
+        server.setModbusRegisterValue("tcptest", 1, 4, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::EF);
+        server.setModbusRegisterValue("tcptest", 1, 5, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::GH);
+        server.start();
+
+        server.waitForPublish("std_state/state");
+        server.waitForPublish("expr_state/state");
+
+        REQUIRE(server.mqttValue("std_state/state") == expected);
+        REQUIRE(server.mqttValue("expr_state/state") == server.mqttValue("std_state/state"));
+        server.stop();
+    }
+
+    // a list topic is what routes both values through createConvertedValue(),
+    // where the digits are lost if the FLOAT64 arm falls back to writer.Double()
+    SECTION("side by side in a JSON list") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::AB);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::CD);
+        server.setModbusRegisterValue("tcptest", 1, 4, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::EF);
+        server.setModbusRegisterValue("tcptest", 1, 5, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::GH);
+        server.start();
+
+        server.waitForPublish("both_state/state");
+
+        REQUIRE_JSON(server.mqttValue("both_state/state"), ("[" + expected + "," + expected + "]").c_str());
+        server.stop();
+    }
+}
+
+/**
+ * The write direction, where the payload arrives as text and the exactness is
+ * decided by which accessor parses it.
+ */
+TEST_CASE("A 64-bit command should write the same registers through std and expr") {
+    TestConfig config(R"(
+modmqttd:
+  converter_search_path:
+    - build/stdconv
+    - build/exprconv
+  converter_plugins:
+    - stdconv.so
+    - exprconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 501
+mqtt:
+  client_id: mqtt_test
+  refresh: 1s
+  broker:
+    host: localhost
+  objects:
+    - topic: std_cmd
+      commands:
+        - name: set
+          register: tcptest.1.10
+          register_type: holding
+          count: 4
+          converter: std.uint64()
+    - topic: expr_cmd
+      commands:
+        - name: set
+          register: tcptest.1.20
+          register_type: holding
+          count: 4
+          converter: expr.evaluate('M0', write_as='uint64')
+)");
+
+    MockedModMqttServerThread server(config.toString());
+    server.start();
+
+    server.waitForSubscription("std_cmd/set");
+    server.waitForSubscription("expr_cmd/set");
+
+    const std::string payload = std::to_string(TestNumbers::Int64::ABCDEFGH_as_uint64);
+    server.publish("std_cmd/set", payload);
+    server.publish("expr_cmd/set", payload);
+
+    const uint16_t words[] = {TestNumbers::Int64::AB, TestNumbers::Int64::CD, TestNumbers::Int64::EF, TestNumbers::Int64::GH};
+    for (int i = 0; i < 4; i++) {
+        server.waitForModbusValue("tcptest", 1, 10 + i, modmqttd::RegisterType::HOLDING, words[i]);
+        server.waitForModbusValue("tcptest", 1, 20 + i, modmqttd::RegisterType::HOLDING, words[i]);
+    }
+
+    server.stop();
+}
+
+#endif
 
 #endif
