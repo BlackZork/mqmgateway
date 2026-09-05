@@ -122,6 +122,31 @@ TEST_CASE ("Expr.evaluate should") {
         );
     }
 
+    // 5e9 is above UINT32_MAX. The value reaches the writer as a long double and
+    // is narrowed before the range check that exists to catch it, so today the
+    // out of range value is written rather than reported.
+    SECTION("throw if value is out of uint32 range") {
+        args.setArgValue("expression", "M0");
+        args.setArgValue("write_as", "uint32");
+
+        MqttValue input(static_cast<int64_t>(5000000000));
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(conv->toModbus(input, 2), ConvException);
+    }
+
+    SECTION("throw if value is out of int32 range") {
+        args.setArgValue("expression", "M0");
+        args.setArgValue("write_as", "int32");
+
+        MqttValue input(static_cast<int64_t>(5000000000));
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(conv->toModbus(input, 2), ConvException);
+    }
+
     SECTION("throw if write helper has bad name") {
         args.setArgValue("expression", "M0+1");
         args.setArgValue("write_as", "int15");

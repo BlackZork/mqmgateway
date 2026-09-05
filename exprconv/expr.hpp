@@ -149,27 +149,17 @@ class ExprtkConverter : public DataConverter {
 
             mPrecision = values[ConverterArg::sPrecisionArgName].as_int();
             // for write only
-            std::vector<std::string> writeHelpers {
-                "int16",
-                "int16bs",
-                "uint16",
-                "uint16bs",
-                "int32",
-                "int32bs",
-                "uint32",
-                "uint32bs",
-                "flt32",
-                "flt32bs"
-            };
-
             mWriteAs = values["write_as"].as_str();
+            mWriteHelper = findWriteHelper(mWriteAs.empty() ? sDefaultWriteHelper : mWriteAs);
 
-            if (!mWriteAs.empty()) {
-                auto it = std::find(writeHelpers.begin(), writeHelpers.end(), mWriteAs);
-                if (it == writeHelpers.end()) {
-                    std::string helpersStr = strvecToString(writeHelpers, ",");
-                    throw ConvException("Unknown write helper "s + mWriteAs + ", valid helpers:" + helpersStr);
+            if (mWriteHelper == writeHelpers().end()) {
+                // a gated helper is a real name that this platform cannot offer,
+                // which is a different thing to say than "unknown"
+                const std::optional<std::string> hint = exprconv::narrowLongDoubleHint(mWriteAs);
+                if (hint.has_value()) {
+                    throw ConvException("Cannot write as "s + mWriteAs + ": " + *hint);
                 }
+                throw ConvException("Unknown write helper "s + mWriteAs + ", valid helpers:" + availableWriteHelpers());
             }
 
             mWriteLowFirst = values[ConverterArg::sLowFirstArgName].as_bool();
@@ -179,12 +169,32 @@ class ExprtkConverter : public DataConverter {
             mExpression.release();
         }
     private:
+        /**
+         * How a write_as name turns into registers. One table so that the set of
+         * valid names, the register count each needs and the writer each uses
+         * cannot drift apart, which is what let a duplicated uint16bs branch sit
+         * here wired to the wrong writer.
+         */
+        struct WriteHelper {
+                const char* mName;
+                int mRegisterCount;
+                bool mSwapBytes;
+                bool mNeedsExactInt64;
+                void (ExprtkConverter::*mWriter)(ModbusRegisters&, long double, bool) const;
+        };
+
+        typedef std::vector<WriteHelper>::const_iterator WriteHelperIterator;
+
+        /** What an unset write_as means, so that it needs no case of its own. */
+        static constexpr const char* sDefaultWriteHelper = "uint16";
+
         exprtk::symbol_table<long double> mSymbolTable;
         exprtk::parser<long double> mParser;
         exprtk::expression<long double> mExpression;
         mutable std::vector<long double> mValues;
         int mPrecision = ConverterArgValue::NO_PRECISION;
         std::string mWriteAs;
+        WriteHelperIterator mWriteHelper = findWriteHelper(sDefaultWriteHelper);
         bool mWriteLowFirst = false;
 
         static long double int32(const long double pHighRegister, const long double pLowRegister) {
@@ -264,36 +274,62 @@ class ExprtkConverter : public DataConverter {
         }
 
 
-        //write helpers
+        static const std::vector<WriteHelper>& writeHelpers() {
+            static const std::vector<WriteHelper> helpers{
+                {"uint16", 1, false, false, &ExprtkConverter::writeUInt16},
+                {"uint16bs", 1, true, false, &ExprtkConverter::writeUInt16},
+                {"int16", 1, false, false, &ExprtkConverter::writeInt16},
+                {"int16bs", 1, true, false, &ExprtkConverter::writeInt16},
+                {"uint32", 2, false, false, &ExprtkConverter::writeUInt32},
+                {"uint32bs", 2, true, false, &ExprtkConverter::writeUInt32},
+                {"int32", 2, false, false, &ExprtkConverter::writeInt32},
+                {"int32bs", 2, true, false, &ExprtkConverter::writeInt32},
+                {"flt32", 2, false, false, &ExprtkConverter::writeFloat32},
+                {"flt32bs", 2, true, false, &ExprtkConverter::writeFloat32},
+                {"uint64", 4, false, true, &ExprtkConverter::writeUInt64},
+                {"uint64bs", 4, true, true, &ExprtkConverter::writeUInt64},
+                {"int64", 4, false, true, &ExprtkConverter::writeInt64},
+                {"int64bs", 4, true, true, &ExprtkConverter::writeInt64},
+                {"flt64", 4, false, false, &ExprtkConverter::writeFloat64},
+                {"flt64bs", 4, true, false, &ExprtkConverter::writeFloat64},
+            };
+            return helpers;
+        }
+
+        /** Whether this platform can carry what the helper writes. */
+        static bool isWriteHelperAvailable(const WriteHelper& pHelper) {
+            return !pHelper.mNeedsExactInt64 || exprconv::sExactInt64;
+        }
+
+        /** The named helper, or writeHelpers().end() when this platform has no such name. */
+        static WriteHelperIterator findWriteHelper(const std::string& pName) {
+            const std::vector<WriteHelper>& helpers = writeHelpers();
+            for (WriteHelperIterator it = helpers.begin(); it != helpers.end(); it++) {
+                if (pName == it->mName && isWriteHelperAvailable(*it)) {
+                    return it;
+                }
+            }
+            return helpers.end();
+        }
+
+        /** The names worth suggesting here, so a gated one is never offered. */
+        static std::string availableWriteHelpers() {
+            std::vector<std::string> names;
+            for (const WriteHelper& helper: writeHelpers()) {
+                if (isWriteHelperAvailable(helper)) {
+                    names.push_back(helper.mName);
+                }
+            }
+            return strvecToString(names, ",");
+        }
+
         int getWriteRegistersCount(int resultsCount) const {
-            if (mWriteAs.empty() || mWriteAs == "int16" || mWriteAs == "int16bs" || mWriteAs == "uint16bs" || mWriteAs == "uint16")
-                return resultsCount;
-            return 2*resultsCount;
+            return mWriteHelper->mRegisterCount * resultsCount;
         }
 
         void writeRegisterValues(ModbusRegisters& pRegisters, long double pExprValue) const {
             try {
-                if (mWriteAs.empty() || mWriteAs == "uint16") {
-                    writeUInt16(pRegisters, pExprValue, false);
-                } else if (mWriteAs == "uint16bs") {
-                    writeUInt16(pRegisters, pExprValue, true);
-                } else if (mWriteAs == "int16") {
-                    writeInt16(pRegisters, pExprValue, false);
-                } else if (mWriteAs == "int16bs") {
-                    writeInt16(pRegisters, pExprValue, true);
-                } else if (mWriteAs == "flt32") {
-                    writeFloat32(pRegisters, pExprValue, false);
-                } else if (mWriteAs == "flt32bs") {
-                    writeFloat32(pRegisters, pExprValue, true);
-                } else if (mWriteAs == "int32") {
-                    writeInt32(pRegisters, pExprValue, false);
-                } else if (mWriteAs == "int32bs") {
-                    writeInt32(pRegisters, pExprValue, true);
-                } else if (mWriteAs == "uint32") {
-                    writeUInt32(pRegisters, pExprValue, false);
-                } else if (mWriteAs == "uint32bs") {
-                    writeUInt32(pRegisters, pExprValue, true);
-                }
+                (this->*mWriteHelper->mWriter)(pRegisters, pExprValue, mWriteHelper->mSwapBytes);
             } catch (const std::exception& ex) {
                 throw ConvException(mWriteAs + " conversion failed: " + ex.what());
             } catch (...) {
@@ -301,49 +337,68 @@ class ExprtkConverter : public DataConverter {
             }
         }
 
+        static void appendRegisters(ModbusRegisters& pRegisters, const std::vector<uint16_t>& pData) {
+            for (size_t i = 0; i < pData.size(); i++) {
+                pRegisters.appendValue(pData[i]);
+            }
+        }
+
+        /**
+         * Every writer narrows through MqttValue rather than casting. A floating
+         * point to integer conversion that does not fit is undefined, so a cast
+         * would corrupt the value before the range check meant to catch it ever
+         * ran; MqttValue checks first and throws ConvException, which the caller
+         * above already wraps.
+         */
         void writeInt16(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
-            int32_t tmp = pExprValue;
-            if (tmp < INT16_MIN || tmp > INT16_MAX)
+            const int32_t tmp = MqttValue::fromLongDouble(pExprValue).getInt();
+            if (tmp < INT16_MIN || tmp > INT16_MAX) {
                 throw ConvException(std::string("Conversion failed, value " + std::to_string(tmp) + " out of range"));
+            }
             int16_t toWrite = tmp;
             toWrite = ConverterTools::setByteOrder(toWrite, pSwapBytes);
             pRegisters.appendValue(toWrite);
         }
 
         void writeUInt16(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
-            int32_t tmp = pExprValue;
-            if (tmp < 0 || tmp > UINT16_MAX)
+            const int32_t tmp = MqttValue::fromLongDouble(pExprValue).getInt();
+            if (tmp < 0 || tmp > UINT16_MAX) {
                 throw ConvException(std::string("Conversion failed, value " + std::to_string(tmp) + " out of range"));
+            }
             uint16_t toWrite = tmp;
             toWrite = ConverterTools::setByteOrder(toWrite, pSwapBytes);
             pRegisters.appendValue(toWrite);
         }
 
-        void writeFloat32(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
-            std::vector<uint16_t> regdata(
-                ConverterTools::floatingPointToRegisters<float>(static_cast<float>(pExprValue), mWriteLowFirst, pSwapBytes, 2));
-
-            pRegisters.appendValue(regdata[0]);
-            pRegisters.appendValue(regdata[1]);
-        }
-
         void writeInt32(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
-            int32_t val = pExprValue;
-
-            std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(val, mWriteLowFirst, pSwapBytes, 2));
-
-            pRegisters.appendValue(regdata[0]);
-            pRegisters.appendValue(regdata[1]);
+            const int32_t value = MqttValue::fromLongDouble(pExprValue).getInt();
+            appendRegisters(pRegisters, ConverterTools::numberToRegisters<int32_t>(value, mWriteLowFirst, pSwapBytes, 2));
         }
 
         void writeUInt32(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
-            int64_t val = pExprValue;
+            const int64_t value = MqttValue::fromLongDouble(pExprValue).getInt64();
+            if (value < 0 || value > UINT32_MAX) {
+                throw ConvException(std::string("Conversion failed, value " + std::to_string(value) + " out of range"));
+            }
+            appendRegisters(pRegisters, ConverterTools::numberToRegisters<uint32_t>(static_cast<uint32_t>(value), mWriteLowFirst, pSwapBytes, 2));
+        }
 
-            std::vector<uint16_t> regdata(
-                ConverterTools::int32ToRegisters(val, mWriteLowFirst, pSwapBytes, 2));
+        void writeFloat32(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            appendRegisters(pRegisters, ConverterTools::floatingPointToRegisters<float>(static_cast<float>(pExprValue), mWriteLowFirst, pSwapBytes, 2));
+        }
 
-            pRegisters.appendValue(regdata[0]);
-            pRegisters.appendValue(regdata[1]);
+        void writeInt64(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            const int64_t value = MqttValue::fromLongDouble(pExprValue).getInt64();
+            appendRegisters(pRegisters, ConverterTools::numberToRegisters<int64_t>(value, mWriteLowFirst, pSwapBytes, 4));
+        }
+
+        void writeUInt64(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            const uint64_t value = MqttValue::fromLongDouble(pExprValue).getUInt64();
+            appendRegisters(pRegisters, ConverterTools::numberToRegisters<uint64_t>(value, mWriteLowFirst, pSwapBytes, 4));
+        }
+
+        void writeFloat64(ModbusRegisters& pRegisters, long double pExprValue, bool pSwapBytes) const {
+            const double value = MqttValue::fromLongDouble(pExprValue).getDouble();
+            appendRegisters(pRegisters, ConverterTools::floatingPointToRegisters<double>(value, mWriteLowFirst, pSwapBytes, 4));
         }
     };

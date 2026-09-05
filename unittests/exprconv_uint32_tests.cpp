@@ -40,7 +40,9 @@ TEST_CASE("exprtk should write uint32") {
 
     std::shared_ptr<DataConverter> conv(loader.getConverter("evaluate"));
 
-    MqttValue input = MqttValue::fromInt(TestNumbers::Int::ABCD_as_uint32);
+    // fromInt takes an int32_t, so it would narrow this to a negative value
+    // before the converter sees it and never test a uint32 write at all
+    MqttValue input = MqttValue::fromInt64(TestNumbers::Int::ABCD_as_uint32);
 
     ConverterArgValues args(conv->getArgs());
 
