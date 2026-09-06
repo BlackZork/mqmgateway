@@ -63,7 +63,7 @@ class MqttObjectRegisterIdent {
 
 class MqttObjectRegisterValue {
     public:
-        MqttObjectRegisterValue() : mHasValue(false), mReadOk(true) {}
+        MqttObjectRegisterValue() : mReadOk(true), mHasValue(false) {}
         bool setValue(uint16_t val);
         void clearValue() { mHasValue = false; }
         void setReadError(bool pFlag) { mReadOk = !pFlag; }

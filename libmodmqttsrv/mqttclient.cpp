@@ -39,8 +39,7 @@ MqttClient::setClientId(const std::string& clientId) {
 void
 MqttClient::start() /*throw(MosquittoException)*/ {
     // protect from re-entry in ModMqtt main loop
-    switch (mConnectionState) {
-    case State::CONNECTED:
+    if (mConnectionState == State::CONNECTED) {
         return;
     }
     mIsStarted = true;
@@ -97,7 +96,11 @@ MqttClient::onDisconnect() {
         // signal modmqttd that is waiting on queues mutex
         // for us to disconnect
         modmqttd::notifyQueues();
-    };
+        break;
+    case State::DISCONNECTED:
+        // already disconnected, nothing left to do
+        break;
+    }
 }
 
 void

@@ -190,13 +190,13 @@ MockedModbusContext::Slave::hasError(const std::map<int, MockedModbusContext::Re
 
 const modmqttd::RegisterPoll&
 MockedModbusContext::Slave::getIssuedReadCall(int number) const {
-    REQUIRE(mIssuedReadCalls.size() > number);
+    REQUIRE(static_cast<int>(mIssuedReadCalls.size()) > number);
     return mIssuedReadCalls[number];
 }
 
 const modmqttd::RegisterWrite&
 MockedModbusContext::Slave::getIssuedWriteCall(int number) const {
-    REQUIRE(mIssuedWriteCalls.size() > number);
+    REQUIRE(static_cast<int>(mIssuedWriteCalls.size()) > number);
     return mIssuedWriteCalls[number];
 }
 

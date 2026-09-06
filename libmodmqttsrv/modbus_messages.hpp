@@ -18,8 +18,8 @@ class MsgRegisterValues : public ModbusMessageBase {
         MsgRegisterValues(int slaveId, RegisterType regType, int registerNumber, const ModbusRegisters& registers, int pCommandId, ModbusWriteMode pWriteMode)
             : ModbusMessageBase(slaveId, registerNumber, regType, registers.getCount(), pCommandId),
               mRegisters(registers),
-              mCreationTime(std::chrono::steady_clock::now()),
-              mWriteMode(pWriteMode) {}
+              mWriteMode(pWriteMode),
+              mCreationTime(std::chrono::steady_clock::now()) {}
         MsgRegisterValues(int pSlaveId, RegisterType pRegType, int pRegisterNumber, const std::vector<uint16_t>& pRegisters, int pCommandId = 0)
             : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegType, pRegisters.size(), pCommandId),
               mRegisters(pRegisters),
@@ -109,7 +109,7 @@ class MsgRegisterPollSpecification {
 class MsgModbusNetworkState {
     public:
         MsgModbusNetworkState(const std::string& networkName, bool isUp)
-            : mNetworkName(networkName), mIsUp(isUp) {}
+            : mIsUp(isUp), mNetworkName(networkName) {}
         bool mIsUp;
         std::string mNetworkName;
 };

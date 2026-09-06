@@ -28,8 +28,7 @@ static void on_connect_wrapper(struct mosquitto *mosq, void *userdata, int rc)
 
 static void on_connect_with_flags_wrapper(struct mosquitto *mosq, void *userdata, int rc, int flags)
 {
-	class Mosquitto *m = (class Mosquitto *)userdata;
-//	m->on_connect_with_flags(rc, flags);
+    // Deliberately empty: the connection is handled by on_connect_wrapper.
 }
 
 

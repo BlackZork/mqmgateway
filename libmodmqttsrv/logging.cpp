@@ -171,12 +171,12 @@ void Log::init_spdlog_logging(severity level) {
         formatter->add_flag<uppercase_level_flag>('l');
 
         std::string pattern("[%l] %t: %v");
-        #ifdef HAVE_PTHREAD_SETNAME_NP
-            int pos = pattern.find("%t");
-            if (pos != std::string::npos) {
-                pattern.replace(pos, 2, "%T");
-            }
-        #endif
+#ifdef HAVE_PTHREAD_SETNAME_NP
+        std::string::size_type pos = pattern.find("%t");
+        if (pos != std::string::npos) {
+            pattern.replace(pos, 2, "%T");
+        }
+#endif
 
         if (log_timestamp()) {
             // include milliseconds and colored level tag

@@ -27,11 +27,10 @@ ModbusThread::ModbusThread(
     const std::string pNetworkName,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& toModbusQueue,
     moodycamel::BlockingReaderWriterQueue<QueueItem>& fromModbusQueue)
-    : mNetworkName(pNetworkName),
-      mToModbusQueue(toModbusQueue),
+    : mToModbusQueue(toModbusQueue),
       mFromModbusQueue(fromModbusQueue),
-      mExecutor(fromModbusQueue, toModbusQueue)
-{
+      mNetworkName(pNetworkName),
+      mExecutor(fromModbusQueue, toModbusQueue) {
 }
 
 void
