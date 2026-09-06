@@ -329,7 +329,7 @@ MqttObject::updateAvailablityFlag() {
 }
 
 bool
-MqttObject::needStateRepublish() const {
+MqttObject::needStateRepublish(const std::chrono::steady_clock::time_point& pReadStartTime) const {
     if (getPublishMode() == PublishMode::ON_CHANGE)
         return false;
     else if (getPublishMode() == PublishMode::ONCE)
@@ -340,12 +340,21 @@ MqttObject::needStateRepublish() const {
     // every time register data is received.
     // for composite topics register data
     // can come in many parts so wait for mEveryPollPeriod to
-    // pass first
-    if (mLastPublishTime == std::chrono::steady_clock::time_point::min())
+    // pass first.
+    //
+    // Both sides of the comparison are modbus read start times, which is what
+    // ModbusScheduler times the next poll from, so consecutive reads are at
+    // least mEveryPollPeriod apart by construction. Comparing publish wall
+    // clock against the poll cadence instead would leave the two a fraction of
+    // a millisecond apart and drop a republish whenever it fell short.
+    //
+    // Values that did not come from a read carry time_point::min(), so a write
+    // confirmation never forces a republish on its own.
+    if (mLastPublishedReadTime == NoReadTime) {
         return true;
+    }
 
-    std::chrono::steady_clock::time_point nextPublish = mLastPublishTime + mEveryPollPeriod;
-    return nextPublish <= std::chrono::steady_clock::now();
+    return pReadStartTime >= mLastPublishedReadTime + mEveryPollPeriod;
 }
 
 void

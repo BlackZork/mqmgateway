@@ -189,6 +189,13 @@ class MqttObjectAvailability : public MqttObjectState {
 
 class MqttObject {
     public:
+        /**
+         * Read start time for values that did not come from a modbus read - a
+         * write confirmation carries values back without reading them. Such
+         * values never pace every_poll republishing.
+         */
+        static constexpr std::chrono::steady_clock::time_point NoReadTime = std::chrono::steady_clock::time_point::min();
+
         MqttObject(const std::string& pTopic);
         const std::string& getTopic() const { return mTopic; };
         const std::string& getStateTopic() const { return mStateTopic; };
@@ -210,6 +217,10 @@ class MqttObject {
             mLastPublishTime = ts;
         }
 
+        void setLastPublishedReadTime(const std::chrono::steady_clock::time_point& pReadStartTime) {
+            mLastPublishedReadTime = pReadStartTime;
+        }
+
         const std::string& getLastPublishedPayload() const { return mLastPublishedPayload; }
         const std::chrono::steady_clock::time_point& getLastPublishTime() const { return mLastPublishTime; }
 
@@ -220,7 +231,7 @@ class MqttObject {
         void setRetain(bool pFlag) { mRetain = pFlag; }
         bool getRetain() const { return mRetain; }
 
-        bool needStateRepublish() const;
+        bool needStateRepublish(const std::chrono::steady_clock::time_point& pReadStartTime) const;
 
         MqttObjectState mState;
 
@@ -239,6 +250,9 @@ class MqttObject {
         PublishMode mPublishMode;
         std::string mLastPublishedPayload;
         std::chrono::steady_clock::time_point mLastPublishTime = std::chrono::steady_clock::time_point::min();
+        // start of the modbus read behind the last published value, used to
+        // pace every_poll republishing against the poll cadence
+        std::chrono::steady_clock::time_point mLastPublishedReadTime = NoReadTime;
         std::chrono::milliseconds mEveryPollPeriod;
 
         void updateAvailablityFlag();

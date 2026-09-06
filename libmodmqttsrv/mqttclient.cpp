@@ -188,7 +188,7 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
                         // then publish state changes only
                         // if availability is already set to true
                         if (obj->getRetain()) {
-                            publishState(obj, true);
+                            publishState(obj, true, pSlaveData.getReadStartTime());
                         } else {
                             // delete retained message
                             if (oldAvail == AvailableFlag::NotSet) {
@@ -199,13 +199,13 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
                                 }
                             }
                             if (obj->getPublishMode() == PublishMode::EVERY_POLL) {
-                                publishState(obj, true);
+                                publishState(obj, true, pSlaveData.getReadStartTime());
                             }
                         }
                     }
                     publishAvailabilityChange(*obj);
                 } else {
-                    publishState(obj, obj->needStateRepublish());
+                    publishState(obj, obj->needStateRepublish(pSlaveData.getReadStartTime()), pSlaveData.getReadStartTime());
                 }
             } catch (const ConvException& ex) {
                 spdlog::error("Failed to convert polled register values for topic {}: {}", obj->getStateTopic(), ex.what());
@@ -217,20 +217,27 @@ MqttClient::processRegisterValues(const std::string& pModbusNetworkName, const M
 }
 
 void
-MqttClient::publishState(const std::shared_ptr<MqttObject>& obj, bool force) {
-    if (obj->getAvailableFlag() != AvailableFlag::True)
+MqttClient::publishState(const std::shared_ptr<MqttObject>& pObj, bool pForce, const std::chrono::steady_clock::time_point& pReadStartTime) {
+    if (pObj->getAvailableFlag() != AvailableFlag::True) {
         return;
-    if (obj->getPublishMode() == PublishMode::ONCE) {
-        if (obj->getLastPublishTime() != std::chrono::steady_clock::time_point::min())
+    }
+    if (pObj->getPublishMode() == PublishMode::ONCE) {
+        if (pObj->getLastPublishTime() != std::chrono::steady_clock::time_point::min()) {
             return;
+        }
     }
 
-    std::string messageData(MqttPayload::generate(*obj));
-    if (messageData != obj->getLastPublishedPayload() || force) {
-        int msgId = mMqttImpl->publish(obj->getStateTopic().c_str(), messageData.length(), messageData.c_str(), obj->getRetain());
-        spdlog::debug("Publish {} on topic {}: {}", msgId, obj->getStateTopic(), messageData);
-        obj->setLastPublishedPayload(messageData);
-        obj->setLastPublishTime(std::chrono::steady_clock::now());
+    std::string messageData(MqttPayload::generate(*pObj));
+    if (messageData != pObj->getLastPublishedPayload() || pForce) {
+        int msgId = mMqttImpl->publish(pObj->getStateTopic().c_str(), messageData.length(), messageData.c_str(), pObj->getRetain());
+        spdlog::debug("Publish {} on topic {}: {}", msgId, pObj->getStateTopic(), messageData);
+        pObj->setLastPublishedPayload(messageData);
+        pObj->setLastPublishTime(std::chrono::steady_clock::now());
+        // only a value that came from a modbus read paces every_poll
+        // republishing; a write confirmation leaves the poll cadence alone
+        if (pReadStartTime != MqttObject::NoReadTime) {
+            pObj->setLastPublishedReadTime(pReadStartTime);
+        }
     }
 }
 
@@ -250,7 +257,7 @@ MqttClient::processRegistersOperationFailed(const std::string& pModbusNetworkNam
             obj->updateRegistersReadFailed(pModbusNetworkName, pSlaveData);
             AvailableFlag newAvail = obj->getAvailableFlag();
 
-            publishState(obj);
+            publishState(obj, false, MqttObject::NoReadTime);
 
             if (oldAvail != newAvail) {
                 publishAvailabilityChange(*obj);
@@ -311,7 +318,7 @@ MqttClient::publishAll() {
             if (published.find(optr) == published.end()) {
                 try {
                     if ((*oit)->getAvailableFlag() == AvailableFlag::True) {
-                        publishState(*oit, true);
+                        publishState(*oit, true, MqttObject::NoReadTime);
                     }
                     publishAvailabilityChange(**oit);
                 } catch (const ConvException& ex) {

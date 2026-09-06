@@ -63,7 +63,7 @@ class MqttClient {
     private:
         // publish all data after broker is reconnected
         void publishAll();
-        void publishState(const std::shared_ptr<MqttObject>&, bool pForce = false);
+        void publishState(const std::shared_ptr<MqttObject>&, bool pForce, const std::chrono::steady_clock::time_point& pReadStartTime);
         void publishAvailabilityChange(const MqttObject& obj);
 
         void handleRpcRequest(const void* pPayload, int pPayloadlen,
