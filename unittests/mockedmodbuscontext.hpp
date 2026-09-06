@@ -31,7 +31,7 @@ class MockedModbusContext : public modmqttd::IModbusContext {
 
         class Slave {
             public:
-                Slave(const std::shared_ptr<std::condition_variable>& ioCondition, int id = 0) : mIOCondition(ioCondition), mId(id) {}
+                Slave(const std::shared_ptr<std::condition_variable>& pIOCondition, int pId = 0) : mId(pId), mIOCondition(pIOCondition) {}
                 void write(const modmqttd::RegisterWrite& msg, bool internalOperation = false);
                 std::vector<uint16_t> read(const modmqttd::RegisterPoll& regData, bool internalOperation = false);
 

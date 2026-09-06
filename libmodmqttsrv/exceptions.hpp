@@ -40,5 +40,8 @@ class ConvPluginNotFoundException : public ModMqttException {
         ConvPluginNotFoundException(const std::string& what) : ModMqttException(what) {}
 };
 
-
+class ConvPluginAbiException : public ModMqttException {
+    public:
+        ConvPluginAbiException(const std::string& pWhat) : ModMqttException(pWhat) {}
+};
 }

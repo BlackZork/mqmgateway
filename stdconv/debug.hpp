@@ -2,6 +2,8 @@
 
 #include <cmath>
 #include <cstdio>
+#include <string>
+#include <type_traits>
 
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
@@ -22,11 +24,16 @@ class DebugConverter : public DataConverter {
             addRawArrays(doc, alloc, pData);
 
             if (pData.getCount() == 1) {
-                addInt16Section(doc, alloc, pData.getValue(0));
+                addIntegerSection<int16_t>(doc, alloc, pData, "int16", sByteOrders);
+                addIntegerSection<uint16_t>(doc, alloc, pData, "uint16", sByteOrders);
             } else if (pData.getCount() == 2) {
-                addInt32Section(doc, alloc, pData);
-                addUInt32Section(doc, alloc, pData);
-                addFloat32Section(doc, alloc, pData);
+                addIntegerSection<int32_t>(doc, alloc, pData, "int32", sRegisterOrders);
+                addIntegerSection<uint32_t>(doc, alloc, pData, "uint32", sRegisterOrders);
+                addFloatingPointSection<float>(doc, alloc, pData, "float32", sRegisterOrders);
+            } else if (pData.getCount() == 4) {
+                addIntegerSection<int64_t>(doc, alloc, pData, "int64", sRegisterOrders);
+                addIntegerSection<uint64_t>(doc, alloc, pData, "uint64", sRegisterOrders);
+                addFloatingPointSection<double>(doc, alloc, pData, "float64", sRegisterOrders);
             }
 
             addStringSection(doc, alloc, pData);
@@ -74,73 +81,71 @@ class DebugConverter : public DataConverter {
             pDoc.AddMember("hex", hexArr, pAlloc);
         }
 
-        // Keys are the converter call strings — copy-paste into config.yaml
-        static void addInt16Section(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,
-                                    uint16_t pVal) {
-            uint16_t swapped = ConverterTools::setByteOrder(pVal, true);
-            rapidjson::Value intVals(rapidjson::kObjectType);
-            intVals.AddMember("std.int16", (int16_t)pVal, pAlloc);
-            intVals.AddMember("std.int16(swap_bytes=true)", (int16_t)swapped, pAlloc);
-            pDoc.AddMember("int16", intVals, pAlloc);
+        /**
+         * The word and byte orders a converter can be asked for, in the order
+         * they are reported. A single register has no word order to vary.
+         */
+        struct RegisterOrder {
+                bool mLowFirst;
+                bool mSwapBytes;
+        };
+        static constexpr RegisterOrder sRegisterOrders[] = {{false, false}, {true, false}, {false, true}, {true, true}};
+        static constexpr RegisterOrder sByteOrders[] = {{false, false}, {false, true}};
 
-            rapidjson::Value uintVals(rapidjson::kObjectType);
-            uintVals.AddMember("std.uint16", pVal, pAlloc);
-            uintVals.AddMember("std.uint16(swap_bytes=true)", swapped, pAlloc);
-            pDoc.AddMember("uint16", uintVals, pAlloc);
+        /** The converter call string that produces this reading, to paste into config.yaml. */
+        static std::string converterKey(const char* pName, const RegisterOrder& pOrder) {
+            std::string ret("std.");
+            ret += pName;
+            if (pOrder.mLowFirst && pOrder.mSwapBytes) {
+                ret += "(low_first=true,swap_bytes=true)";
+            } else if (pOrder.mLowFirst) {
+                ret += "(low_first=true)";
+            } else if (pOrder.mSwapBytes) {
+                ret += "(swap_bytes=true)";
+            }
+            return ret;
         }
 
-        static void addInt32Section(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,
-                                    const ModbusRegisters& pData) {
-            rapidjson::Value intVals(rapidjson::kObjectType);
-            intVals.AddMember("std.int32",
-                              ConverterTools::registersToInt32(pData.values(), false, false), pAlloc);
-            intVals.AddMember("std.int32(low_first=true)",
-                              ConverterTools::registersToInt32(pData.values(), true, false), pAlloc);
-            intVals.AddMember("std.int32(swap_bytes=true)",
-                              ConverterTools::registersToInt32(pData.values(), false, true), pAlloc);
-            intVals.AddMember("std.int32(low_first=true,swap_bytes=true)",
-                              ConverterTools::registersToInt32(pData.values(), true, true), pAlloc);
-            pDoc.AddMember("int32", intVals, pAlloc);
+        static rapidjson::Value jsonKey(const std::string& pKey, rapidjson::Document::AllocatorType& pAlloc) {
+            return rapidjson::Value(pKey.c_str(), static_cast<rapidjson::SizeType>(pKey.size()), pAlloc);
         }
 
-        static void addUInt32Section(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,
-                                     const ModbusRegisters& pData) {
-            rapidjson::Value uintVals(rapidjson::kObjectType);
-            uintVals.AddMember("std.uint32",
-                               (uint32_t)ConverterTools::registersToInt32(pData.values(), false, false), pAlloc);
-            uintVals.AddMember("std.uint32(low_first=true)",
-                               (uint32_t)ConverterTools::registersToInt32(pData.values(), true, false), pAlloc);
-            uintVals.AddMember("std.uint32(swap_bytes=true)",
-                               (uint32_t)ConverterTools::registersToInt32(pData.values(), false, true), pAlloc);
-            uintVals.AddMember("std.uint32(low_first=true,swap_bytes=true)",
-                               (uint32_t)ConverterTools::registersToInt32(pData.values(), true, true), pAlloc);
-            pDoc.AddMember("uint32", uintVals, pAlloc);
+        template <typename T, size_t N>
+        static void addIntegerSection(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,
+                                      const ModbusRegisters& pData, const char* pName, const RegisterOrder (&pOrders)[N]) {
+            rapidjson::Value vals(rapidjson::kObjectType);
+            for (size_t i = 0; i < N; i++) {
+                const T val = ConverterTools::registersToNumber<T>(pData.values(), pOrders[i].mLowFirst, pOrders[i].mSwapBytes);
+                if constexpr (std::is_signed<T>::value) {
+                    vals.AddMember(jsonKey(converterKey(pName, pOrders[i]), pAlloc), rapidjson::Value(static_cast<int64_t>(val)), pAlloc);
+                } else {
+                    vals.AddMember(jsonKey(converterKey(pName, pOrders[i]), pAlloc), rapidjson::Value(static_cast<uint64_t>(val)), pAlloc);
+                }
+            }
+            pDoc.AddMember(jsonKey(pName, pAlloc), vals, pAlloc);
         }
 
-        static void addFloat32Section(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,
-                                      const ModbusRegisters& pData) {
-            rapidjson::Value floatVals(rapidjson::kObjectType);
-            addFloat(floatVals, pAlloc, "std.float32",
-                     ConverterTools::toNumber<float>(pData.getValue(0), pData.getValue(1), false));
-            addFloat(floatVals, pAlloc, "std.float32(low_first=true)",
-                     ConverterTools::toNumber<float>(pData.getValue(1), pData.getValue(0), false));
-            addFloat(floatVals, pAlloc, "std.float32(swap_bytes=true)",
-                     ConverterTools::toNumber<float>(pData.getValue(0), pData.getValue(1), true));
-            addFloat(floatVals, pAlloc, "std.float32(low_first=true,swap_bytes=true)",
-                     ConverterTools::toNumber<float>(pData.getValue(1), pData.getValue(0), true));
-            pDoc.AddMember("float32", floatVals, pAlloc);
+        template <typename T, size_t N>
+        static void addFloatingPointSection(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,
+                                            const ModbusRegisters& pData, const char* pName, const RegisterOrder (&pOrders)[N]) {
+            rapidjson::Value vals(rapidjson::kObjectType);
+            for (size_t i = 0; i < N; i++) {
+                const T val = ConverterTools::registersToFloatingPoint<T>(pData.values(), pOrders[i].mLowFirst, pOrders[i].mSwapBytes);
+                addFloatingPointValue(vals, pAlloc, converterKey(pName, pOrders[i]), val);
+            }
+            pDoc.AddMember(jsonKey(pName, pAlloc), vals, pAlloc);
         }
 
-        static void addFloat(rapidjson::Value& pVals, rapidjson::Document::AllocatorType& pAlloc,
-                             const char* pKey, float pVal) {
-            if (std::isnan(pVal))
-                pVals.AddMember(rapidjson::Value(pKey, pAlloc), rapidjson::Value("nan", pAlloc), pAlloc);
-            else if (std::isinf(pVal))
-                pVals.AddMember(rapidjson::Value(pKey, pAlloc),
-                                rapidjson::Value(pVal > 0.0f ? "inf" : "-inf", pAlloc), pAlloc);
-            else
-                pVals.AddMember(rapidjson::Value(pKey, pAlloc),
-                                rapidjson::Value(static_cast<double>(pVal)), pAlloc);
+        /** json has no nan or infinity, so those readings are reported as strings. */
+        static void addFloatingPointValue(rapidjson::Value& pVals, rapidjson::Document::AllocatorType& pAlloc,
+                                          const std::string& pKey, double pVal) {
+            if (std::isnan(pVal)) {
+                pVals.AddMember(jsonKey(pKey, pAlloc), rapidjson::Value("nan", pAlloc), pAlloc);
+            } else if (std::isinf(pVal)) {
+                pVals.AddMember(jsonKey(pKey, pAlloc), rapidjson::Value(pVal > 0.0 ? "inf" : "-inf", pAlloc), pAlloc);
+            } else {
+                pVals.AddMember(jsonKey(pKey, pAlloc), rapidjson::Value(pVal), pAlloc);
+            }
         }
 
         static void addStringSection(rapidjson::Document& pDoc, rapidjson::Document::AllocatorType& pAlloc,

@@ -33,8 +33,8 @@ class SingleArgMathConverter : public DataConverter {
 
         virtual void setArgValues(const ConverterArgValues& args) {
             mDoubleArg = args[mFirstArgName].as_double();
-            mSwapBytes = DoubleRegisterArgTools::getSwapBytes(args);
-            mLowFirst = DoubleRegisterArgTools::getLowFirst(args);
+            mSwapBytes = RegisterOrderArgTools::getSwapBytes(args);
+            mLowFirst = RegisterOrderArgTools::getLowFirst(args);
             mPrecision = args[ConverterArg::sPrecisionArgName].as_int();
         };
 

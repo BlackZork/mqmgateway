@@ -21,7 +21,7 @@ enum ModbusWriteMode {
 class ModbusAddressRange {
     public:
         ModbusAddressRange(int pRegister, RegisterType pRegisterType, int pCount)
-            : mRegister(pRegister), mRegisterType(pRegisterType), mCount(pCount) {}
+            : mRegister(pRegister), mCount(pCount), mRegisterType(pRegisterType) {}
 
         void merge(const ModbusAddressRange& other);
         bool overlaps(const ModbusAddressRange& poll) const;

@@ -38,7 +38,7 @@ DefaultCommandConverter::parseAsJson(ModbusRegisters& ret, const std::string jso
     if (!doc.IsArray())
         throw ConvException("Only json array is supported when converting to multiple registers");
 
-    if (doc.Size() != registerCount) {
+    if (static_cast<int>(doc.Size()) != registerCount) {
         throw ConvException(std::string("Wrong json array size (" + std::to_string(doc.Size()) + "), need " + std::to_string(registerCount)));
     }
 

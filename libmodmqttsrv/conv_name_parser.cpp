@@ -49,16 +49,16 @@ ConverterArgParser::validateArgName(const std::string& argName) {
 void
 ConverterArgParser::setArgValue(ConverterArgValues& values) {
     try {
-        ConverterArgType argType = ConverterArgType::INVALID;
         if (!mArgName.empty()) {
             mUseArgOrder = false;
         } else {
             if (!mUseArgOrder)
                 throw ConvNameParserException("Cannot use positional argument after named argument "s + std::to_string(mArgs.size()));
 
-            if (mCurrentPosArgIterator == mArgs.end())
+            if (mCurrentPosArgIterator == mArgs.end()) {
                 throw ConvNameParserException("Too many arguments provided, need "s + std::to_string(mArgs.size()));
-                mArgName = mCurrentPosArgIterator->mName;
+            }
+            mArgName = mCurrentPosArgIterator->mName;
             mCurrentPosArgIterator++;
         }
 

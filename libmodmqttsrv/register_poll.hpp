@@ -84,15 +84,14 @@ class RegisterWrite : public RegisterCommand {
     public:
         RegisterWrite(const MsgRegisterValues& msg)
             : RegisterCommand(msg.mSlaveId, msg.mRegister, msg.mRegisterType, msg.mRegisters.getCount(), msg.getCommandId()),
-              mCreationTime(msg.getCreationTime()),
               mValues(msg.mRegisters),
-              mWriteMode(msg.mWriteMode) {}
+              mWriteMode(msg.mWriteMode),
+              mCreationTime(msg.getCreationTime()) {}
         RegisterWrite(int pSlaveId, int pRegister, RegisterType pType, const ModbusRegisters& pValues, ModbusWriteMode pWriteMode = ModbusWriteMode::AUTO)
             : RegisterCommand(pSlaveId, pRegister, pType, pValues.getCount()),
-              mCreationTime(std::chrono::steady_clock::now()),
               mValues(pValues),
-              mWriteMode(pWriteMode)
-        {}
+              mWriteMode(pWriteMode),
+              mCreationTime(std::chrono::steady_clock::now()) {}
 
         virtual int getRegister() const { return mRegister; };
         virtual int getCount() const { return mValues.getCount(); };

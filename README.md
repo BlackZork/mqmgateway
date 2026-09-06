@@ -702,6 +702,19 @@ Converter arguments can be passed in single or double quotes. Positional and key
   converter: std.divide(low_first=true, divisor=20)
 ```
 
+Most converters are designed for a fixed number of registers - one for `std.int16`, two for
+`std.int32`, four for `std.int64`. When the configured `count` does not match, modmqttd reports it
+once at startup and carries on:
+
+```
+config warning(line 19): converter std.int32() is designed for 2 register(s), but this register has 1
+```
+
+Whether the mismatch also stops that value from being converted is up to the converter: `std.int32`
+reads whatever it is given, `std.float32` and `std.float64` refuse anything but their own width.
+Converters that work with any number of registers, such as `std.divide` and `std.string`, are never
+reported.
+
 ### Standard converters
 
 Converter functions are defined in libraries dynamically loaded at startup.
@@ -761,6 +774,8 @@ modmqttd contains *std* library with basic converters ready to use:
 
 * **float32(precision=-1, low_first=false, swap_bytes=false)**
 
+  Usage: state, command
+
   Combines two modbus registers into one 32bit float or writes MQTT value to two modbus registers as float.
   Without arguments the first modbus register holds higher byte, the second holds lower byte.
   With 'low_first' argument the first modbus register holds lower byte, the second holds higher byte.
@@ -771,6 +786,49 @@ modmqttd contains *std* library with basic converters ready to use:
   - low_first=true: R0=_CD_, R1=_AB_
   - swap_bytes=true: R0=_BA_, R1=_DC_
   - low_first=true and swap_bytes=true: R0=_DC_, R1=_BA_
+
+* **int64(low_first=false, swap_bytes=false)**
+
+  Usage: state, command
+
+  Combines four modbus registers into one 64bit value or writes 64bit MQTT value to four modbus registers.
+  Set `count: 4` on the register. See **divide** for description of `low_first` and `swap_bytes` arguments,
+  which work as for **int32** but reverse the order of all four registers.
+
+  Given fewer than four registers the value is built from the ones that are there and is never sign
+  extended. That is rarely what you want, so modmqttd logs a warning at startup when the configured
+  `count` is not four.
+
+* **uint64(low_first=false, swap_bytes=false)**
+
+  Usage: state, command
+
+  Same as int64, but modbus registers are interpreted as unsigned int64. A value above
+  9223372036854775807 keeps its digits instead of being published as a negative number.
+
+  A command payload is read as an unsigned value too, so a leading `-` is rejected rather than
+  wrapping around to a very large number.
+
+  Note that a value above 9007199254740991 (2^53) loses precision in consumers that parse JSON
+  numbers as doubles, which includes Home Assistant, Node-RED and anything written in JavaScript.
+  This affects only topics published as a JSON object or list; a scalar state topic carries the
+  value as text and is exact.
+
+* **float64(precision=-1, low_first=false, swap_bytes=false)**
+
+  Usage: state, command
+
+  Combines four modbus registers into one 64bit float (a double) or writes MQTT value to four modbus
+  registers as double. Set `count: 4` on the register - unlike int64, any other register count is an
+  error, because a double needs exactly its own bit pattern.
+
+  Word and byte order work as for **float32**, extended to four registers. A double value stored on
+  eight bytes `ABCDEFGH` will be written to modbus registers R0, R1, R2, R3 as:
+
+  - no arguments: R0=_AB_, R1=_CD_, R2=_EF_, R3=_GH_
+  - low_first=true: R0=_GH_, R1=_EF_, R2=_CD_, R3=_AB_
+  - swap_bytes=true: R0=_BA_, R1=_DC_, R2=_FE_, R3=_HG_
+  - low_first=true and swap_bytes=true: R0=_HG_, R1=_FE_, R2=_DC_, R3=_BA_
 
 * **bitmask(mask=0xffff)**
 
@@ -874,9 +932,28 @@ modmqttd contains *std* library with basic converters ready to use:
 
   Special float values are encoded as strings: `"nan"`, `"inf"`, `"-inf"`.
 
-  For **more than two registers** only `raw`, `hex`, and `string` sections are emitted — no
-  32-bit interpretation is attempted. Use `count: 2` on a dedicated debug state entry to
-  inspect a specific pair of registers.
+  For **four registers** the output contains `raw`, `hex`, `int64`, `uint64`, `float64`, and
+  `string` sections, again in all four word-order/byte-swap combinations:
+
+  ```json
+  {
+    "raw": [41394, 50132, 58870, 5928],
+    "hex": ["0xA1B2", "0xC3D4", "0xE5F6", "0x1728"],
+    "int64": {
+      "std.int64": -6795153568590063832,
+      "std.int64(low_first=true)": 1668836509950976434,
+      "std.int64(swap_bytes=true)": -5574940925582039017,
+      "std.int64(low_first=true,swap_bytes=true)": 2889049152959001249
+    },
+    "uint64": { "std.uint64": 11651590505119487784, "...": "..." },
+    "float64": { "std.float64": -2.348063990820002e-146, "...": "..." },
+    "string": "..."
+  }
+  ```
+
+  For **any other register count** only `raw`, `hex`, and `string` sections are emitted — no
+  numeric interpretation is attempted. Use `count: 2` or `count: 4` on a dedicated debug state
+  entry to inspect a specific group of registers.
 
   Set `pretty_print=true` to emit indented JSON (useful when inspecting payloads in a terminal).
 
@@ -963,6 +1040,27 @@ Register values are defined as `R0..Rn` variables.
   * `flt32bs(R0, R1)`: Cast to float `ABCD` from `R0` == `BA` and `R1` == `DC`.
   * `flt32bs(R1, R0)`: Cast to float `ABCD` from `R0` == `DC` and `R1` == `BA`.
 
+  Custom functions for 64-bit numbers, which span four registers.
+  `ABCDEFGH` means a number composed of the byte array `[A, B, C, D, E, F, G, H]`,
+  where `A` is the most significant byte (MSB) and `H` is the least-significant byte (LSB).
+  * `int64(R0, R1, R2, R3)`: Cast to signed integer `ABCDEFGH` from `R0` == `AB`, `R1` == `CD`, `R2` == `EF` and `R3` == `GH`.
+  * `int64(R3, R2, R1, R0)`: Cast to signed integer `ABCDEFGH` from `R0` == `GH`, `R1` == `EF`, `R2` == `CD` and `R3` == `AB`.
+  * `int64bs(R0, R1, R2, R3)`: Cast to signed integer `ABCDEFGH` from `R0` == `BA`, `R1` == `DC`, `R2` == `FE` and `R3` == `HG`.
+  * `int64bs(R3, R2, R1, R0)`: Cast to signed integer `ABCDEFGH` from `R0` == `HG`, `R1` == `FE`, `R2` == `DC` and `R3` == `BA`.
+  * `uint64(R0, R1, R2, R3)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `AB`, `R1` == `CD`, `R2` == `EF` and `R3` == `GH`.
+  * `uint64(R3, R2, R1, R0)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `GH`, `R1` == `EF`, `R2` == `CD` and `R3` == `AB`.
+  * `uint64bs(R0, R1, R2, R3)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `BA`, `R1` == `DC`, `R2` == `FE` and `R3` == `HG`.
+  * `uint64bs(R3, R2, R1, R0)`: Cast to unsigned integer `ABCDEFGH` from `R0` == `HG`, `R1` == `FE`, `R2` == `DC` and `R3` == `BA`.
+  * `flt64(R0, R1, R2, R3)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `AB`, `R1` == `CD`, `R2` == `EF` and `R3` == `GH`.
+  * `flt64(R3, R2, R1, R0)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `GH`, `R1` == `EF`, `R2` == `CD` and `R3` == `AB`.
+  * `flt64bs(R0, R1, R2, R3)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `BA`, `R1` == `DC`, `R2` == `FE` and `R3` == `HG`.
+  * `flt64bs(R3, R2, R1, R0)`: Cast to 64-bit float `ABCDEFGH` from `R0` == `HG`, `R1` == `FE`, `R2` == `DC` and `R3` == `BA`.
+
+  The four integer helpers are not available on 32-bit ARM (armv6 and armv7), where a 64-bit integer
+  cannot be computed exactly. There modmqttd refuses to start instead of publishing a rounded value,
+  and the error names the helper. Use the `std.int64` or `std.uint64` converter on those platforms.
+  `flt64` and `flt64bs` work on all supported platforms.
+
   Custom functions for 16-bit numbers `[A,B]`:
   * `int16(R0)`: Cast uint16 value from `R0` == `AB` to int16
   * `int16bs(R0)`: Cast uint16 value from `R0` == `BA` to int16
@@ -970,6 +1068,11 @@ Register values are defined as `R0..Rn` variables.
 
   All of the above functions can be used as `write_as` helper to store an expression value in modbus registers during writing. 
   Additionally, the `low_first` argument can be used to store `ABCD` int32/float value as `RO`=`CD`, `R1`=`AB`.
+  A 64-bit helper writes four registers, and `low_first` reverses all four of them.
+
+  `precision` adds that many decimal places to any result, so an integer comes out as `42.00`. Leave
+  it unset for an integer helper. On a topic that publishes JSON there is a second reason to: a
+  precision of 1 or more rounds an `int64` or `uint64` value to about 15 digits and loses the rest.
 
 #### Examples
 
@@ -1038,11 +1141,35 @@ Writing multiple return values to separate registers R0, R1, R2:
           converter: expr.evaluate("return [M0+1,M0+2,M0+3]")
 ```
 
-In any case, the number of registers to be written must match the number of values returned by an expression. If 32bit helper is used, the number of registers must be multiplied by two.
+In any case, the number of registers to be written must match the number of values returned by an expression. If a 32bit helper is used, the number of registers must be multiplied by two, and by four for a 64bit helper.
 
 ### Adding custom converters
 
 Custom converters can be added by creating a C++ dynamically loaded library with conversion classes. There is a header only libmodmqttconv library that provide base classes for plugin and converter implementations.
+
+Because that library is header only, a plugin carries its own copy of `MqttValue`,
+`ModbusRegisters` and the other exchanged types. A plugin built against a different
+version of those headers disagrees with modmqttd about their layout, which would
+corrupt memory instead of failing cleanly. Every plugin therefore exports an ABI
+marker next to its `converter_plugin` symbol, as shown at the end of the example
+below. modmqttd reads it first and refuses to load a plugin that reports anything
+else, so **rebuild your plugin whenever you upgrade modmqttd** - startup then reports:
+
+```
+Converter plugin myplugin.so was built for converter ABI version 1, this modmqttd needs 2. Rebuild the plugin
+```
+
+A plugin that predates the marker is refused the same way.
+
+A `ConvException` thrown out of `toMqtt` or `toModbus` is expected and recoverable: modmqttd logs
+the topic it belongs to, skips that one object and keeps serving the others. Any other exception is
+treated as a bug in the plugin and stops the daemon, so use `ConvException` for anything caused by
+register data, a payload or a configuration value.
+
+A converter that cannot work with any register count but its own can call the protected
+`requireExpectedRegisterCount(count, "what it converts")`, which throws a `ConvException` naming
+both counts. That is what `std.float32` and `std.float64` use; converters that merely prefer a
+count, such as `std.int32`, leave the startup warning to do the reporting.
 
 Here is a minimal example of custom conversion plugin:
 
@@ -1067,6 +1194,11 @@ class MyConverter : public DataConverter {
             mShift = args["shift"].as_int();
         };
 
+        // How many registers this converter is designed for. modmqttd warns at
+        // startup when the configured count differs. Return 0, the default, if
+        // any number of registers will do.
+        virtual int getExpectedRegisterCount() const { return 1; }
+
         // Conversion from modbus registers to MQTT value
         // Used when converter is defined for state topic
         // ModbusRegisters contains one register or as many as
@@ -1082,7 +1214,7 @@ class MyConverter : public DataConverter {
             int val = value.getInt();
             ModbusRegisters ret;
             for (int i = 0; i < registerCount; i++) {
-              val = val >> mShift
+              val = val >> mShift;
               ret.prependValue(val);
             }
             return ret;
@@ -1094,11 +1226,11 @@ class MyConverter : public DataConverter {
 };
 
 
-class MyPlugin : ConverterPlugin {
+class MyPlugin : public ConverterPlugin {
     public:
         // name used in configuration as plugin prefix.
         virtual std::string getName() const { return "myplugin"; }
-        virtual IStateConverter* getStateConverter(const std::string& name) {
+        virtual DataConverter* getConverter(const std::string& name) {
             if (name == "myconverter")
                 return new MyConverter();
             return nullptr;
@@ -1109,6 +1241,9 @@ class MyPlugin : ConverterPlugin {
 // modmqttd search for "converter_plugin" C symbol in loaded dll
 extern "C" MyPlugin converter_plugin;
 MyPlugin converter_plugin;
+
+// modmqttd checks this before it touches anything else in the plugin
+extern "C" const int converter_plugin_abi_version = CONVERTER_ABI_VERSION;
 
 ```
 

@@ -135,7 +135,6 @@ ModbusContext::readModbusRegisters(int slaveId, const RegisterPoll& regData) {
     else
         modbus_set_slave(mCtx, MODBUS_TCP_SLAVE);
 
-    uint8_t bits;
     std::vector<uint16_t> ret(regData.getCount(), 0);
     int arraySize = 0;
     int retCode;

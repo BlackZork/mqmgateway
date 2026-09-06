@@ -66,3 +66,46 @@ mqtt:
     }
 
 }
+
+TEST_CASE("Converter plugin") {
+    TestConfig config(R"(
+modmqttd:
+  converter_search_path:
+    - abiconv
+  converter_plugins:
+    - badabiconv.so
+modbus:
+  networks:
+    - name: tcptest
+      address: localhost
+      port: 64555
+mqtt:
+  client_id: mqtt_test
+  broker:
+    host: localhost
+  objects:
+    - topic: test_sensor
+      state:
+        register: tcptest.1.2
+)");
+
+    SECTION("built for a different ABI version should be refused") {
+        MockedModMqttServerThread server(config.toString(), false);
+        server.start();
+        server.stop();
+
+        REQUIRE(server.initOk() == false);
+        server.requireException<modmqttd::ConfigurationException>("converter ABI version");
+    }
+
+    SECTION("without an ABI version marker should be refused") {
+        config.mYAML["modmqttd"]["converter_plugins"][0] = "noabiconv.so";
+
+        MockedModMqttServerThread server(config.toString(), false);
+        server.start();
+        server.stop();
+
+        REQUIRE(server.initOk() == false);
+        server.requireException<modmqttd::ConfigurationException>("does not declare converter_plugin_abi_version");
+    }
+}

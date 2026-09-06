@@ -3,6 +3,7 @@
 #include "libmodmqttsrv/dll_import.hpp"
 
 #include "libmodmqttconv/converterplugin.hpp"
+#include "libmodmqttconv/convexception.hpp"
 
 #include "testnumbers.hpp"
 #include "plugin_utils.hpp"
@@ -71,6 +72,14 @@ TEST_CASE("A float32 value should be read") {
         REQUIRE(output.getString() == "-123.46");
     }
 
+    SECTION("but rejects any register count other than two") {
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(conv->toMqtt(ModbusRegisters(TestNumbers::Float::AB)), ConvException);
+        REQUIRE_THROWS_AS(
+            conv->toMqtt(ModbusRegisters({TestNumbers::Float::AB, TestNumbers::Float::CD, TestNumbers::Float::AB})),
+            ConvException);
+    }
 }
 
 TEST_CASE("A float32 value should be written") {
@@ -117,5 +126,12 @@ TEST_CASE("A float32 value should be written") {
         const ModbusRegisters expected({TestNumbers::Float::DC, TestNumbers::Float::BA});
 
         REQUIRE(converted.values() == expected.values());
+    }
+
+    SECTION("but not to any register count other than two") {
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(conv->toModbus(input, 1), ConvException);
+        REQUIRE_THROWS_AS(conv->toModbus(input, 3), ConvException);
     }
 }

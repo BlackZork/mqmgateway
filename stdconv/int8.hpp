@@ -4,6 +4,8 @@
 #include "libmodmqttconv/converter.hpp"
 
 class Int8Base : public DataConverter {
+        virtual int getExpectedRegisterCount() const { return 1; }
+
         virtual ConverterArgs getArgs() const {
             ConverterArgs ret;
             ret.add("first", ConverterArgType::BOOL, false);

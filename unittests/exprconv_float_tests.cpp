@@ -12,8 +12,6 @@ TEST_CASE("exprtk should read float from two registers") {
 
     std::shared_ptr<DataConverter> conv(loader.getConverter("evaluate"));
 
-    const float expected = -123.456f; // 0xc2f6e979 in IEEE 754 hex representation
-    const std::string expectedString = "-123.456001";
     ConverterArgValues args(conv->getArgs());
 
     SECTION("when byte order is ABCD") {

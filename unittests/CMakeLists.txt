@@ -4,6 +4,10 @@ endif()
 
 find_package(Catch2 REQUIRED)
 
+# plugins with a mismatched and with a missing converter ABI marker, loaded by
+# server_config_tests to check that modmqttd refuses both
+add_subdirectory(abiconv)
+
 add_executable(tests
     jsonutils.cpp
     jsonutils.hpp
@@ -19,14 +23,21 @@ add_executable(tests
     timing.cpp
     timing.hpp
     # tests
+    conv_parity_tests.cpp
     converter_name_parser_tests.cpp
+    convtools_tests.cpp
     exprconv_float_tests.cpp
+    exprconv_float64_tests.cpp
+    exprconv_gate_tests.cpp
     exprconv_int16_tests.cpp
+    exprconv_int64_tests.cpp
+    exprconv_uint64_tests.cpp
     exprconv_uint16_tests.cpp
     exprconv_int32_tests.cpp
     exprconv_tests.cpp
     exprconv_uint32_tests.cpp
     exprconv_write_tests.cpp
+    exprconv_write64_tests.cpp
     modbus_config_tests.cpp
     modbus_executor_tests.cpp
     modbus_executor_single_delay_tests.cpp
@@ -42,6 +53,7 @@ add_executable(tests
     mqtt_command_conv_tests.cpp
     mqtt_every_poll_tests.cpp
     mqtt_expr_conv_tests.cpp
+    mqtt_expr_json_tests.cpp
     mqtt_config_tests.cpp
     mqtt_converter_error_tests.cpp
     mqtt_json_conv_tests.cpp
@@ -51,6 +63,7 @@ add_executable(tests
     mqtt_once_tests.cpp
     mqtt_poll_groups_tests.cpp
     mqtt_publish_retain_tests.cpp
+    mqtt_register_count_warning_tests.cpp
     mqtt_publish_type_tests.cpp
     mqtt_refresh_config_tests.cpp
     mqtt_register_default_slave_tests.cpp
@@ -79,15 +92,21 @@ add_executable(tests
     stdconv_int8_tests.cpp
     stdconv_int16_tests.cpp
     stdconv_int32_tests.cpp
+    stdconv_int64_tests.cpp
     stdconv_map_tests.cpp
     stdconv_multiply_tests.cpp
+    stdconv_register_count_tests.cpp
     stdconv_float_tests.cpp
+    stdconv_float64_tests.cpp
     stdconv_string_tests.cpp
     stdconv_tests.cpp
     stdconv_uint32_tests.cpp
+    stdconv_uint64_tests.cpp
     two_slaves_tests.cpp
     yaml_converters_tests.cpp
 )
+
+add_dependencies(tests badabiconv noabiconv)
 
 target_link_libraries(tests
     modmqttsrv

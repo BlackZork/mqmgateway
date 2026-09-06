@@ -825,6 +825,30 @@ mqtt:
         server.stop();
     }
 
+    SECTION("decodes a bare json number above INT64_MAX") {
+        MockedModMqttServerThread server(config.toString());
+        for (int reg = 2; reg <= 5; reg++) {
+            server.setModbusRegisterValue("tcptest", 1, reg, modmqttd::RegisterType::HOLDING, 0);
+        }
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        // unquoted, so rapidjson reports it as a uint64 rather than a string
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":4,"converter":"std.uint64()","value":11651590505119487784})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.waitForModbusValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::AB);
+        server.waitForModbusValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::CD);
+        server.waitForModbusValue("tcptest", 1, 4, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::EF);
+        server.waitForModbusValue("tcptest", 1, 5, modmqttd::RegisterType::HOLDING, TestNumbers::Int64::GH);
+        server.stop();
+    }
+
     SECTION("round-trips a converter write back through a converter read") {
         MockedModMqttServerThread server(config.toString());
         server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 0);
