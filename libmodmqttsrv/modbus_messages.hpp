@@ -20,18 +20,32 @@ class MsgRegisterValues : public ModbusMessageBase {
               mRegisters(registers),
               mWriteMode(pWriteMode),
               mCreationTime(std::chrono::steady_clock::now()) {}
-        MsgRegisterValues(int pSlaveId, RegisterType pRegType, int pRegisterNumber, const std::vector<uint16_t>& pRegisters, int pCommandId = 0)
+        MsgRegisterValues(int pSlaveId, RegisterType pRegType, int pRegisterNumber, const std::vector<uint16_t>& pRegisters, int pCommandId,
+                          const std::chrono::steady_clock::time_point& pReadStartTime)
             : ModbusMessageBase(pSlaveId, pRegisterNumber, pRegType, pRegisters.size(), pCommandId),
               mRegisters(pRegisters),
-              mCreationTime(std::chrono::steady_clock::now()) {}
+              mCreationTime(std::chrono::steady_clock::now()),
+              mReadStartTime(pReadStartTime) {}
 
         const std::chrono::steady_clock::time_point& getCreationTime() const { return mCreationTime; }
+
+        /**
+         * When the modbus read that produced these values started, or
+         * time_point::min() if they did not come from a read - a write
+         * confirmation carries the values back without reading them.
+         *
+         * ModbusScheduler times the next poll from the same value, so a
+         * republish decision made against it follows the poll cadence instead
+         * of wall clock on the main thread.
+         */
+        const std::chrono::steady_clock::time_point& getReadStartTime() const { return mReadStartTime; }
 
         ModbusRegisters mRegisters;
         ModbusWriteMode mWriteMode = ModbusWriteMode::AUTO;
 
     private:
         std::chrono::steady_clock::time_point mCreationTime;
+        std::chrono::steady_clock::time_point mReadStartTime = std::chrono::steady_clock::time_point::min();
 };
 
 class MsgRegisterReadFailed : public ModbusMessageBase {

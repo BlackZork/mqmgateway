@@ -26,11 +26,19 @@ mqtt:
 SECTION ("no refresh should use default 5s") {
     MockedModMqttServerThread server(config.toString());
     server.start();
+    // the first publish tells us that the poll specification has crossed the
+    // queue and reached the scheduler
     server.waitForPublish("test_sensor/state");
-    //TODO how to slow down this test?
-    std::this_thread::sleep_for(std::chrono::milliseconds(5100));
+
+    // The default is a modmqttd constant that never reaches the yaml, so
+    // TestConfig cannot scale it and it stays 5s at every timing factor.
+    const auto& spec = server.getServer().getModbusClient("tcptest").getThread().getScheduler().getPollSpecification();
+    const auto& slave1 = spec.at(1);
+    REQUIRE(slave1.size() == 2);
+    for (const auto& reg: slave1)
+        REQUIRE(reg->mRefresh == std::chrono::seconds(5));
+
     server.stop();
-    REQUIRE(server.getMockedModbusContext("tcptest").getIssuedReadCallsCount(1) == 4);
 }
 
 SECTION ("mqtt refresh should override default") {

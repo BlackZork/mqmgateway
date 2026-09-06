@@ -286,6 +286,19 @@ Time-dependent tests are **not** written with raw sleeps and fixed durations —
 through the `timing` helper (`unittests/timing.{hpp,cpp}`) and condition-variable wait helpers, so
 the suite runs correctly whether the machine is fast or a slow ARM CI box.
 
+The governing rule is that **raising `MQM_TEST_TIMING_FACTOR` must widen the gap between the awaited
+action and the check that follows it.** A test obeys it when both sides of a comparison scale
+together, or when its slack is a deterministic constant such as the mocked read time. It breaks the
+rule when the slack is real, unscaled latency — thread wake-up, server start-up, converter work —
+because that stays the same size however high the factor goes. Such a test cannot be stabilised by
+raising the factor, which is the symptom to look for: if a failure rate is indifferent to the
+factor, the margin that decides it is not scaling. Running the suite at two factors is the direct
+check.
+
+This applies to the daemon as much as to the tests. #128 was a publish gate comparing wall clock
+against the poll cadence, with a sub-millisecond margin that no timing factor could widen, and it
+surfaced as a test that looked flaky but was reporting a real defect.
+
 - **Always express durations via `timing::milliseconds(n)` / `timing::seconds(n)`**, never a raw
   `std::chrono::milliseconds(n)`. Each call multiplies `n` by the global `sFactor`
   (`MQM_TEST_TIMING_FACTOR`; default `10` in `NDEBUG`/release, `1` in debug). A test that hardcodes a
@@ -306,3 +319,10 @@ the suite runs correctly whether the machine is fast or a slow ARM CI box.
   realistically — not instantaneously. It also records issued read/write calls
   (`getIssuedReadCallsCount`, `getIssuedReadCall`, …) and can inject read/write errors and
   slave/serial disconnects for failure-path tests.
+- **The default read and write times are deliberately not scaled** by the timing factor. They model
+  the device rather than the speed of the test run, and tests of the scheduler and executor are
+  written assuming that a simulated read takes the same time whatever the factor. Slack that comes
+  from them is therefore a designed floor and not a violation of the rule above: the mock sleeps
+  exactly that long every time, so it can only push a measurement further past its threshold. Pass a
+  scaled value to `setSlaveReadTime`/`setSlaveWriteTime` only in a test that is specifically about a
+  slow or fast responding slave.

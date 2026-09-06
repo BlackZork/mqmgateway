@@ -176,7 +176,7 @@ ModbusExecutor::pollRegisters(RegisterPoll& reg, bool forceSend) {
             forceSend = true;
 
         if ((reg.getValues() != newValues) || forceSend || (reg.mReadErrors != 0)) {
-            MsgRegisterValues val(reg.mSlaveId, reg.mRegisterType, reg.mRegister, newValues, reg.getCommandId());
+            MsgRegisterValues val(reg.mSlaveId, reg.mRegisterType, reg.mRegister, newValues, reg.getCommandId(), reg.mLastReadStartTime);
             sendMessage(QueueItem::create(val));
             reg.update(newValues);
             if (reg.mReadErrors != 0) {
