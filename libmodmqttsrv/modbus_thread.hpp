@@ -24,7 +24,7 @@ class ModbusThread {
 
         void run();
 
-        const ModbusWatchdog getWatchdog() const { return mWatchdog; }
+        const ModbusWatchdog& getWatchdog() const { return mWatchdog; }
         const ModbusScheduler& getScheduler() const { return mScheduler; }
 
     private:
