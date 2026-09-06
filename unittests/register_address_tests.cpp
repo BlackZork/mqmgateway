@@ -34,7 +34,7 @@ mqtt:
     server.waitForPublish("test_switch/state");
     server.publish("test_switch/set", "32");
 
-    server.waitForPublish("test_switch/state", std::chrono::seconds(30));
+    server.waitForPublish("test_switch/state", timing::seconds(30));
     REQUIRE(server.mqttValue("test_switch/state") == "32");
 
     REQUIRE(server.getModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING) == 32);

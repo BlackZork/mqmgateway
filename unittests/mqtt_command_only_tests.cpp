@@ -82,10 +82,10 @@ mqtt:
     server.publish("test_switch/set1", "7");
     std::this_thread::sleep_for(timing::milliseconds(50));
     server.publish("test_switch/set2", "8");
-    server.waitForModbusValue("tcptest",2,2, modmqttd::RegisterType::HOLDING, 0x8, std::chrono::milliseconds(70000));
+    server.waitForModbusValue("tcptest", 2, 2, modmqttd::RegisterType::HOLDING, 0x8);
     auto after = std::chrono::steady_clock::now();
     //global is ignored
-    REQUIRE(after - now >= std::chrono::milliseconds(100));
+    REQUIRE(after - now >= timing::milliseconds(100));
 
     server.stop();
 }

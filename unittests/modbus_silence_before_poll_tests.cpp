@@ -169,7 +169,7 @@ mqtt:
     auto stime = server.getLastPollTime();
     auto ptime = stime - first_poll_ts;
     //5ms poll time + 50ms silence
-    REQUIRE(ptime > std::chrono::milliseconds(50));
+    REQUIRE(ptime > timing::milliseconds(50));
 
     // need_silence was polled before fast_one
     // check last published mqtt value
