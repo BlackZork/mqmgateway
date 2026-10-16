@@ -52,6 +52,29 @@ mqtt:
             REQUIRE(server.mqttValue("test_sensor/state") == "2");
         }
 
+        SECTION("should not republish state after broker reconnect") {
+            MockedModMqttServerThread server(config.toString());
+            server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
+            server.start();
+            server.waitForPublish("test_sensor/state");
+            REQUIRE(server.mqttNullValue("test_sensor/state"));
+
+            server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 2);
+            server.waitForPublish("test_sensor/state");
+            REQUIRE(server.mqttValue("test_sensor/state") == "2");
+
+            server.mMqtt->resetBroker();
+            // availability is republished after state on reconnect
+            server.waitForPublish("test_sensor/availability");
+            REQUIRE(server.mqttValue("test_sensor/availability") == "1");
+
+            server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 3);
+            server.waitForPublish("test_sensor/state");
+            REQUIRE(server.mqttValue("test_sensor/state") == "3");
+            // 2 -> 3 change only, no republish of the stale value
+            server.requirePublishCount("test_sensor/state", 1);
+        }
+
         SECTION("should trigger state publish after initial poll for every_poll") {
             config.mYAML["mqtt"]["refresh"] = "100ms";
             config.mYAML["mqtt"]["objects"][0]["publish_mode"] = "every_poll";

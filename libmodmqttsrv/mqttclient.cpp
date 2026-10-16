@@ -119,8 +119,9 @@ MqttClient::onConnect() {
     // if broker was restarted
     // then all published information is gone until
     // modbus register data is changed
-    // republish current object state and availability to
-    // all subscribed clients
+    // republish availability and retained object state to
+    // all subscribed clients. Unretained state is not restored:
+    // subscribers would receive an old value as a new message
     publishAll();
 
     for (std::vector<std::shared_ptr<ModbusClient>>::iterator it = mModbusClients.begin(); it != mModbusClients.end(); it++) {
@@ -317,7 +318,7 @@ MqttClient::publishAll() {
 
             if (published.find(optr) == published.end()) {
                 try {
-                    if ((*oit)->getAvailableFlag() == AvailableFlag::True) {
+                    if ((*oit)->getRetain() && (*oit)->getAvailableFlag() == AvailableFlag::True) {
                         publishState(*oit, true, MqttObject::NoReadTime);
                     }
                     publishAvailabilityChange(**oit);

@@ -434,6 +434,8 @@ A list of topics where modbus values are published to MQTT broker and subscribed
         * all subsequent state changes are published with the MQTT RETAIN flag set to false
         * availability topic messages are always published with the MQTT RETAIN flag set to true
         * if one of state registers was unavailable, only the availability flag is published after the first successful read of state registers.
+        * after reconnecting to the MQTT broker only the availability topic is republished. The state topic is published
+          again only when its value changes.
 
         This mode guarantees that the subscriber receives only recent changes. State value that
         was set before the initial poll or during read error period will not be published.
