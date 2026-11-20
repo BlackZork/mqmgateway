@@ -632,8 +632,9 @@ MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegiste
     std::string payload;
     try {
         if (!pending.mIsWrite && pending.mConverter != nullptr) {
-            // read with a converter: converter output is the payload, exactly as a poll would publish it
-            payload = pending.mConverter->toMqtt(pValues.mRegisters).getString();
+            // read with a converter: converter output is the payload, as a poll would publish it
+            // to a plain topic, with NaN and the infinities written in rpc_inf_nan's encoding
+            payload = MqttPayload::encodeScalar(pending.mConverter->toMqtt(pValues.mRegisters), mRpcInfNanMode);
         } else if (pValues.mRegisters.getCount() == 1) {
             // bare raw value: scalar string for count==1, JSON array for count>1
             // (same shape as MqttPayload::generate for a plain poll with no converter)

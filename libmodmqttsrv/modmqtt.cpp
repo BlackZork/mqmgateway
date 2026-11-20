@@ -415,8 +415,11 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     mMqtt->setClientId(clientId);
 
     RpcMode rpcMode = RpcMode::DISABLED;
+    // replies use the state topics' encoding unless the rpc section sets its own
+    InfNanMode rpcInfNanMode = parseInfNanMode(mqtt, "publish_inf_nan", InfNanMode::JSON_NULL);
     if (mqtt["rpc"].IsDefined()) {
         const YAML::Node& rpc = mqtt["rpc"];
+        rpcInfNanMode = parseInfNanMode(rpc, "rpc_inf_nan", rpcInfNanMode);
         std::string modeStr = "disabled";
         ConfigTools::readOptionalValue<std::string>(modeStr, rpc, "mode");
         if (modeStr == "disabled") {
@@ -432,6 +435,7 @@ void ModMqtt::initBroker(const YAML::Node& config) {
         }
     }
     mMqtt->setRpcMode(rpcMode);
+    mMqtt->setRpcInfNanMode(rpcInfNanMode);
 
     const YAML::Node& broker = mqtt["broker"];
     if (!broker.IsDefined())
