@@ -317,6 +317,42 @@ TEST_CASE("MqttValue narrowing accessors should reject") {
 
         REQUIRE_THROWS_AS(val.getInt(), ConvException);
     }
+
+    SECTION("an int that does not fit, read from a double") {
+        const MqttValue val = MqttValue::fromDouble(1e30);
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+    }
+
+    SECTION("an int64 that does not fit, read from a double") {
+        const MqttValue val = MqttValue::fromDouble(1e30);
+
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+    }
+
+    SECTION("a not-a-number double that cannot narrow to an int") {
+        const MqttValue val = MqttValue::fromDouble(std::numeric_limits<double>::quiet_NaN());
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+    }
+
+    SECTION("a not-a-number double that cannot narrow to an int64") {
+        const MqttValue val = MqttValue::fromDouble(std::numeric_limits<double>::quiet_NaN());
+
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+    }
+
+    SECTION("an infinite double that cannot narrow to an int") {
+        const MqttValue val = MqttValue::fromDouble(std::numeric_limits<double>::infinity());
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+    }
+
+    SECTION("an infinite double that cannot narrow to an int64") {
+        const MqttValue val = MqttValue::fromDouble(-std::numeric_limits<double>::infinity());
+
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+    }
 }
 
 TEST_CASE("MqttValue narrowing accessors should accept") {

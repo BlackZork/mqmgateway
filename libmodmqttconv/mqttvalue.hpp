@@ -294,7 +294,7 @@ class MqttValue {
                 }
                 return static_cast<int32_t>(mValue.v_uint64);
             case SourceType::DOUBLE:
-                return mValue.v_double;
+                return floatToInt32(mValue.v_double);
             case SourceType::FLOAT64:
                 return floatToInt32(mValue.v_ldouble);
             }
@@ -329,7 +329,7 @@ class MqttValue {
                 }
                 return static_cast<int64_t>(mValue.v_uint64);
             case SourceType::DOUBLE:
-                return mValue.v_double;
+                return floatToInt64(mValue.v_double);
             case SourceType::FLOAT64:
                 return floatToInt64(mValue.v_ldouble);
             }

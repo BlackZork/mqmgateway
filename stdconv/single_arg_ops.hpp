@@ -18,7 +18,8 @@ class SingleArgMathConverter : public DataConverter {
 
         virtual ModbusRegisters toModbus(const MqttValue& value, int registerCount) const {
             ModbusRegisters ret;
-            int32_t val = doMath(value.getDouble());
+            // checked narrowing: a NaN, an infinity or an out of range product throws
+            int32_t val = MqttValue::fromDouble(doMath(value.getDouble())).getInt();
             return ConverterTools::int32ToRegisters(val, mLowFirst, mSwapBytes, registerCount);
         }
 
