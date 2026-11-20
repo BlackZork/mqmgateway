@@ -437,3 +437,62 @@ TEST_CASE("MqttValue floating point getters should reject") {
         REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
     }
 }
+
+static MqttValue
+payload(const std::string& pBytes) {
+    return MqttValue::fromBinary(pBytes.data(), pBytes.size());
+}
+
+TEST_CASE("MqttValue number parsing should accept") {
+    SECTION("a trailing line end") {
+        REQUIRE(payload("7\n").getInt() == 7);
+        REQUIRE(payload("7\r\n").getInt64() == 7);
+        REQUIRE(payload("7\n").getUInt64() == 7);
+        REQUIRE(payload("1.5\r\n").getDouble() == 1.5);
+        REQUIRE(payload("1.5\n").getLongDouble() == 1.5L);
+    }
+
+    SECTION("a trailing string terminator") {
+        REQUIRE(payload(std::string("7\0", 2)).getInt() == 7);
+        REQUIRE(payload(std::string("7\0", 2)).getUInt64() == 7);
+        REQUIRE(std::isnan(payload(std::string("NaN\0", 4)).getDouble()));
+    }
+
+    SECTION("a fixed size buffer padded with terminators") {
+        REQUIRE(payload(std::string("7\0\0\0", 4)).getInt64() == 7);
+    }
+
+    SECTION("whitespace and a terminator around a quoted NaN") {
+        REQUIRE(std::isnan(payload(std::string(" \"NaN\"\n\0", 9)).getDouble()));
+        REQUIRE(std::isnan(payload(std::string(" \"NaN\"\n\0", 9)).getLongDouble()));
+    }
+}
+
+TEST_CASE("MqttValue number parsing should reject") {
+    SECTION("an empty payload") {
+        const MqttValue val = payload("");
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getUInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a payload of whitespace and terminators only") {
+        const MqttValue val = payload(std::string(" \r\n\0", 4));
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+    }
+
+    SECTION("bytes after a string terminator") {
+        const MqttValue val = payload(std::string("7\0junk", 6));
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getUInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+}
