@@ -731,6 +731,7 @@ ModMqtt::parseObjectCommand(
         count,
         writeMode
     );
+    ConfigTools::readOptionalValue<bool>(cmd.mNullAsNan, node, "null_as_nan");
 
     const YAML::Node& converterNode = node["converter"];
     if (converterNode.IsDefined()) {

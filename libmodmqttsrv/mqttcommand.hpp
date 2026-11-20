@@ -31,6 +31,8 @@ class MqttObjectCommand : public ModbusMessageBase {
         PayloadType mPayloadType;
         std::string mModbusNetworkName;
         ModbusWriteMode mWriteMode;
+        // a payload of exactly "null" reaches the converter as NaN instead of as text
+        bool mNullAsNan = false;
 
         void setConverter(std::shared_ptr<DataConverter> conv) { mConverter = conv; }
         bool hasConverter() const { return mConverter != nullptr; }

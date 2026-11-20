@@ -875,6 +875,63 @@ mqtt:
         server.stop();
     }
 
+    SECTION("writes a bare NaN value as not-a-number bits") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 1);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()","value":NaN})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.waitForModbusValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::NAN_HIGH);
+        server.waitForModbusValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::NAN_LOW);
+        server.stop();
+    }
+
+    SECTION("writes a bare -Infinity value as negative infinity bits") {
+        MockedModMqttServerThread server(config.toString());
+        server.setModbusRegisterValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, 1);
+        server.setModbusRegisterValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, 1);
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()","value":-Infinity})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.waitForModbusValue("tcptest", 1, 2, modmqttd::RegisterType::HOLDING, TestNumbers::Float::NEG_INF_HIGH);
+        server.waitForModbusValue("tcptest", 1, 3, modmqttd::RegisterType::HOLDING, TestNumbers::Float::NEG_INF_LOW);
+        server.stop();
+    }
+
+    SECTION("null value should return error property") {
+        MockedModMqttServerThread server(config.toString());
+        server.start();
+        server.waitForSubscription("mqtt_test/rpc/modbus_request");
+
+        const std::string req = R"json({"network":"tcptest","slave":1,"register":"2","count":2,"converter":"std.float32()","value":null})json";
+        server.mMqtt->injectRpcRequest(
+            "mqtt_test/rpc/modbus_request",
+            req.c_str(), static_cast<int>(req.size()),
+            "test/response", 1);
+
+        server.waitForRpcResponse(1);
+        REQUIRE(server.mMqtt->rpcValue(1).empty());
+        REQUIRE(!server.mMqtt->rpcUserProperty(1, "error").empty());
+        server.stop();
+    }
+
     SECTION("array value with a converter should return error property") {
         MockedModMqttServerThread server(config.toString());
         server.start();
