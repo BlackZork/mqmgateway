@@ -27,4 +27,14 @@ typedef enum {
     ONCE=3
 } PublishMode;
 
+/**
+ * How a NaN or infinite value is written to a payload: as JSON null, as the
+ * bare NaN / Infinity / -Infinity tokens (not JSON, but what some parsers
+ * read), or as those spellings in a JSON string.
+ */
+enum class InfNanMode {
+    JSON_NULL,
+    LITERAL,
+    STRING
+};
 }
