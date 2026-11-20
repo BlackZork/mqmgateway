@@ -174,7 +174,8 @@ without editing config, via an MQTT5 request/response exchange. Design reference
   `Correlation Data` on its PUBLISH; the daemon replies once (never retained) to that Response Topic,
   echoing the Correlation Data. A request with **no Response Topic** can only be logged and dropped.
 - **Reply shape is the bare value, not an envelope**: a read reply payload is exactly what a poll
-  would publish (scalar for `count==1`, JSON array for `count>1`); a write reply echoes the written
+  would publish (scalar for `count==1`, JSON array for `count>1`; a converter read goes through
+  `MqttPayload::encodeScalar` with the `rpc_inf_nan` mode); a write reply echoes the written
   register values in the same scalar/JSON-array shape, always as **raw uint16** values (no converter
   re-applied on the reply path), optimistically without a device re-read. Errors are carried
   out-of-band in an MQTT5 **`error` User Property** (empty payload). Success ⇒ no `error` property;
@@ -234,6 +235,17 @@ Inject mocks via `ModMqtt::setModbusContextFactory()` / `setMqttImplementation()
   and/or `toModbus(MqttValue, registerCount) -> ModbusRegisters` (command/write direction).
   When no converter is given, `DefaultCommandConverter` handles writes and registers are
   published as their raw uint16 string values.
+- **NaN and infinity on output** are encoded in `mqttpayload.cpp` only: `MqttPayload::encodeScalar`
+  for single-value payloads and RPC read replies, `createConvertedValue` for JSON objects and
+  lists, both in the object's `InfNanMode` (`publish_inf_nan`). Each checks for a non-finite value
+  before anything else. Never pass one to rapidjson's `Writer::Double`: it writes nothing but
+  still emits the separator, which produces invalid JSON such as `[,1.5]`.
+- **Command payload text** is trimmed and checked in one place, `MqttValue::scalarText`
+  (whitespace and line ends around the value, NULs after it). The number getters' BINARY arms and
+  the `null_as_nan` match go through it; a new path that reads a number from a payload should too.
+- **Narrow a double to an integer only through `MqttValue`'s range-checked helpers**
+  (`floatToInt32` / `floatToInt64` / `floatToUInt64`, or `getInt()` / `getInt64()` on a value built
+  with `fromDouble`). A plain `static_cast` of NaN or an out-of-range double is undefined behaviour.
 
 ### Register addressing gotcha
 

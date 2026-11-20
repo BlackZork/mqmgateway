@@ -334,6 +334,19 @@ The MQTT section contains broker definition and modbus register mappings. Mappin
   * **every_poll**: publish new MQTT value after every modbus register read.
   * **once**: publish MQTT value only once after the first successful read of modbus registers. You need to restart modmqttd to re-read already published value.
 
+* **publish_inf_nan** (string, optional, default null)
+
+  How NaN and infinite values are published on topics that do not have their own `publish_inf_nan`
+  declared. JSON has no notation for these values, so choose the form your subscribers can read:
+
+  * **null**: `null`.
+  * **literal**: `NaN`, `Infinity` and `-Infinity`. Not valid JSON, but Python's `json` module and
+    some other parsers read it.
+  * **string**: `"NaN"`, `"Infinity"` and `"-Infinity"`, in quotes.
+
+  The value can be written with or without quotes; an unquoted `null` works too.
+  See [NaN and infinity](#nan-and-infinity) for details.
+
 
 * **broker** (required)
 
@@ -414,6 +427,10 @@ A list of topics where modbus values are published to MQTT broker and subscribed
 
   Overrides `mqtt.publish_mode` for this topic. See `mqtt.publish_mode` for available modes.
 
+* **publish_inf_nan** (optional)
+
+  Overrides `mqtt.publish_inf_nan` for this topic. See `mqtt.publish_inf_nan` for available values.
+
 * **retain** (optional, default true)
 
   Sets the [MQTT RETAIN](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901104) flag for 
@@ -478,6 +495,12 @@ A single command is defined using following settings.
 
   The name of function that should be called to convert MQTT value to uint16_t value. Format of function name is `plugin name.function name`. See converters for details.
 
+* **null_as_nan** (optional, default false)
+
+  When true, a `null` payload is passed to the converter as NaN instead of being rejected. Use it
+  with a float converter when the publisher sends `null` for a missing value. A converter that
+  writes integers still rejects it. See [NaN and infinity](#nan-and-infinity).
+
 Example of MQTT command topic declaration:
 
 ```yaml
@@ -493,6 +516,10 @@ objects:
 Publishing value 100 to topic test_switch/set will write value 1 to register 2 on slave 1.
 
 Unless you provide a custom converter modmqttd expects register value as UTF-8 string value or JSON array with register values. You must provide exactly the same number of values as registers to write.
+
+A payload holding a single number may have spaces, tabs or a line end around it, and NUL bytes
+after it, as a client sending a line of text or a C string does. An empty payload, one holding only
+those characters, or one with more data after a NUL byte is rejected.
 
 ### The *state* section
 
@@ -716,6 +743,38 @@ Whether the mismatch also stops that value from being converted is up to the con
 reads whatever it is given, `std.float32` and `std.float64` refuse anything but their own width.
 Converters that work with any number of registers, such as `std.divide` and `std.string`, are never
 reported.
+
+### NaN and infinity
+
+A float register can hold NaN ("not a number") or positive or negative infinity, and some devices
+report a missing reading as NaN. `std.float32`, `std.float64` and `expr.evaluate` carry these values
+in both directions.
+
+When publishing, `publish_inf_nan` (see [MQTT section](#mqtt-section)) selects how they are written:
+
+* `null` (default): `null`
+* `literal`: `NaN`, `Infinity`, `-Infinity`
+* `string`: `"NaN"`, `"Infinity"`, `"-Infinity"`
+
+The same form is used inside a JSON object or list and on a topic that publishes a single value, so
+with `string` a single value topic receives `"NaN"` including the quotes. Two float32 values where
+the first one is NaN are published as `[null,1.5]`, `[NaN,1.5]` or `["NaN",1.5]`. NaN is written the
+same way whatever its sign bit, and `precision` does not change these forms.
+
+A command written through a float converter accepts:
+
+* `NaN`, `Infinity` and `-Infinity`, and the other spellings C's `strtod` reads, such as `nan`,
+  `inf` or `-INF`
+* any of these in double quotes, such as `"NaN"`. A quoted ordinary number such as `"1.5"` is still
+  rejected.
+* `null`, but only when the command sets `null_as_nan: true`
+
+The value is written to the registers as its IEEE 754 bit pattern. `expr.evaluate` writes it only
+when `write_as` is a float type (`flt32`, `flt32bs`, `flt64` or `flt64bs`).
+
+Every converter that writes an integer rejects NaN and infinity, including `std.divide`,
+`std.multiply` and the default handling of a command without a converter. The error is logged and
+nothing is written to the device.
 
 ### Standard converters
 
@@ -1317,6 +1376,10 @@ mqtt:
 * `read` — register reads are allowed; writes are rejected.
 * `readwrite` — register reads and writes are allowed.
 
+`rpc_inf_nan` sets how a read through a converter returns NaN and infinity: `null`, `literal` or
+`string`, as described for `mqtt.publish_inf_nan`. When it is not set, replies follow
+`mqtt.publish_inf_nan`.
+
 Enabling RPC (`read` or `readwrite`) switches the **whole broker connection to MQTT 5**,
 because the request/response exchange relies on MQTT5 properties (Response Topic,
 Correlation Data, User Properties). The protocol version is per-connection and backward
@@ -1372,7 +1435,8 @@ A read reply payload is exactly the value a poll of the same register(s) would p
 * **Raw** (no converter): a single register is a scalar string; several registers
   (`count > 1`) are a JSON array of unsigned 16-bit values.
 * **With a converter**: the converter's output string, identical to what the polled `state`
-  topic would publish with that converter (see [Data conversion](#data-conversion)).
+  topic would publish with that converter (see [Data conversion](#data-conversion)). NaN and
+  infinity are written as `rpc_inf_nan` sets.
 
 Read holding registers `10` and `11` of slave `1` on network `tcp1` as a 32-bit float:
 
@@ -1397,7 +1461,8 @@ A write needs `mode: readwrite`. The reply payload is empty on success.
   the number of registers the converter produces. The converter encodes the value exactly
   as a `command` topic with that converter would (see [Data conversion](#data-conversion)).
   For example `std.float32()` always writes two registers, so a converter write with it
-  requires `"count": 2`.
+  requires `"count": 2`. A float converter also takes `NaN`, `Infinity` and `-Infinity`, bare
+  or quoted; `null` is rejected.
 
 Write `-1.5` as a 32-bit float to holding registers `10` and `11`:
 
@@ -1416,7 +1481,8 @@ cannot be answered and is logged and dropped.
 On success the payload carries the register value(s):
 - **Read** — same scalar/array format as a polled state topic: a bare number string for a
   single register (`"42"`), a JSON array for multiple (`"[10,20]"`). If a converter was
-  specified, the converter's string value is returned instead.
+  specified, the converter's string value is returned instead, with NaN and infinity as
+  `rpc_inf_nan` sets.
 - **Write** — the raw uint16 value(s) that were written, in the same scalar/array format
   (`"77"` for one register, `"[10,20]"` for multiple). The converter is not re-applied on the
   reply; what you get back are the actual register words that were sent to the device. 
