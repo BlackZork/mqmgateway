@@ -26,7 +26,9 @@ cmake --build build --target tests   # build only the unit-test executable
 ```
 
 - If `exprtk.hpp` is found at configure time, the `exprconv` plugin is built and the tests are
-  compiled with `-DHAVE_EXPRTK`. If not found, exprtk-dependent tests are skipped.
+  compiled with `-DHAVE_EXPRTK`. If not found, exprtk-dependent tests are skipped. A header whose
+  declared release date is older than `EXPRTK_MIN_DATE` (`CMakeLists.txt`) fails configure: that
+  is the oldest exprtk the suite is run against (see *Release checks* below).
 - A pre-existing `build/` directory in the repo may be stale (configured from an old source
   path) — reconfigure into a clean directory if `cmake --build` complains about a mismatched
   `CMakeCache.txt`.
@@ -66,6 +68,21 @@ natively there; only 32-bit `arm/v7`+`arm/v6` are emulated (gated `Set up QEMU` 
 CI-log gotcha: the GitHub **web** log viewer truncates large buildkit build logs and can appear to
 freeze mid-`apk` — it is a rendering limitation, not a stuck build. The authoritative full log is
 the gear menu → **"View raw logs"**, or `gh run view <run-id> --log` / `--log-failed`.
+
+### Release checks (`buildtests/`)
+
+`buildtests/check_all.sh` (run from that directory; needs Docker) builds the tree in the Debian
+`gcc` image of each compiler it lists. With the last of them it then rebuilds `exprconv` against
+every exprtk header pinned in `buildtests/exprtk-versions` and runs the full suite for each, and
+checks that a header older than `EXPRTK_MIN_DATE` fails configure. Neither workflow runs it
+(`buildtests/*` is in their `paths-ignore`), and the release image downloads exprtk's unpinned
+`master`, so nothing else covers older compilers or older exprtk.
+
+**Before pushing a tag for a release build — the GitHub release that triggers `main.yml` — run
+`buildtests/check_all.sh` locally, and push only if it passes.** It pulls large compiler images
+and builds the tree once per compiler, so it is a release gate, not a per-commit check. When a new
+exprtk release appears, add it to `exprtk-versions`. Keep at least one header there dated before
+`EXPRTK_MIN_DATE`, so that the configure refusal stays tested.
 
 ### Running the daemon
 
