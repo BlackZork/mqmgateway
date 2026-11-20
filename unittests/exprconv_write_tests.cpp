@@ -157,6 +157,84 @@ TEST_CASE ("Expr.evaluate should") {
         );
     }
 
+    SECTION("write a not-a-number result as float32 bits") {
+        args.setArgValue("expression", "M0");
+        args.setArgValue("write_as", "flt32");
+
+        conv->setArgValues(args);
+        const ModbusRegisters output = conv->toModbus(MqttValue::fromString("NaN"), 2);
+
+        REQUIRE(output.values() == std::vector<uint16_t>({TestNumbers::Float::NAN_HIGH, TestNumbers::Float::NAN_LOW}));
+    }
+
+    SECTION("write a not-a-number result as float64 bits") {
+        args.setArgValue("expression", "M0");
+        args.setArgValue("write_as", "flt64");
+
+        conv->setArgValues(args);
+        const ModbusRegisters output = conv->toModbus(MqttValue::fromString("NaN"), 4);
+
+        const uint16_t* nan = TestNumbers::Double::NAN_REGISTERS;
+        REQUIRE(output.values() == std::vector<uint16_t>(nan, nan + 4));
+    }
+
+    SECTION("write a not-a-number fall-through value of an expression that can return a list") {
+        args.setArgValue("expression", "if (M0 > 100) { return [M0, M0]; }; M0");
+        args.setArgValue("write_as", "flt32");
+
+        conv->setArgValues(args);
+        const ModbusRegisters output = conv->toModbus(MqttValue::fromString("NaN"), 2);
+
+        REQUIRE(output.values() == std::vector<uint16_t>({TestNumbers::Float::NAN_HIGH, TestNumbers::Float::NAN_LOW}));
+    }
+
+    SECTION("reject a not-a-number result written as an integer") {
+        args.setArgValue("expression", "M0");
+        args.setArgValue("write_as", "int16");
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_WITH(conv->toModbus(MqttValue::fromString("NaN"), 1), Catch::Matchers::ContainsSubstring("out of int range"));
+    }
+
+    SECTION("reject a not-a-number passed to a register function") {
+        args.setArgValue("expression", "int16(M0)");
+        args.setArgValue("write_as", "int16");
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(conv->toModbus(MqttValue::fromString("NaN"), 1), ConvException);
+    }
+
+    SECTION("reject a value outside the register range passed to a register function") {
+        args.setArgValue("expression", "int16(M0)");
+        args.setArgValue("write_as", "int16");
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(conv->toModbus(MqttValue::fromInt(70000), 1), ConvException);
+    }
+
+    SECTION("reject an infinity passed to a four register function") {
+        args.setArgValue("expression", "flt64(M0, 0, 0, 0)");
+        args.setArgValue("write_as", "flt64");
+
+        conv->setArgValues(args);
+
+        REQUIRE_THROWS_AS(conv->toModbus(MqttValue::fromString("Infinity"), 4), ConvException);
+    }
+
+    SECTION("evaluate again after a register function rejected its argument") {
+        args.setArgValue("expression", "int16(M0)");
+        args.setArgValue("write_as", "int16");
+
+        conv->setArgValues(args);
+        REQUIRE_THROWS_AS(conv->toModbus(MqttValue::fromString("NaN"), 1), ConvException);
+
+        const ModbusRegisters output = conv->toModbus(MqttValue::fromInt(5), 1);
+
+        REQUIRE(output.values() == std::vector<uint16_t>({5}));
+    }
 }
 
 #endif

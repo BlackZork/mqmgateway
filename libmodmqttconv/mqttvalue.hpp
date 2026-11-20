@@ -213,15 +213,8 @@ class MqttValue {
 
         double getDouble() const {
             switch (mType) {
-            case SourceType::BINARY: {
-                char* endptr;
-                std::string strval(getString());
-                double ret = std::strtod(strval.c_str(), &endptr);
-                if (endptr == nullptr || *endptr != '\0') {
-                    throw ConvException(std::string("Cannot convert ") + strval + " to double");
-                }
-                return ret;
-            }
+            case SourceType::BINARY:
+                return parseFloatingPoint<double>(getString(), "double");
             case SourceType::INT:
                 return mValue.v_int;
             case SourceType::INT64:
@@ -250,15 +243,8 @@ class MqttValue {
          */
         long double getLongDouble() const {
             switch (mType) {
-            case SourceType::BINARY: {
-                char* endptr;
-                std::string strval(getString());
-                long double ret = std::strtold(strval.c_str(), &endptr);
-                if (endptr == nullptr || *endptr != '\0') {
-                    throw ConvException(std::string("Cannot convert ") + strval + " to long double");
-                }
-                return ret;
-            }
+            case SourceType::BINARY:
+                return parseFloatingPoint<long double>(getString(), "long double");
             case SourceType::INT:
                 return mValue.v_int;
             case SourceType::INT64:
@@ -464,6 +450,40 @@ class MqttValue {
 
             sstream << pValue;
             return sstream.str();
+        }
+
+        /**
+         * Parses a whole string as a floating point number. strtod and strtold
+         * already take the bare non-finite spellings (NaN, Infinity, inf, in
+         * any case). A JSON encoder that will not write those bare tokens
+         * quotes them instead ("NaN", "Infinity", "-Infinity"), so one pair of
+         * surrounding double quotes is accepted as well, but only around a
+         * non-finite value: a quoted finite number is still an error.
+         */
+        template <typename T>
+        static T parseFloatingPoint(const std::string& pStrval, const char* pTypeName) {
+            T ret;
+            if (parseWholeFloatingPoint(pStrval, ret)) {
+                return ret;
+            }
+            if (pStrval.size() > 2 && pStrval.front() == '"' && pStrval.back() == '"') {
+                if (parseWholeFloatingPoint(pStrval.substr(1, pStrval.size() - 2), ret) && !std::isfinite(ret)) {
+                    return ret;
+                }
+            }
+            throw ConvException(std::string("Cannot convert ") + pStrval + " to " + pTypeName);
+        }
+
+        static bool parseWholeFloatingPoint(const std::string& pStrval, double& pOut) {
+            char* endptr;
+            pOut = std::strtod(pStrval.c_str(), &endptr);
+            return endptr != nullptr && *endptr == '\0';
+        }
+
+        static bool parseWholeFloatingPoint(const std::string& pStrval, long double& pOut) {
+            char* endptr;
+            pOut = std::strtold(pStrval.c_str(), &endptr);
+            return endptr != nullptr && *endptr == '\0';
         }
 
         static uint64_t parseUInt64(const std::string& pStrval) {

@@ -44,6 +44,26 @@ add_compile_definitions(SPDLOG_COMPILED_LIB)
 find_path(EXPRTK_INCLUDE_DIR "exprtk.hpp")
 message(STATUS "EXPRTK_INCLUDE_DIR => ${EXPRTK_INCLUDE_DIR}")
 
+# exprconv relies on exprtk's return statement bookkeeping (return_present(),
+# return_invoked()) as it behaves in the releases it was tested against, so an
+# older header stops the build here instead of misbehaving at run time. The
+# release date is the only version marker exprtk.hpp carries that CMake can read.
+set(EXPRTK_MIN_DATE 20210101)
+if (EXPRTK_INCLUDE_DIR)
+    file(STRINGS "${EXPRTK_INCLUDE_DIR}/exprtk.hpp" EXPRTK_DATE_LINE
+         REGEX "^[ \t]*static[ \t]+[A-Za-z_ \t*]+[ \t*]date[ \t]*=[ \t]*\"[0-9]+\"")
+    string(REGEX MATCH "\"([0-9]+)\"" EXPRTK_DATE_MATCH "${EXPRTK_DATE_LINE}")
+    set(EXPRTK_DATE "${CMAKE_MATCH_1}")
+    if (NOT EXPRTK_DATE)
+        message(FATAL_ERROR "Cannot read the release date from ${EXPRTK_INCLUDE_DIR}/exprtk.hpp, "
+                            "exprconv needs exprtk dated ${EXPRTK_MIN_DATE} or newer")
+    elseif (EXPRTK_DATE LESS EXPRTK_MIN_DATE)
+        message(FATAL_ERROR "exprtk.hpp in ${EXPRTK_INCLUDE_DIR} is dated ${EXPRTK_DATE}, "
+                            "exprconv needs ${EXPRTK_MIN_DATE} or newer")
+    endif()
+    message(STATUS "exprtk date => ${EXPRTK_DATE}")
+endif()
+
 include_directories(${YAML_CPP_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIRS} .)
 
 SET(GCC_COMPILE_FLAGS "-Wformat -Werror=format-security -Wall -Wstrict-aliasing -Wno-psabi")

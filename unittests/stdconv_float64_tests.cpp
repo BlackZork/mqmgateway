@@ -137,6 +137,22 @@ TEST_CASE("A float64 value should be written") {
         REQUIRE(converted.values() == expected.values());
     }
 
+    SECTION("as a not-a-number from a quoted NaN") {
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(MqttValue::fromString("\"NaN\""), 4);
+
+        const uint16_t* nan = TestNumbers::Double::NAN_REGISTERS;
+        REQUIRE(converted.values() == std::vector<uint16_t>(nan, nan + 4));
+    }
+
+    SECTION("as an infinity from a bare -Infinity") {
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(MqttValue::fromString("-Infinity"), 4);
+
+        const uint16_t* inf = TestNumbers::Double::NEG_INF_REGISTERS;
+        REQUIRE(converted.values() == std::vector<uint16_t>(inf, inf + 4));
+    }
+
     SECTION("but not to any register count other than four") {
         conv->setArgValues(args);
 

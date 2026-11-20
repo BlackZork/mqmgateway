@@ -370,3 +370,70 @@ TEST_CASE("MqttValue narrowing accessors should accept") {
         REQUIRE(std::isinf(MqttValue::fromLongDouble(inf).getDouble()));
     }
 }
+
+TEST_CASE("MqttValue floating point getters should parse") {
+    SECTION("a bare NaN") {
+        const MqttValue val = MqttValue::fromString("NaN");
+
+        REQUIRE(std::isnan(val.getDouble()));
+        REQUIRE(std::isnan(val.getLongDouble()));
+    }
+
+    SECTION("a bare -Infinity") {
+        const MqttValue val = MqttValue::fromString("-Infinity");
+
+        REQUIRE(val.getDouble() == -std::numeric_limits<double>::infinity());
+        REQUIRE(val.getLongDouble() == -std::numeric_limits<long double>::infinity());
+    }
+
+    SECTION("a quoted NaN") {
+        const MqttValue val = MqttValue::fromString("\"NaN\"");
+
+        REQUIRE(std::isnan(val.getDouble()));
+        REQUIRE(std::isnan(val.getLongDouble()));
+    }
+
+    SECTION("a quoted Infinity") {
+        const MqttValue val = MqttValue::fromString("\"Infinity\"");
+
+        REQUIRE(val.getDouble() == std::numeric_limits<double>::infinity());
+        REQUIRE(val.getLongDouble() == std::numeric_limits<long double>::infinity());
+    }
+
+    SECTION("a quoted -Infinity") {
+        const MqttValue val = MqttValue::fromString("\"-Infinity\"");
+
+        REQUIRE(val.getDouble() == -std::numeric_limits<double>::infinity());
+        REQUIRE(val.getLongDouble() == -std::numeric_limits<long double>::infinity());
+    }
+}
+
+TEST_CASE("MqttValue floating point getters should reject") {
+    SECTION("a quoted finite number") {
+        const MqttValue val = MqttValue::fromString("\"1.5\"");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a null") {
+        const MqttValue val = MqttValue::fromString("null");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a NaN with an unbalanced quote") {
+        const MqttValue val = MqttValue::fromString("\"NaN");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a pair of quotes with nothing inside") {
+        const MqttValue val = MqttValue::fromString("\"\"");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+}

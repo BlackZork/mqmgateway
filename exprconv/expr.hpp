@@ -57,7 +57,11 @@ class ExprtkConverter : public DataConverter {
             typedef exprtk::results_context<long double> ResultsContext;
             const auto& results = mExpression.results();
 
-            if (std::isnan(exprval)) {
+            // A return statement makes value() yield NaN, but so can an ordinary
+            // expression (a NaN payload passed through, 0/0), so ask exprtk
+            // whether a return actually ran. return_invoked() dereferences a
+            // pointer that exists only when the expression contains a return.
+            if (mHasReturn && mExpression.return_invoked()) {
                 if (results.count() > 100)
                     throw ConvException("Too many values returned, max=100");
 
@@ -146,6 +150,7 @@ class ExprtkConverter : public DataConverter {
                 }
                 throw ConvException(error);
             }
+            mHasReturn = mParser.dec().return_present();
 
             mPrecision = values[ConverterArg::sPrecisionArgName].as_int();
             // for write only
@@ -192,33 +197,48 @@ class ExprtkConverter : public DataConverter {
         exprtk::parser<long double> mParser;
         exprtk::expression<long double> mExpression;
         mutable std::vector<long double> mValues;
+        bool mHasReturn = false;
         int mPrecision = ConverterArgValue::NO_PRECISION;
         std::string mWriteAs;
         WriteHelperIterator mWriteHelper = findWriteHelper(sDefaultWriteHelper);
         bool mWriteLowFirst = false;
 
+        /**
+         * A register function argument as the register it stands for. In a read
+         * expression it is a polled register, but a write expression can pass
+         * the payload (int16(M0)), and converting a value whose integral part
+         * does not fit uint16_t is undefined, so such a value (NaN and the
+         * infinities included) is rejected instead.
+         */
+        static uint16_t registerValue(const long double pValue) {
+            if (!(pValue > -1.0L) || !(pValue < 65536.0L)) {
+                throw ConvException("Register value expected, got " + std::to_string(pValue));
+            }
+            return static_cast<uint16_t>(pValue);
+        }
+
         static long double int32(const long double pHighRegister, const long double pLowRegister) {
-            return ConverterTools::toNumber<int32_t>(pHighRegister, pLowRegister, false);
+            return ConverterTools::toNumber<int32_t>(registerValue(pHighRegister), registerValue(pLowRegister), false);
         }
 
         static long double int32bs(const long double pHighRegister, const long double pLowRegister) {
-            return ConverterTools::toNumber<int32_t>(pHighRegister, pLowRegister, true);
+            return ConverterTools::toNumber<int32_t>(registerValue(pHighRegister), registerValue(pLowRegister), true);
         }
 
         static long double uint32(const long double pHighRegister, const long double pLowRegister) {
-            return ConverterTools::toNumber<uint32_t>(pHighRegister, pLowRegister, false);
+            return ConverterTools::toNumber<uint32_t>(registerValue(pHighRegister), registerValue(pLowRegister), false);
         }
 
         static long double uint32bs(const long double pHighRegister, const long double pLowRegister) {
-            return ConverterTools::toNumber<uint32_t>(pHighRegister, pLowRegister, true);
+            return ConverterTools::toNumber<uint32_t>(registerValue(pHighRegister), registerValue(pLowRegister), true);
         }
 
         static long double flt32(const long double pHighRegister, const long double pLowRegister) {
-            return ConverterTools::toNumber<float>(pHighRegister, pLowRegister, false);
+            return ConverterTools::toNumber<float>(registerValue(pHighRegister), registerValue(pLowRegister), false);
         }
 
         static long double flt32bs(const long double pHighRegister, const long double pLowRegister) {
-            return ConverterTools::toNumber<float>(pHighRegister, pLowRegister, true);
+            return ConverterTools::toNumber<float>(registerValue(pHighRegister), registerValue(pLowRegister), true);
         }
 
         /**
@@ -228,8 +248,7 @@ class ExprtkConverter : public DataConverter {
          */
         static std::vector<uint16_t> toRegisters(const long double pWord0, const long double pWord1, const long double pWord2,
                                                  const long double pWord3) {
-            return {static_cast<uint16_t>(pWord0), static_cast<uint16_t>(pWord1), static_cast<uint16_t>(pWord2),
-                    static_cast<uint16_t>(pWord3)};
+            return {registerValue(pWord0), registerValue(pWord1), registerValue(pWord2), registerValue(pWord3)};
         }
 
         static long double int64(const long double pWord0, const long double pWord1, const long double pWord2, const long double pWord3) {
@@ -257,18 +276,18 @@ class ExprtkConverter : public DataConverter {
         }
 
         static long double int16(const long double pRegValue) {
-            uint16_t val = uint16_t(pRegValue);
+            uint16_t val = registerValue(pRegValue);
             return (int16_t)val;
         }
 
         static long double uint16bs(const long double pRegValue) {
-            uint16_t val = uint16_t(pRegValue);
+            uint16_t val = registerValue(pRegValue);
             val = ConverterTools::setByteOrder(val, true);
             return val;
         }
 
         static long double int16bs(const long double pRegValue) {
-            uint16_t val = uint16_t(pRegValue);
+            uint16_t val = registerValue(pRegValue);
             val = ConverterTools::setByteOrder(val, true);
             return (int16_t)(val);
         }
