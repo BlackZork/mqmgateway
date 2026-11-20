@@ -128,6 +128,34 @@ TEST_CASE("A float32 value should be written") {
         REQUIRE(converted.values() == expected.values());
     }
 
+    SECTION("as a not-a-number from a bare NaN") {
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(MqttValue::fromString("NaN"), 2);
+
+        REQUIRE(converted.values() == std::vector<uint16_t>({TestNumbers::Float::NAN_HIGH, TestNumbers::Float::NAN_LOW}));
+    }
+
+    SECTION("as a not-a-number from a quoted NaN") {
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(MqttValue::fromString("\"NaN\""), 2);
+
+        REQUIRE(converted.values() == std::vector<uint16_t>({TestNumbers::Float::NAN_HIGH, TestNumbers::Float::NAN_LOW}));
+    }
+
+    SECTION("as an infinity from a bare -Infinity") {
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(MqttValue::fromString("-Infinity"), 2);
+
+        REQUIRE(converted.values() == std::vector<uint16_t>({TestNumbers::Float::NEG_INF_HIGH, TestNumbers::Float::NEG_INF_LOW}));
+    }
+
+    SECTION("as an infinity from a quoted Infinity") {
+        conv->setArgValues(args);
+        const ModbusRegisters converted = conv->toModbus(MqttValue::fromString("\"Infinity\""), 2);
+
+        REQUIRE(converted.values() == std::vector<uint16_t>({TestNumbers::Float::POS_INF_HIGH, TestNumbers::Float::POS_INF_LOW}));
+    }
+
     SECTION("but not to any register count other than two") {
         conv->setArgValues(args);
 

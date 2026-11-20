@@ -40,6 +40,7 @@ class MqttClient {
         void setObjects(const MqttPollObjMap& pObjects) { mObjects = pObjects; };
         void setCommandObjects(const MqttCmdObjMap& pCmdObjects) { mCommandObjects = pCmdObjects; }
         void setRpcMode(RpcMode pMode) { mRpcMode = pMode; }
+        void setRpcInfNanMode(InfNanMode pMode) { mRpcInfNanMode = pMode; }
 
         void addCommand(const MqttObjectCommand& pCommand);
         const std::map<std::string, MqttObjectCommand>& getCommands() const { return mCommands; }
@@ -108,6 +109,8 @@ class MqttClient {
         DefaultCommandConverter mDefaultConverter;
 
         RpcMode mRpcMode = RpcMode::DISABLED;
+        // how a NaN or infinite value read through a converter is written in the reply
+        InfNanMode mRpcInfNanMode = InfNanMode::JSON_NULL;
         std::string mRpcRequestTopic;
         int mNextRpcId = 0;
         MqttRpcPendingMap mPendingRpc;

@@ -151,6 +151,36 @@ parsePublishMode(const YAML::Node& data, PublishMode pDefault = PublishMode::ON_
     throw ConfigurationException(data.Mark(), std::string("Invalid publish mode '") + pmode + "', valid values are: on_change, every_poll");
 }
 
+/**
+ * Reads how NaN and the infinities are published. The values are meant to be
+ * written unquoted, and an unquoted null is a YAML null node rather than a
+ * string, which ConfigTools rejects, so the node is inspected here directly.
+ */
+InfNanMode
+parseInfNanMode(const YAML::Node& pParent, const char* pKey, InfNanMode pDefault) {
+    const YAML::Node& node = pParent[pKey];
+    if (!node.IsDefined()) {
+        return pDefault;
+    }
+    if (node.IsNull()) {
+        return InfNanMode::JSON_NULL;
+    }
+    if (!node.IsScalar()) {
+        throw ConfigurationException(node.Mark(), std::string(pKey) + " must have a single value");
+    }
+
+    const std::string& value = node.Scalar();
+    if (value == "null") {
+        return InfNanMode::JSON_NULL;
+    } else if (value == "literal") {
+        return InfNanMode::LITERAL;
+    } else if (value == "string") {
+        return InfNanMode::STRING;
+    }
+
+    throw ConfigurationException(node.Mark(), std::string("Invalid ") + pKey + " '" + value + "', valid values are: null, literal, string");
+}
+
 MqttObjectCommand::PayloadType
 parsePayloadType(const YAML::Node& data) {
     //for future support for int and float mqtt command payload types
@@ -385,8 +415,11 @@ void ModMqtt::initBroker(const YAML::Node& config) {
     mMqtt->setClientId(clientId);
 
     RpcMode rpcMode = RpcMode::DISABLED;
+    // replies use the state topics' encoding unless the rpc section sets its own
+    InfNanMode rpcInfNanMode = parseInfNanMode(mqtt, "publish_inf_nan", InfNanMode::JSON_NULL);
     if (mqtt["rpc"].IsDefined()) {
         const YAML::Node& rpc = mqtt["rpc"];
+        rpcInfNanMode = parseInfNanMode(rpc, "rpc_inf_nan", rpcInfNanMode);
         std::string modeStr = "disabled";
         ConfigTools::readOptionalValue<std::string>(modeStr, rpc, "mode");
         if (modeStr == "disabled") {
@@ -402,6 +435,7 @@ void ModMqtt::initBroker(const YAML::Node& config) {
         }
     }
     mMqtt->setRpcMode(rpcMode);
+    mMqtt->setRpcInfNanMode(rpcInfNanMode);
 
     const YAML::Node& broker = mqtt["broker"];
     if (!broker.IsDefined())
@@ -515,8 +549,8 @@ ModMqtt::parseObject(
     const std::string& pSlaveName,
     std::chrono::milliseconds pDefaultRefresh,
     PublishMode pDefaultPublishMode,
-    std::vector<MsgRegisterPollSpecification>& pSpecsOut)
-{
+    InfNanMode pDefaultInfNanMode,
+    std::vector<MsgRegisterPollSpecification>& pSpecsOut) {
     std::string topic(ConfigTools::readRequiredString(pData, "topic"));
 
     // fill network placeholder if any
@@ -563,6 +597,8 @@ ModMqtt::parseObject(
     bool retain = true;
     if (ConfigTools::readOptionalValue<bool>(retain, pData, "retain"))
         ret.setRetain(retain);
+
+    ret.setInfNanMode(parseInfNanMode(pData, "publish_inf_nan", pDefaultInfNanMode));
 
     std::chrono::milliseconds everyPollRefresh = pDefaultRefresh;
     const YAML::Node& yState = pData["state"];
@@ -731,6 +767,7 @@ ModMqtt::parseObjectCommand(
         count,
         writeMode
     );
+    ConfigTools::readOptionalValue<bool>(cmd.mNullAsNan, node, "null_as_nan");
 
     const YAML::Node& converterNode = node["converter"];
     if (converterNode.IsDefined()) {
@@ -828,6 +865,7 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
     ConfigTools::readOptionalValue<std::chrono::milliseconds>(defaultRefresh, mqtt, "refresh");
 
     PublishMode defaultPublishMode = parsePublishMode(mqtt);
+    InfNanMode defaultInfNanMode = parseInfNanMode(mqtt, "publish_inf_nan", InfNanMode::JSON_NULL);
 
     const YAML::Node& config_objects = mqtt["objects"];
     if (!config_objects.IsDefined())
@@ -881,8 +919,8 @@ ModMqtt::initObjects(const YAML::Node& config, const ModMqtt::ModbusInitData& mo
                         modbusData.getSlaveName(currentNetwork, defaultSlaveId),
                         objectRefresh,
                         defaultPublishMode,
-                        pSpecsOut)
-                    );
+                        defaultInfNanMode,
+                        pSpecsOut));
                     const std::string& baseTopic(object.getTopic());
 
                     std::vector<MqttObject>::const_iterator oit = std::find_if(

@@ -193,6 +193,27 @@ class MqttValue {
             mType = SourceType::BINARY;
         }
 
+        /**
+         * The text of a scalar payload, as the number parsers below read it.
+         * A C client may send its string terminator, or a buffer padded with
+         * them, and a shell pipeline may append a line end, so trailing NUL
+         * bytes and ASCII whitespace around the value are dropped. A NUL
+         * followed by anything else is not a terminator: such a payload is
+         * rejected rather than read up to the NUL.
+         */
+        static std::string scalarText(const std::string& pPayload) {
+            static const std::string trailing(" \t\r\n\0", 5);
+            const size_t last = pPayload.find_last_not_of(trailing);
+            if (last == std::string::npos) {
+                return std::string();
+            }
+            if (pPayload.find('\0') < last) {
+                throw ConvException("Payload has data after a NUL byte");
+            }
+            const size_t first = pPayload.find_first_not_of(" \t\r\n");
+            return pPayload.substr(first, last - first + 1);
+        }
+
         std::string getString() const {
             switch (mType) {
             case SourceType::BINARY:
@@ -213,15 +234,8 @@ class MqttValue {
 
         double getDouble() const {
             switch (mType) {
-            case SourceType::BINARY: {
-                char* endptr;
-                std::string strval(getString());
-                double ret = std::strtod(strval.c_str(), &endptr);
-                if (endptr == nullptr || *endptr != '\0') {
-                    throw ConvException(std::string("Cannot convert ") + strval + " to double");
-                }
-                return ret;
-            }
+            case SourceType::BINARY:
+                return parseFloatingPoint<double>(scalarText(getString()), "double");
             case SourceType::INT:
                 return mValue.v_int;
             case SourceType::INT64:
@@ -250,15 +264,8 @@ class MqttValue {
          */
         long double getLongDouble() const {
             switch (mType) {
-            case SourceType::BINARY: {
-                char* endptr;
-                std::string strval(getString());
-                long double ret = std::strtold(strval.c_str(), &endptr);
-                if (endptr == nullptr || *endptr != '\0') {
-                    throw ConvException(std::string("Cannot convert ") + strval + " to long double");
-                }
-                return ret;
-            }
+            case SourceType::BINARY:
+                return parseFloatingPoint<long double>(scalarText(getString()), "long double");
             case SourceType::INT:
                 return mValue.v_int;
             case SourceType::INT64:
@@ -277,9 +284,9 @@ class MqttValue {
             switch (mType) {
             case SourceType::BINARY: {
                 char* endptr;
-                std::string strval(getString());
+                const std::string strval(scalarText(getString()));
                 int32_t ret = std::strtol(strval.c_str(), &endptr, 0);
-                if (endptr == nullptr || *endptr != '\0') {
+                if (endptr == nullptr || endptr == strval.c_str() || *endptr != '\0') {
                     throw ConvException(std::string("Cannot convert ") + strval + " to int");
                 }
                 return ret;
@@ -294,7 +301,7 @@ class MqttValue {
                 }
                 return static_cast<int32_t>(mValue.v_uint64);
             case SourceType::DOUBLE:
-                return mValue.v_double;
+                return floatToInt32(mValue.v_double);
             case SourceType::FLOAT64:
                 return floatToInt32(mValue.v_ldouble);
             }
@@ -312,9 +319,9 @@ class MqttValue {
             switch (mType) {
             case SourceType::BINARY: {
                 char* endptr;
-                std::string strval(getString());
+                const std::string strval(scalarText(getString()));
                 int64_t ret = std::strtoll(strval.c_str(), &endptr, 10);
-                if (endptr == nullptr || *endptr != '\0') {
+                if (endptr == nullptr || endptr == strval.c_str() || *endptr != '\0') {
                     throw ConvException(std::string("Cannot convert ") + strval + " to int64");
                 }
                 return ret;
@@ -329,7 +336,7 @@ class MqttValue {
                 }
                 return static_cast<int64_t>(mValue.v_uint64);
             case SourceType::DOUBLE:
-                return mValue.v_double;
+                return floatToInt64(mValue.v_double);
             case SourceType::FLOAT64:
                 return floatToInt64(mValue.v_ldouble);
             }
@@ -339,7 +346,7 @@ class MqttValue {
         uint64_t getUInt64() const {
             switch (mType) {
             case SourceType::BINARY:
-                return parseUInt64(getString());
+                return parseUInt64(scalarText(getString()));
             case SourceType::INT:
                 return signedToUInt64(mValue.v_int);
             case SourceType::INT64:
@@ -464,6 +471,40 @@ class MqttValue {
 
             sstream << pValue;
             return sstream.str();
+        }
+
+        /**
+         * Parses a whole string as a floating point number. strtod and strtold
+         * already take the bare non-finite spellings (NaN, Infinity, inf, in
+         * any case). A JSON encoder that will not write those bare tokens
+         * quotes them instead ("NaN", "Infinity", "-Infinity"), so one pair of
+         * surrounding double quotes is accepted as well, but only around a
+         * non-finite value: a quoted finite number is still an error.
+         */
+        template <typename T>
+        static T parseFloatingPoint(const std::string& pStrval, const char* pTypeName) {
+            T ret;
+            if (parseWholeFloatingPoint(pStrval, ret)) {
+                return ret;
+            }
+            if (pStrval.size() > 2 && pStrval.front() == '"' && pStrval.back() == '"') {
+                if (parseWholeFloatingPoint(pStrval.substr(1, pStrval.size() - 2), ret) && !std::isfinite(ret)) {
+                    return ret;
+                }
+            }
+            throw ConvException(std::string("Cannot convert ") + pStrval + " to " + pTypeName);
+        }
+
+        static bool parseWholeFloatingPoint(const std::string& pStrval, double& pOut) {
+            char* endptr;
+            pOut = std::strtod(pStrval.c_str(), &endptr);
+            return endptr != nullptr && endptr != pStrval.c_str() && *endptr == '\0';
+        }
+
+        static bool parseWholeFloatingPoint(const std::string& pStrval, long double& pOut) {
+            char* endptr;
+            pOut = std::strtold(pStrval.c_str(), &endptr);
+            return endptr != nullptr && endptr != pStrval.c_str() && *endptr == '\0';
         }
 
         static uint64_t parseUInt64(const std::string& pStrval) {

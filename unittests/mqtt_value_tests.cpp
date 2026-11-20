@@ -317,6 +317,42 @@ TEST_CASE("MqttValue narrowing accessors should reject") {
 
         REQUIRE_THROWS_AS(val.getInt(), ConvException);
     }
+
+    SECTION("an int that does not fit, read from a double") {
+        const MqttValue val = MqttValue::fromDouble(1e30);
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+    }
+
+    SECTION("an int64 that does not fit, read from a double") {
+        const MqttValue val = MqttValue::fromDouble(1e30);
+
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+    }
+
+    SECTION("a not-a-number double that cannot narrow to an int") {
+        const MqttValue val = MqttValue::fromDouble(std::numeric_limits<double>::quiet_NaN());
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+    }
+
+    SECTION("a not-a-number double that cannot narrow to an int64") {
+        const MqttValue val = MqttValue::fromDouble(std::numeric_limits<double>::quiet_NaN());
+
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+    }
+
+    SECTION("an infinite double that cannot narrow to an int") {
+        const MqttValue val = MqttValue::fromDouble(std::numeric_limits<double>::infinity());
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+    }
+
+    SECTION("an infinite double that cannot narrow to an int64") {
+        const MqttValue val = MqttValue::fromDouble(-std::numeric_limits<double>::infinity());
+
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+    }
 }
 
 TEST_CASE("MqttValue narrowing accessors should accept") {
@@ -332,5 +368,131 @@ TEST_CASE("MqttValue narrowing accessors should accept") {
         const long double inf = std::numeric_limits<long double>::infinity();
 
         REQUIRE(std::isinf(MqttValue::fromLongDouble(inf).getDouble()));
+    }
+}
+
+TEST_CASE("MqttValue floating point getters should parse") {
+    SECTION("a bare NaN") {
+        const MqttValue val = MqttValue::fromString("NaN");
+
+        REQUIRE(std::isnan(val.getDouble()));
+        REQUIRE(std::isnan(val.getLongDouble()));
+    }
+
+    SECTION("a bare -Infinity") {
+        const MqttValue val = MqttValue::fromString("-Infinity");
+
+        REQUIRE(val.getDouble() == -std::numeric_limits<double>::infinity());
+        REQUIRE(val.getLongDouble() == -std::numeric_limits<long double>::infinity());
+    }
+
+    SECTION("a quoted NaN") {
+        const MqttValue val = MqttValue::fromString("\"NaN\"");
+
+        REQUIRE(std::isnan(val.getDouble()));
+        REQUIRE(std::isnan(val.getLongDouble()));
+    }
+
+    SECTION("a quoted Infinity") {
+        const MqttValue val = MqttValue::fromString("\"Infinity\"");
+
+        REQUIRE(val.getDouble() == std::numeric_limits<double>::infinity());
+        REQUIRE(val.getLongDouble() == std::numeric_limits<long double>::infinity());
+    }
+
+    SECTION("a quoted -Infinity") {
+        const MqttValue val = MqttValue::fromString("\"-Infinity\"");
+
+        REQUIRE(val.getDouble() == -std::numeric_limits<double>::infinity());
+        REQUIRE(val.getLongDouble() == -std::numeric_limits<long double>::infinity());
+    }
+}
+
+TEST_CASE("MqttValue floating point getters should reject") {
+    SECTION("a quoted finite number") {
+        const MqttValue val = MqttValue::fromString("\"1.5\"");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a null") {
+        const MqttValue val = MqttValue::fromString("null");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a NaN with an unbalanced quote") {
+        const MqttValue val = MqttValue::fromString("\"NaN");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a pair of quotes with nothing inside") {
+        const MqttValue val = MqttValue::fromString("\"\"");
+
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+}
+
+static MqttValue
+payload(const std::string& pBytes) {
+    return MqttValue::fromBinary(pBytes.data(), pBytes.size());
+}
+
+TEST_CASE("MqttValue number parsing should accept") {
+    SECTION("a trailing line end") {
+        REQUIRE(payload("7\n").getInt() == 7);
+        REQUIRE(payload("7\r\n").getInt64() == 7);
+        REQUIRE(payload("7\n").getUInt64() == 7);
+        REQUIRE(payload("1.5\r\n").getDouble() == 1.5);
+        REQUIRE(payload("1.5\n").getLongDouble() == 1.5L);
+    }
+
+    SECTION("a trailing string terminator") {
+        REQUIRE(payload(std::string("7\0", 2)).getInt() == 7);
+        REQUIRE(payload(std::string("7\0", 2)).getUInt64() == 7);
+        REQUIRE(std::isnan(payload(std::string("NaN\0", 4)).getDouble()));
+    }
+
+    SECTION("a fixed size buffer padded with terminators") {
+        REQUIRE(payload(std::string("7\0\0\0", 4)).getInt64() == 7);
+    }
+
+    SECTION("whitespace and a terminator around a quoted NaN") {
+        REQUIRE(std::isnan(payload(std::string(" \"NaN\"\n\0", 9)).getDouble()));
+        REQUIRE(std::isnan(payload(std::string(" \"NaN\"\n\0", 9)).getLongDouble()));
+    }
+}
+
+TEST_CASE("MqttValue number parsing should reject") {
+    SECTION("an empty payload") {
+        const MqttValue val = payload("");
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getUInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
+    }
+
+    SECTION("a payload of whitespace and terminators only") {
+        const MqttValue val = payload(std::string(" \r\n\0", 4));
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+    }
+
+    SECTION("bytes after a string terminator") {
+        const MqttValue val = payload(std::string("7\0junk", 6));
+
+        REQUIRE_THROWS_AS(val.getInt(), ConvException);
+        REQUIRE_THROWS_AS(val.getInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getUInt64(), ConvException);
+        REQUIRE_THROWS_AS(val.getDouble(), ConvException);
+        REQUIRE_THROWS_AS(val.getLongDouble(), ConvException);
     }
 }

@@ -231,6 +231,9 @@ class MqttObject {
         void setRetain(bool pFlag) { mRetain = pFlag; }
         bool getRetain() const { return mRetain; }
 
+        void setInfNanMode(InfNanMode pMode) { mInfNanMode = pMode; }
+        InfNanMode getInfNanMode() const { return mInfNanMode; }
+
         bool needStateRepublish(const std::chrono::steady_clock::time_point& pReadStartTime) const;
 
         MqttObjectState mState;
@@ -248,6 +251,7 @@ class MqttObject {
 
         bool mRetain = true;
         PublishMode mPublishMode;
+        InfNanMode mInfNanMode = InfNanMode::JSON_NULL;
         std::string mLastPublishedPayload;
         std::chrono::steady_clock::time_point mLastPublishTime = std::chrono::steady_clock::time_point::min();
         // start of the modbus read behind the last published value, used to

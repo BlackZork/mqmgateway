@@ -50,6 +50,8 @@ add_executable(tests
     mqtt_availablility_tests.cpp
     mqtt_command_tests.cpp
     mqtt_command_only_tests.cpp
+    mqtt_inf_nan_command_tests.cpp
+    mqtt_inf_nan_tests.cpp
     mqtt_command_conv_tests.cpp
     mqtt_every_poll_tests.cpp
     mqtt_expr_conv_tests.cpp

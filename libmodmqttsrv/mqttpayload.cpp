@@ -1,5 +1,7 @@
 #include "mqttpayload.hpp"
 
+#include <cmath>
+#include <cstring>
 #include <optional>
 #include <stdexcept>
 
@@ -9,8 +11,80 @@
 
 namespace modmqttd {
 
+/**
+ * The spelling of NaN or an infinity, or nullptr for any other value. NaN has
+ * one spelling whatever its sign bit, which iostream would print as -nan.
+ */
+static const char*
+nonFiniteToken(const MqttValue& pValue) {
+    switch (pValue.getSourceType()) {
+    case MqttValue::SourceType::DOUBLE:
+    case MqttValue::SourceType::FLOAT64: {
+        const long double value = pValue.getLongDouble();
+        if (std::isnan(value)) {
+            return "NaN";
+        }
+        if (std::isinf(value)) {
+            return value > 0 ? "Infinity" : "-Infinity";
+        }
+        return nullptr;
+    }
+    case MqttValue::SourceType::BINARY:
+    case MqttValue::SourceType::INT:
+    case MqttValue::SourceType::INT64:
+    case MqttValue::SourceType::UINT64:
+        return nullptr;
+    }
+    throw std::logic_error("Unhandled MqttValue source type " + std::to_string(pValue.getSourceType()));
+}
+
+static void
+writeIntegral(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttValue::IntegralValue& pIntegral) {
+    if (pIntegral.isSigned()) {
+        pWriter.Int64(pIntegral.asInt64());
+    } else {
+        pWriter.Uint64(pIntegral.asUInt64());
+    }
+}
+
+std::string
+MqttPayload::encodeScalar(const MqttValue& pValue, InfNanMode pMode) {
+    const char* token = nonFiniteToken(pValue);
+    if (token == nullptr) {
+        return pValue.getString();
+    }
+    switch (pMode) {
+    case InfNanMode::JSON_NULL:
+        return "null";
+    case InfNanMode::LITERAL:
+        return token;
+    case InfNanMode::STRING:
+        return std::string("\"") + token + "\"";
+    }
+    throw std::logic_error("Unhandled InfNanMode");
+}
+
 void
-createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttValue& pValue) {
+createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttValue& pValue, InfNanMode pMode) {
+    // Before any precision handling: Writer::Double() refuses NaN and the
+    // infinities, writing nothing at all, and narrowing them to an integer
+    // throws.
+    const char* token = nonFiniteToken(pValue);
+    if (token != nullptr) {
+        switch (pMode) {
+        case InfNanMode::JSON_NULL:
+            pWriter.Null();
+            return;
+        case InfNanMode::LITERAL:
+            pWriter.RawValue(token, std::strlen(token), rapidjson::kNumberType);
+            return;
+        case InfNanMode::STRING:
+            pWriter.String(token);
+            return;
+        }
+        throw std::logic_error("Unhandled InfNanMode");
+    }
+
     switch (pValue.getSourceType()) {
     case MqttValue::SourceType::INT:
         pWriter.Int(pValue.getInt());
@@ -25,7 +99,15 @@ createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const 
         }
 
         if (prec == 0) {
-            pWriter.Int64(pValue.getInt64());
+            // a whole value goes through asIntegral() as in the FLOAT64 arm, so
+            // one above INT64_MAX is still written; a fractional one loses its
+            // decimals, as asked
+            const std::optional<MqttValue::IntegralValue> integral = pValue.asIntegral();
+            if (integral.has_value()) {
+                writeIntegral(pWriter, *integral);
+            } else {
+                pWriter.Int64(pValue.getInt64());
+            }
         } else {
             pWriter.Double(pValue.getDouble());
         }
@@ -54,11 +136,7 @@ createConvertedValue(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const 
         if (prec <= 0) {
             const std::optional<MqttValue::IntegralValue> integral = pValue.asIntegral();
             if (integral.has_value()) {
-                if (integral->isSigned()) {
-                    pWriter.Int64(integral->asInt64());
-                } else {
-                    pWriter.Uint64(integral->asUInt64());
-                }
+                writeIntegral(pWriter, *integral);
                 return;
             }
             if (prec != MqttValue::NO_PRECISION) {
@@ -94,16 +172,16 @@ bool isList(const MqttObjectDataNodeList& pNodes) {
 
 
 void
-generateJson(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttObjectDataNodeList& pNodes) {
+generateJson(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttObjectDataNodeList& pNodes, InfNanMode pMode) {
     if (isMap(pNodes)) {
         pWriter.StartObject();
         for(const MqttObjectDataNode& node: pNodes) {
             pWriter.Key(node.getName().c_str());
             if (node.isScalar() || node.hasConverter()) {
                 MqttValue v = node.getConvertedValue();
-                createConvertedValue(pWriter, v);
+                createConvertedValue(pWriter, v, pMode);
             } else {
-                generateJson(pWriter, node.getChildNodes());
+                generateJson(pWriter, node.getChildNodes(), pMode);
             }
         }
         pWriter.EndObject();
@@ -112,16 +190,16 @@ generateJson(rapidjson::Writer<rapidjson::StringBuffer>& pWriter, const MqttObje
         for(const MqttObjectDataNode& node: pNodes) {
             if (node.isScalar() || node.hasConverter()) {
                 MqttValue v = node.getConvertedValue();
-                createConvertedValue(pWriter, v);
+                createConvertedValue(pWriter, v, pMode);
             } else {
-                generateJson(pWriter, node.getChildNodes());
+                generateJson(pWriter, node.getChildNodes(), pMode);
             }
         }
         pWriter.EndArray();
     } else {
         //single scalar
         MqttValue v = pNodes.front().getConvertedValue();
-        createConvertedValue(pWriter, v);
+        createConvertedValue(pWriter, v, pMode);
     }
 }
 
@@ -135,14 +213,14 @@ MqttPayload::generate(const MqttObject& pObj) {
         const MqttObjectDataNode& single(nodes[0]);
         if (single.isUnnamed() && (single.isScalar() || single.hasConverter())) {
             MqttValue v = single.getConvertedValue();
-            return v.getString();
+            return encodeScalar(v, pObj.getInfNanMode());
         }
     };
     // single non-scalar node or a list
     {
         rapidjson::StringBuffer ret;
         rapidjson::Writer<rapidjson::StringBuffer> writer(ret);
-        generateJson(writer, nodes);
+        generateJson(writer, nodes, pObj.getInfNanMode());
         return ret.GetString();
     }
 }

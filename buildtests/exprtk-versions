@@ -1,0 +1,11 @@
+# exprtk.hpp headers the build is checked against, one per line:
+#   <release date the header declares> <exprtk commit>
+# The image downloads each one and refuses a header whose declared date differs
+# from its line. A header dated before EXPRTK_MIN_DATE in CMakeLists.txt must
+# make configure fail; every other one must build and pass the unit tests.
+20160909 ed5eec1836abea2c471de5381055766358603246
+20210101 17ba4d15e2f78f62d90a20358d85d38ec644ea7b
+20220101 806c519c91fd08ba4fa19380dbf3f6e42de9e2d1
+20230101 f46bffcd6966d38a09023fb37ba9335214c9b959
+20240101 a4b17d543f072d2e3ba564e4bc5c3a0d2b05c338
+20250101 1e4a80b5ec9b4832ed59c6faa65f625a01b18ef0

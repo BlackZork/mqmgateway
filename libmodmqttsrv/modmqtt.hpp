@@ -101,8 +101,8 @@ class ModMqtt {
             const std::string& pSlaveName,
             std::chrono::milliseconds pDefaultRefresh,
             PublishMode pDefaultPublishMode,
-            std::vector<MsgRegisterPollSpecification>& pSpecsOut
-        );
+            InfNanMode pDefaultInfNanMode,
+            std::vector<MsgRegisterPollSpecification>& pSpecsOut);
 
         MqttObjectDataNode parseObjectDataNode(
             const YAML::Node& pNode,

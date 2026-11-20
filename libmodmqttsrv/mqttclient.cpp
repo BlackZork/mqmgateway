@@ -1,5 +1,6 @@
 #include <cstring>
 #include <cassert>
+#include <limits>
 #include <map>
 
 #include <rapidjson/document.h>
@@ -337,7 +338,13 @@ createMqttValue(const MqttObjectCommand& command, const void* data, int datalen)
 
     switch (command.mPayloadType) {
     case MqttObjectCommand::PayloadType::STRING:
-        ret = MqttValue::fromBinary(data, datalen);
+        // a JSON encoder that writes NaN as null gets it written as NaN only on
+        // request: by default null stays an error, as it may as well mean "no value"
+        if (command.mNullAsNan && MqttValue::scalarText(std::string(static_cast<const char*>(data), datalen)) == "null") {
+            ret = MqttValue::fromDouble(std::numeric_limits<double>::quiet_NaN());
+        } else {
+            ret = MqttValue::fromBinary(data, datalen);
+        }
         break;
     default:
         throw MqttPayloadConversionException("Conversion failed, unknown payload type" + std::to_string(command.mPayloadType));
@@ -445,7 +452,9 @@ MqttClient::handleRpcRequest(const void* pPayload, int pPayloadlen,
     try {
         rapidjson::Document doc;
         const char* src = static_cast<const char*>(pPayload);
-        doc.Parse(src, pPayloadlen);
+        // NaN, Infinity and -Infinity are not JSON, but a bare one in "value" is
+        // unambiguous for a float converter; an integer converter rejects it
+        doc.Parse<rapidjson::kParseNanAndInfFlag>(src, pPayloadlen);
         if (doc.HasParseError()) {
             size_t off = doc.GetErrorOffset();
             int line = 1, col = 1;
@@ -623,8 +632,9 @@ MqttClient::publishRpcResponse(const std::string& pNetworkName, const MsgRegiste
     std::string payload;
     try {
         if (!pending.mIsWrite && pending.mConverter != nullptr) {
-            // read with a converter: converter output is the payload, exactly as a poll would publish it
-            payload = pending.mConverter->toMqtt(pValues.mRegisters).getString();
+            // read with a converter: converter output is the payload, as a poll would publish it
+            // to a plain topic, with NaN and the infinities written in rpc_inf_nan's encoding
+            payload = MqttPayload::encodeScalar(pending.mConverter->toMqtt(pValues.mRegisters), mRpcInfNanMode);
         } else if (pValues.mRegisters.getCount() == 1) {
             // bare raw value: scalar string for count==1, JSON array for count>1
             // (same shape as MqttPayload::generate for a plain poll with no converter)
